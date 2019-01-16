@@ -191,7 +191,7 @@ inpForm.defval = [inpForm.defval {true     true    500    zeros(1,0) 'or'       
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]   [1 1]  [1 -4]     [1 -10]    }];
 
 inpForm.fname  = [inpForm.fname  {'lineStyle'     'lineWidth' 'sortMode'}];
-inpForm.defval = [inpForm.defval {{'-' 'o-' '--'} 0.5         false     }];
+inpForm.defval = [inpForm.defval {{'-' 'o-' '--'} 0.5         true     }];
 inpForm.size   = [inpForm.size   {[1 -5]          [1 1]       [1 1]     }];
 
 inpForm.fname  = [inpForm.fname  {'log' 'plotf'  'maxPatch' 'x0'  'qlabel' }];

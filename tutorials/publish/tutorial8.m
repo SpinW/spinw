@@ -44,7 +44,7 @@ plot(AF33kagome,'range',[3 3 1/2],'cellMode','inside')
 % magnetic ground state. After calculating the diagonal of the correlation
 % function we can see that only a few modes have non-zero intensity.
 
-kag33Spec = AF33kagome.spinwave({[-1/2 0 0] [0 0 0] [1/2 1/2 0] 250},'hermit',false,'imagChk',false);
+kag33Spec = AF33kagome.spinwave({[-1/2 0 0] [0 0 0] [1/2 1/2 0] 250},'hermit',false);
 kag33Spec = sw_egrid(kag33Spec,'component','Sxx+Syy+Szz','imagChk',false);
 figure
 subplot(2,1,1)

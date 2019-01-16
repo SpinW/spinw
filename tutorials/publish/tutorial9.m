@@ -38,7 +38,7 @@ DMkag.table('mat')
 % previously given spin quantum number in the spinw.addatom method.
 
 S0 = [1 -2 1; 2 -1 -1; 0 0 0];
-DMkag.genmagstr('mode','direct','k',[0 0 0],'n',[0 0 1],'unitS','lu', 'S',S0); 
+DMkag.genmagstr('mode','direct','k',[0 0 0],'n',[0 0 1],'unit','lu', 'S',S0); 
 DMkag.energy
 
 plot(DMkag,'range',[3 3 1/2])

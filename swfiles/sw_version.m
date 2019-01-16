@@ -18,6 +18,12 @@ function outStr = sw_version()
 % release date and license.
 %
 
+% Take into account deployed installs
+if isdeployed
+    outStr = struct;
+    return
+end
+
 % read file header from sw_version.m file
 fid = fopen('sw_version.m');
 
@@ -48,7 +54,6 @@ for ii = 1:numel(verLine)
         [~, verSel] = strtok(verSel,'$'); %#ok<*STTOK>
         [partStr{end+1}, verSel] = strtok(verSel,'$');
     end
-    
 end
 
 nField = numel(partStr);

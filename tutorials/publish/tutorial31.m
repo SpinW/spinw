@@ -5,7 +5,7 @@
 % Where does all the data comes from? edit atom.dat
 %
 
-licro = spinw('https://goo.gl/do6oTh');
+licro = spinw('https://raw.githubusercontent.com/SpinW/Models/master/cif/licro2.cif');
 
 licro.formula
 

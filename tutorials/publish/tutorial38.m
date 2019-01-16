@@ -14,7 +14,7 @@
 % atom is the second in position, the corresponding spin quantum number can
 % be changed directly.
 
-ca2ruo4 = spinw('https://goo.gl/SYoJVS');
+ca2ruo4 = spinw('https://github.com/SpinW/Models/raw/master/cif/Ca2RuO4.cif');
 
 ca2ruo4.unit_cell.S(2) = 1;
 plot(ca2ruo4)
@@ -72,7 +72,7 @@ swplot.zoom(2)
 % within the crystallographic cell.
 
 ca2ruo4.genmagstr('mode','random','S',[1 0 0]','k',[0 0 0])
-magRes = ca2ruo4.optmagsteep('nRun',1e4);
+magRes = ca2ruo4.optmagsteep('nRun', 1e4);
 ca2ruo4.energy
 
 %% Calculate spin wave dispersion

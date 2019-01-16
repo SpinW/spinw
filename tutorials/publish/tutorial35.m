@@ -74,7 +74,7 @@ luvo.table('matrix')
 % input of spinw.matparser, fitting K(1,1) and K(2,2) and restricting them
 % to positive values. This ensures that the magnetic structure (parallel to
 % c-axis) is always the right ground state. The data file is stored here:
-% https://goo.gl/8guwPF
+% https://raw.githubusercontent.com/SpinW/spinw/master/tutorials/publish/LuVO3_fitted_modes.txt
 % Please save it with the name LuVO3_fitted_modes.txt into a location that
 % is visible to Matlab.
 perf = swpref;

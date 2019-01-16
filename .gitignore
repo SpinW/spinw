@@ -12,3 +12,9 @@ _pdf
 
 *.sublime-workspace
 *.tap
+
+*.asv
+
+dev/standalone/Linux/Source/
+dev/standalone/Win/Source/
+dev/standalone/MacOS/Source/
