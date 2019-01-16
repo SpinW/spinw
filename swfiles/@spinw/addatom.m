@@ -124,7 +124,7 @@ inpForm.soft   = {false   true     true    true    true   true   true   true    
 
 inpForm.fname  = [inpForm.fname  {'bx'   'formfactn' 'formfactx' 'b'    'formfact' 'A'    'Z'   }];
 inpForm.defval = [inpForm.defval {[]     []          []          []     []         []     []    }];
-inpForm.size   = [inpForm.size   {[1 -7] [-8 -9]     [-8 -9]     [1 -7] [-8 -9]    [1 -7] [1 -7]}];
+inpForm.size   = [inpForm.size   {[1 -7] [-1 -9]     [-1 -10]    [1 -7] [-8 -9]    [1 -7] [1 -7]}];
 inpForm.soft   = [inpForm.soft   {true    true       true         true  true       true   true  }];
 
 newAtom = sw_readparam(inpForm, varargin{:});
@@ -324,7 +324,7 @@ if ischar(newAtom.formfactx)
     newAtom.formfactx = {newAtom.formfactx};
 end
 if iscell(newAtom.formfactx)
-    [~,newAtom.ffx] = sw_cff(newAtom.fromfactx);
+    [~,newAtom.ffx] = sw_cff(newAtom.formfactx);
     %newAtom.ffx = permute(newAtom.ffx,[3 2 1]);
 elseif ~isempty(newAtom.formfactx)
     newAtom.ffx = newAtom.formfactx;
@@ -339,7 +339,11 @@ newAtom.ff = [newAtom.ffn;newAtom.ffx];
 newAtom.b  = ones(2,nNewAtom);
 
 % get neutron scattering length
-newAtom.b(1,:) = sw_nb(newAtom.label);
+if isempty(newAtom.bn)
+    newAtom.b(1,:) = sw_nb(newAtom.label);
+else
+    newAtom.b(1,:) = newAtom.bn;
+end
 
 
 newAtom.Z  = int32(newAtom.Z);
