@@ -298,7 +298,11 @@ inpForm.fname  = [inpForm.fname  {'cmplxBase' 'tid' 'fid' }];
 inpForm.defval = [inpForm.defval {false       -1    -1    }];
 inpForm.size   = [inpForm.size   {[1 1]       [1 1] [1 1] }];
 
-param = sw_readparam(inpForm, varargin{:});
+inpForm.fname  = [inpForm.fname  {'use_brille' 'use_vectors'}];
+inpForm.defval = [inpForm.defval {false        true}];
+inpForm.size   = [inpForm.size   {[1 1]        [1 -1]}];
+
+[param, ~] = sw_readparam(inpForm, varargin{:});
 
 if ~param.fitmode
     % save the time of the beginning of the calculation
@@ -603,6 +607,12 @@ if any(bq)
     
 end
 
+% If we're using Brille, initialise it
+if param.use_brille
+    idx = find(cellfun(@(c) strcmp(c, 'use_brille'), varargin));
+    pars = varargin([1:(idx-1) (idx+2):end]);
+    obj.brille_init(pars{:});
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -699,6 +709,16 @@ for jj = 1:nSlice
     twinIdxMEM = twinIdx(hklIdxMEM);
     nHklMEM = size(hklExtMEM,2);
     
+    if param.use_brille && ~param.use_vectors
+        [eigval, eigvec] = obj.brille.grid.ir_interpolate_at((obj.brille.Qtrans * hklExtMEM)');
+        %omega = cat(2, omega, permute(eigval, [2 1]));
+        %Sab = cat(4, Sab, permute(eigvec, [3 4 2 1]));
+        eigval = permute(eigval, [2 1]);
+        eigvec = permute(eigvec, [3 4 2 1]);
+        sw_timeit(jj/nSlice*100,0,param.tid);
+        %continue
+    end
+    
     % Creates the matrix of exponential factors nCoupling x nHkl size.
     % Extends dR into 3 x 3 x nCoupling x nHkl
     %     ExpF = exp(1i*permute(sum(repmat(dR,[1 1 nHklMEM]).*repmat(...
@@ -774,6 +794,13 @@ for jj = 1:nSlice
     gComm  = diag(gCommd);
     %gd = diag(g);
     
+    if param.use_brille && param.use_vectors
+        [eigval, V] = obj.brille.grid.ir_interpolate_at((obj.brille.Qtrans * hklExtMEM)');
+        %omega = cat(2, omega, permute(eigval, [2 1]));
+        %V = permute(V, [2 3 1]);
+        eigvec = permute(V, [2 3 1]);
+        eigval = permute(eigval, [2 1]);
+    end
     if param.hermit
         % All the matrix calculations are according to Colpa's paper
         % J.H.P. Colpa, Physica 93A (1978) 327-353
