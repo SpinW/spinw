@@ -710,7 +710,7 @@ for jj = 1:nSlice
     nHklMEM = size(hklExtMEM,2);
     
     if param.use_brille && ~param.use_vectors
-        [eigval, eigvec] = obj.brille.grid.ir_interpolate_at((obj.brille.Qtrans * hklExtMEM)');
+        [eigval, eigvec] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hklExtMEM);
         %omega = cat(2, omega, permute(eigval, [2 1]));
         %Sab = cat(4, Sab, permute(eigvec, [3 4 2 1]));
         eigval = permute(eigval, [2 1]);
@@ -795,7 +795,7 @@ for jj = 1:nSlice
     %gd = diag(g);
     
     if param.use_brille && param.use_vectors
-        [eigval, V] = obj.brille.grid.ir_interpolate_at((obj.brille.Qtrans * hklExtMEM)');
+        [eigval, V] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hklExtMEM);
         %omega = cat(2, omega, permute(eigval, [2 1]));
         %V = permute(V, [2 3 1]);
         eigvec = permute(V, [2 3 1]);

@@ -100,7 +100,7 @@ angs = obj.lattice.angle(:); % SpinW stores angles in radian
 spg = obj.lattice.label;
 
 % Construct the brille grids and fill it.
-fprintf0(fid, 'Filling Brille grid\n');
+fprintf0(fid, 'Creating Brille grid\n');
 obj.brille.Qtrans = diag(nExt);
 obj.brille.bz = brille.create_bz(lens, angs, spg, ...
                                  'use_primitive', kwds.use_primitive, ...
@@ -112,6 +112,7 @@ obj.brille.grid = brille.create_grid(obj.brille.bz, ...
                                      'complex_vectors', kwds.use_vectors, ...
                                      'complex_values', false);
 hkl = obj.brille.Qtrans \ transpose(brille.p2m(obj.brille.grid.rlu));
+fprintf0(fid, 'Filling Brille grid\n');
 if kwds.use_vectors
     spec = obj.spinwave(hkl, passthrough{:}, 'saveV', true, 'sortMode', false);
     [omega, V] = parse_twin(spec);
