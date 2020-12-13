@@ -299,7 +299,7 @@ inpForm.defval = [inpForm.defval {false       -1    -1    }];
 inpForm.size   = [inpForm.size   {[1 1]       [1 1] [1 1] }];
 
 inpForm.fname  = [inpForm.fname  {'use_brille' 'use_vectors'}];
-inpForm.defval = [inpForm.defval {false        true}];
+inpForm.defval = [inpForm.defval {false        false}];
 inpForm.size   = [inpForm.size   {[1 1]        [1 -1]}];
 
 [param, ~] = sw_readparam(inpForm, varargin{:});
@@ -369,7 +369,7 @@ else
     hkl  = {hkl};
 end
 
-if incomm
+if incomm && ~param.use_brille
     % TODO
     if ~helical && ~param.fitmode
         warning('spinw:spinwave:Twokm',['The two times the magnetic ordering '...
@@ -520,7 +520,7 @@ atom2 = [SS.all(5,:)   1:nMagExt];
 % magnetic couplings, 3x3xnJ
 JJ = cat(3,reshape(SS.all(6:14,:),3,3,[]),SI.aniso);
 
-if incomm
+if incomm && ~param.use_brille
     % transform JJ due to the incommensurate wavevector
     [~, K] = sw_rot(n,km*dR*2*pi);
     % multiply JJ with K matrices for every interaction
@@ -612,6 +612,9 @@ if param.use_brille
     idx = find(cellfun(@(c) strcmp(c, 'use_brille'), varargin));
     pars = varargin([1:(idx-1) (idx+2):end]);
     obj.brille_init(pars{:});
+    if incomm
+        nHkl0 = nHkl0 * 3;
+    end
 end
 
 
@@ -710,13 +713,19 @@ for jj = 1:nSlice
     nHklMEM = size(hklExtMEM,2);
     
     if param.use_brille && ~param.use_vectors
-        [eigval, eigvec] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hklExtMEM);
-        %omega = cat(2, omega, permute(eigval, [2 1]));
-        %Sab = cat(4, Sab, permute(eigvec, [3 4 2 1]));
-        eigval = permute(eigval, [2 1]);
-        eigvec = permute(eigvec, [3 4 2 1]);
+        [eigval, eigvec] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hkl(:,hklIdxMEM));
+        if incomm
+            kmIdx = repmat(sort(repmat([1 2 3],1,size(eigval,2)/3)),1,1);
+            eigval = permute(eigval, [2 1]);
+            omega = cat(2, omega, eigval(kmIdx==1,:), eigval(kmIdx==2,:), eigval(kmIdx==3,:));
+            eigvec = permute(eigvec, [3 4 2 1]);
+            Sab = cat(4, Sab, eigvec(:,:,kmIdx==1,:), eigvec(:,:,kmIdx==2,:), eigvec(:,:,kmIdx==3,:));
+        else
+            omega = cat(2, omega, permute(eigval, [2 1]));
+            Sab = cat(4, Sab, permute(eigvec, [3 4 2 1]));
+        end
         sw_timeit(jj/nSlice*100,0,param.tid);
-        %continue
+        continue;
     end
     
     % Creates the matrix of exponential factors nCoupling x nHkl size.
@@ -795,13 +804,20 @@ for jj = 1:nSlice
     %gd = diag(g);
     
     if param.use_brille && param.use_vectors
-        [eigval, V] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hklExtMEM);
-        %omega = cat(2, omega, permute(eigval, [2 1]));
-        %V = permute(V, [2 3 1]);
-        eigvec = permute(V, [2 3 1]);
-        eigval = permute(eigval, [2 1]);
-    end
-    if param.hermit
+        [eigval, V] = obj.brille.grid.ir_interpolate_at(obj.brille.Qtrans * hkl(:,hklIdxMEM));
+        V = permute(V, [2 3 1]);
+        if incomm
+            kmIdx = repmat(sort(repmat([1 2 3],1,size(V,2))),1,1);
+            V = cat(3, V(kmIdx==1,:,:), V(kmIdx==2,:,:), V(kmIdx==3,:,:));
+            eigval = permute(eigval, [2 1]);
+            omega = cat(2, omega, eigval(kmIdx==1,:), eigval(kmIdx==2,:), eigval(kmIdx==3,:));
+            hklExt0MEM = repmat(hklExt0MEM, [1 3]);
+            nHklMEM = nHklMEM * 3;
+            hklIdxMEM = repmat(hklIdxMEM, [1 3]);
+        else
+            omega = cat(2, omega, permute(eigval, [2 1]));
+        end
+    elseif param.hermit
         % All the matrix calculations are according to Colpa's paper
         % J.H.P. Colpa, Physica 93A (1978) 327-353
         
@@ -931,7 +947,7 @@ for jj = 1:nSlice
     % Sab(alpha,beta,iMode,iHkl), size: 3 x 3 x 2*nMagExt x nHkl.
     % Normalizes the intensity to single unit cell.
     Sab = cat(4,Sab,squeeze(sum(zeda.*ExpFL.*VExtL,4)).*squeeze(sum(zedb.*ExpFR.*VExtR,3))/prod(nExt));
-    
+
     sw_timeit(jj/nSlice*100,0,param.tid);
 end
 
@@ -966,7 +982,15 @@ end
 
 if incomm
     % resize matrices due to the incommensurability (k-km,k,k+km) multiplicity
-    kmIdx = repmat(sort(repmat([1 2 3],1,nHkl0/3)),1,nTwin);
+    if param.use_brille
+        kmIdx = [];
+        for jj = 1:nSlice
+            hklIdxMEM  = hklIdx(jj):(hklIdx(jj+1)-1);
+            kmIdx = cat(2, kmIdx, repmat(sort(repmat([1 2 3],1,size(hklIdxMEM,2))),1,nTwin));
+        end
+    else
+        kmIdx = repmat(sort(repmat([1 2 3],1,nHkl0/3)),1,nTwin);
+    end
     % Rodrigues' rotation formula.
     nx  = [0 -n(3) n(2); n(3) 0 -n(1); -n(2) n(1) 0];
     nxn = n'*n;
@@ -1000,10 +1024,17 @@ if incomm
     Sab   = cat(3,mmat(Sab(:,:,:,kmIdx==1),K1), mmat(Sab(:,:,:,kmIdx==2),K2), ...
         mmat(Sab(:,:,:,kmIdx==3),conj(K1)));
     
-    hkl   = hkl(:,kmIdx==2);
+    if ~param.use_brille
+        hkl   = hkl(:,kmIdx==2);
+    end
     nHkl0 = nHkl0/3;
 else
     helical = false;
+end
+
+if param.use_brille && ~param.use_vectors && param.formfact
+    % Assume that all ions are the same so just use first row of FF
+    Sab = Sab .* repmat(permute(FF(1,:), [1 3 4 2]), [3 3 size(Sab,3)]);
 end
 
 if ~param.notwin

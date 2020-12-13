@@ -7,13 +7,63 @@ function brille_init(obj, varargin)
 % 
 % ### Description
 % 
-% ### Input Arguments
+% This function sets up a Brille BZTrellisQ grid for interpolating the magnon
+% energies (eigenvalues) and either the spin-spin correlation function Sab or
+% the eigenvectors of the spin Hamiltonian. It then uses `spinwave` to 
+% calculate these quantities at specified points in the grid (`fill` the grid).
+%
+% This function is meant to be called from `spinwave` when the option 
+% `use_brille` is set. 
+%
+% There is a check that if the grid has been filled and the state of the spinw
+% object has not changed then it will not be refilled.
 % 
+% ### Input Arguments
+%
+% `k`
+% : A propagation vector - if specified will override the propagation vector
+%   stored in the .mag_str field of the spinW object.
+% `nExt`
+% : The super cell size - if specified will override the size in .mag_str.
+%
+% In order to generate the correct first (irreducible) _magnetic_ Brillouin zone,
+% we need to use either the magnetic propagation vector or supercell size.
+% Normally, the values in the .mag_str field is used but this can be overriden
+% by the user if it turns out that the interpolation is incorrect.
+%
+% `use_primitive`
+% : If set to true, brille will find the (irreducible) first Brillouin zone
+%   of the primitive rather than conventional unit cell. default is true
+%
+% `wedge_search`
+% : If set to true, brille will find the irreducible first Brillouin zone,
+%   otherwise just the first BZ will be used. default is true
+%
+% `search_length`
+% : An integer to control how-far the vertex-finding algorithm should
+%   search in τ-index. The default (==1) indicates that (1̄1̄1̄), (1̄1̄0), (1̄1̄1),
+%   (1̄0̄1), ..., (111) are included. 
+% 
+% `node_volume_fraction`
+% : The fractional volume of a single tetrahedron in the grid. Smaller numbers
+%   will result in more accurate interpolation at the cost of greate computing
+%   time. default is 1e-5
+%
+% `use_vectors`
+% : If true will interpolate the eigenvectors of the Hamiltonian rather than
+%   the spin-spin correlation functions Sab. default is false
+%
+% In addition, all parameters accepted by spinwave is accepted here and will
+% be passed to `spinwave` to `fill` the grid.
+%
 % ### Output Arguments
+%
+% None. The function sets the hidden .brille field of the spinW object which
+% is then used by `spinwave` to interpolate.
 % 
 % ### See Also
 % 
-% [spinw.]
+% [spinw.spinwave]
 %
 % (C) 2020 Greg Tucker and Duc Le
 
@@ -27,11 +77,12 @@ inpForm.fname  = [inpForm.fname  {'wedge_search' 'node_volume_fraction'}];
 inpForm.defval = [inpForm.defval {true           1e-5                  }];
 inpForm.size   = [inpForm.size   {[1 1]          [1 1]                 }];
 
-inpForm.fname  = [inpForm.fname  {'use_vectors' 'fid'}];
-inpForm.defval = [inpForm.defval {true          -1   }];
-inpForm.size   = [inpForm.size   {[1 1]         [1 1]}];
+inpForm.fname  = [inpForm.fname  {'use_vectors' 'fid' 'hermit'}];
+inpForm.defval = [inpForm.defval {false         -1    true}   ];
+inpForm.size   = [inpForm.size   {[1 1]         [1 1] [1 1]   }];
 
 [kwds, passthrough] = sw_readparam(inpForm, varargin{:});
+passthrough = [passthrough {'hermit' kwds.hermit}];
 
 pref = swpref;
 if kwds.fid == -1
@@ -99,9 +150,15 @@ lens = obj.lattice.lat_const(:) .* nExt;
 angs = obj.lattice.angle(:); % SpinW stores angles in radian
 spg = obj.lattice.label;
 
+if kwds.use_vectors
+    obj.brille.Qtrans = diag(nExt);
+else
+    obj.brille.Qtrans = eye(3);
+    kwds.node_volume_fraction = kwds.node_volume_fraction * prod(nExt);
+end
+
 % Construct the brille grids and fill it.
 fprintf0(fid, 'Creating Brille grid\n');
-obj.brille.Qtrans = diag(nExt);
 obj.brille.bz = brille.create_bz(lens, angs, spg, ...
                                  'use_primitive', kwds.use_primitive, ...
                                  'search_length', kwds.search_length, ...
@@ -110,11 +167,14 @@ obj.brille.bz = brille.create_bz(lens, angs, spg, ...
 obj.brille.grid = brille.create_grid(obj.brille.bz, ...
                                      'node_volume_fraction', kwds.node_volume_fraction, ...
                                      'complex_vectors', kwds.use_vectors, ...
-                                     'complex_values', false);
-hkl = obj.brille.Qtrans \ transpose(brille.p2m(obj.brille.grid.rlu));
+                                     'complex_values', ~kwds.hermit);
+hkl = permute(brille.p2m(obj.brille.grid.rlu), [2 1]);
+if sum(sum(obj.brille.Qtrans - eye(3))) > 1e-6
+    hkl = obj.brille.Qtrans \ hkl;
+end
 fprintf0(fid, 'Filling Brille grid\n');
 if kwds.use_vectors
-    spec = obj.spinwave(hkl, passthrough{:}, 'saveV', true, 'sortMode', false);
+    spec = obj.spinwave(hkl, passthrough{:}, 'saveV', true, 'sortMode', false, 'optmem', 0);
     [omega, V] = parse_twin(spec);
     if (size(omega, 1) / size(V, 1)) == 3 && (size(V, 3) / size(omega, 2)) == 3
         % Incommensurate
@@ -124,7 +184,7 @@ if kwds.use_vectors
         eigvec = permute(V, [3 1 2]);
     end
 else
-    spec = obj.spinwave(hkl, passthrough{:}, 'sortMode', false, 'formfact', false);
+    spec = obj.spinwave(hkl, passthrough{:}, 'sortMode', false, 'formfact', false, 'optmem', 0);
     [omega, Sab] = parse_twin(spec, 'Sab');
     eigvec = permute(real(Sab), [4 3 1 2]);
 end
