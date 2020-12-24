@@ -77,9 +77,9 @@ inpForm.fname  = [inpForm.fname  {'wedge_search' 'node_volume_fraction'}];
 inpForm.defval = [inpForm.defval {true           1e-5                  }];
 inpForm.size   = [inpForm.size   {[1 1]          [1 1]                 }];
 
-inpForm.fname  = [inpForm.fname  {'use_vectors' 'fid' 'hermit'}];
-inpForm.defval = [inpForm.defval {false         -1    true}   ];
-inpForm.size   = [inpForm.size   {[1 1]         [1 1] [1 1]   }];
+inpForm.fname  = [inpForm.fname  {'use_vectors' 'fid' 'hermit' 'Qtrans'}];
+inpForm.defval = [inpForm.defval {false         -1    true     NaN     }];
+inpForm.size   = [inpForm.size   {[1 1]         [1 1] [1 1]    [-1 -2] }];
 
 [kwds, passthrough] = sw_readparam(inpForm, varargin{:});
 passthrough = [passthrough {'hermit' kwds.hermit}];
@@ -107,12 +107,20 @@ end
 % values for k. In this case the spins of adjacent supercells will have their
 % angles rotated by the amount determined by k.
 
+user_specified_nExt_or_k = true;
 if all(isnan(kwds.k)) && all(isnan(kwds.nExt))
     % For incommensurate structure, should use the full (structural) BZ
     % rather than the reduced BZ corresponding to the magnetic k-vector
     % So here we ignore the SpinW k-vector and just use the supercell size.
     nExt = double(obj.mag_str.nExt);
     k = 1 ./ nExt;
+    user_specified_nExt_or_k = false;
+    % But for incommensurate structures we should use the full rather than
+    % irreducible BZ.
+    [~, kd] = rat(obj.mag_str.k(:), 1e-5);
+    if any(kd ~= 1)
+        kwds.wedge_search = false;
+    end
 elseif ~all(isnan(kwds.k)) && ~all(isnan(kwds.nExt))
     % User specified nExt and k
     k = kwds.k;
@@ -146,12 +154,15 @@ if numel(k)==3
     end
 end
 
-lens = obj.lattice.lat_const(:) .* nExt;
+lens = obj.lattice.lat_const(:);
 angs = obj.lattice.angle(:); % SpinW stores angles in radian
 spg = obj.lattice.label;
 
-if kwds.use_vectors
+if ~isnan(kwds.Qtrans)
+    obj.brille.Qtrans = kwds.Qtrans;
+elseif kwds.use_vectors || user_specified_nExt_or_k
     obj.brille.Qtrans = diag(nExt);
+    lens = lens .* nExt;
 else
     obj.brille.Qtrans = eye(3);
     kwds.node_volume_fraction = kwds.node_volume_fraction * prod(nExt);
@@ -169,8 +180,9 @@ obj.brille.grid = brille.create_grid(obj.brille.bz, ...
                                      'complex_vectors', kwds.use_vectors, ...
                                      'complex_values', ~kwds.hermit);
 hkl = permute(brille.p2m(obj.brille.grid.rlu), [2 1]);
-if sum(sum(obj.brille.Qtrans - eye(3))) > 1e-6
+if sum(sum(abs(obj.brille.Qtrans - eye(3)))) > 1e-6
     hkl = obj.brille.Qtrans \ hkl;
+    kwds.node_volume_fraction = kwds.node_volume_fraction * prod(diag(obj.brille.Qtrans));
 end
 fprintf0(fid, 'Filling Brille grid\n');
 if kwds.use_vectors
@@ -210,7 +222,7 @@ function [omega, V] = parse_twin(spec, use_Sab)
     if iscell(spec.omega)
         % Has twins
         omega = spec.omega{1};
-        if nargin > 1 && use_Sab
+        if nargin > 1 && any(use_Sab)
             V = spec.Sab{1};
         else
             V = spec.V{1};
