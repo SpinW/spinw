@@ -427,6 +427,8 @@ classdef spinw < handle & matlab.mixin.SetGet
         % use the version property as contant, this will be executed only
         % once
         ver   = sw_version;
+        % stores brille objects
+        brille = struct();
     end
     
     methods (Static)

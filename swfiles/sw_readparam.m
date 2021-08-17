@@ -1,4 +1,4 @@
-function input = sw_readparam(format, varargin)
+function [input, remainder] = sw_readparam(format, varargin)
 % parse input arguments
 %
 % ### Syntax
@@ -132,15 +132,23 @@ end
 
 if ~all(usedField)
     mName = rName(~usedField);
-    if numel(mName) == 1
-        wName = [' "' mName{1} '"'];
-    elseif numel(mName) == 2
-        wName = ['s "' mName{1} '" and "' mName{2} '"'];
+    if nargout > 1
+        remainder = {};
+        for ii = 1:numel(mName)
+            remainder =  [remainder {mName{ii} raw.(mName{ii})}];
+        end
     else
-        wName = ['s ' sprintf('"%s", "',mName{1:(end-2)}) mName{end-1} '" and "' mName{end} '"'];
+        if numel(mName) == 1
+            wName = [' "' mName{1} '"'];
+        elseif numel(mName) == 2
+            wName = ['s "' mName{1} '" and "' mName{2} '"'];
+        else
+            wName = ['s ' sprintf('"%s", "',mName{1:(end-2)}) mName{end-1} '" and "' mName{end} '"'];
+        end
+        warning('sw_readparam:UnreadInput','Unregognised input parameter%s!',wName);
     end
-
-    warning('sw_readparam:UnreadInput','Unregognised input parameter%s!',wName);
+elseif nargout > 1
+    remainder = {};
 end
 
 end
