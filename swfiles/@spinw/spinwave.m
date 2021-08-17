@@ -609,8 +609,8 @@ end
 
 % If we're using Brille, initialise it
 if param.use_brille
-    idx = find(cellfun(@(c) strcmp(c, 'use_brille'), varargin));
-    pars = varargin([1:(idx-1) (idx+2):end]);
+    idx = 2 * find(cellfun(@(c) strcmp(c, 'use_brille'), varargin(1:2:end)));
+    pars = varargin([1:(idx-2) (idx+1):end]);
     obj.brille_init(pars{:});
     if incomm
         nHkl0 = nHkl0 * 3;
