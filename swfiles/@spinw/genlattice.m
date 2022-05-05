@@ -174,7 +174,7 @@ if ~isempty(param.bv)
     
     angle2 = @(V1,V2)atan2(norm(cross(V1,V2)),dot(V1,V2));
     
-    obj.lattice.angle     = [angle2(b,c),angle2(a,c),angle2(b,c)];
+    obj.lattice.angle     = [angle2(b,c),angle2(a,c),angle2(a,b)];
     
 else
     

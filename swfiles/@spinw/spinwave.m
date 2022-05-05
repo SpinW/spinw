@@ -656,7 +656,7 @@ end
 hklIdx = [floor(((1:nSlice)-1)/nSlice*nHkl)+1 nHkl+1];
 
 % Empty omega dispersion of all spin wave modes, size: 2*nMagExt x nHkl.
-omega = zeros(2*nMagExt,0);
+omega = zeros(2*nMagExt, nHkl);
 
 % empty Sab
 Sab = zeros(3,3,2*nMagExt,0);
@@ -698,7 +698,7 @@ for jj = 1:nSlice
     % twin indices for every q point
     twinIdxMEM = twinIdx(hklIdxMEM);
     nHklMEM = size(hklExtMEM,2);
-    
+        
     % Creates the matrix of exponential factors nCoupling x nHkl size.
     % Extends dR into 3 x 3 x nCoupling x nHkl
     %     ExpF = exp(1i*permute(sum(repmat(dR,[1 1 nHklMEM]).*repmat(...
@@ -834,10 +834,10 @@ for jj = 1:nSlice
                 [~, idx] = sort(real(D),'descend');
                 U = U(:,idx);
                 % omega dispersion
-                omega(:,end+1) = D(idx); %#ok<AGROW>
+                omega(:, hklIdxMEM(ii)) = D(idx);
                 
                 % the inverse of the para-unitary transformation V
-                V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:,end))); %#ok<MINV>
+                V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii)))); %#ok<MINV>
             end
         end
     else
@@ -853,7 +853,7 @@ for jj = 1:nSlice
         for ii = 1:nHklMEM
             % multiplication with g removed to get negative and positive
             % energies as well
-            omega(:,end+1) = D(:,ii); %#ok<AGROW>
+            omega(:,hklIdxMEM(ii)) = D(:,ii);
             M              = diag(gComm*V(:,:,ii)'*gComm*V(:,:,ii));
             V(:,:,ii)      = V(:,:,ii)*diag(sqrt(1./M));
         end
