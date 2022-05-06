@@ -18,3 +18,8 @@ _pdf
 dev/standalone/Linux/Source/
 dev/standalone/Win/Source/
 dev/standalone/MacOS/Source/
+
+*.swp
+*.swo
+*.xml
+*.rej
