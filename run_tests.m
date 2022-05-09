@@ -1,9 +1,15 @@
 function result = run_tests(out_dir)
     disp(version);
-    if ~exist('spinw', 'file') && exist('swfiles', 'file')
-        addpath(genpath('swfiles'));
-        addpath(genpath('external'));
-        addpath('dat_files');
+    if ~exist('spinw', 'class')
+        if exist('swfiles', 'dir') && exist('external', 'dir') && exist('dat_files', 'dir')
+            addpath(genpath('swfiles'));
+            addpath(genpath('external'));
+            addpath(genpath('dat_files'));
+        else
+            error(['SpinW is not installed and the swfiles, external and/or ', ...
+                   'dat_files drectories couldn''t be found on the current ', ...
+                   'path, so the tests cannot be run.'])
+        end
     end
     if nargin == 0
         out_dir = fullfile(pwd);
