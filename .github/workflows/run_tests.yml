@@ -1,0 +1,29 @@
+name: SpinW Tests
+
+on:
+  push:
+    branches: [ port_ci_gh_actions ]
+  pull_request:
+    branches: [ main, development ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out SpinW
+        uses: actions/checkout@v2
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+      - name: Run tests
+        uses: matlab-actions/run-command@v1
+        with:
+          command: run_tests
+      - uses: codecov/codecov-action@v1
+        with:
+            files: coverage.xml
+            token: ${{ secrets.CODECOV_TOKEN }}
