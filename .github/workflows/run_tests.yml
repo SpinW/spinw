@@ -22,7 +22,7 @@ jobs:
       - name: Run tests
         uses: matlab-actions/run-command@v1
         with:
-          command: run_tests
+          command: "run run_tests.m"
       - uses: codecov/codecov-action@v1
         with:
             files: coverage.xml
