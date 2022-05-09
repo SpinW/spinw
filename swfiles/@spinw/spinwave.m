@@ -399,7 +399,7 @@ hkl0   = cell2mat(hkl0);
 hklExt = cell2mat(hklExt);
 
 % determines a twin index for every q point
-twinIdx = repmat(1:nTwin,[nHkl 1]);
+twinIdx = repmat(1:nTwin,[nHkl0 1]);
 twinIdx = twinIdx(:);
 
 % Create the interaction matrix and atomic positions in the extended
@@ -908,12 +908,6 @@ for jj = 1:nSlice
     sw_timeit(jj/nSlice*100,0,param.tid);
 end
 
-if param.sortMode
-    % sort the spin wave modes
-    [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
-    Sab          = reshape(Sab,3,3,size(Sab,2),[]);
-end
-
 [~,singWarn] = lastwarn;
 % restore warning for singular matrix
 warning(singWarn0.state,'MATLAB:nearlySingularMatrix');
@@ -980,6 +974,9 @@ else
 end
 
 if ~param.notwin
+    if nTwin > 1
+        omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
+    end
     % Rotate the calculated correlation function into the twin coordinate
     % system using rotC
     SabAll = cell(1,nTwin);
@@ -988,6 +985,11 @@ if ~param.notwin
         idx    = (1:nHkl0) + (ii-1)*nHkl0;
         % select correlation function of twin ii
         SabT   = Sab(:,:,:,idx);
+        if param.sortMode
+            % sort the spin wave modes
+            [omega{ii}, SabT] = sortmode(omega{ii},reshape(SabT,9,size(SabT,3),[]));
+            SabT = reshape(SabT,3,3,size(SabT,2),[]);
+        end
         % size of the correlation function matrix
         sSabT  = size(SabT);
         % convert the matrix into cell of 3x3 matrices
@@ -1004,10 +1006,13 @@ if ~param.notwin
     
     if nTwin == 1
         Sab = Sab{1};
-    else
-        omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
     end
-    
+else
+    if param.sortMode
+        % sort the spin wave modes
+        [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
+        Sab          = reshape(Sab,3,3,size(Sab,2),[]);
+    end
 end
 
 % Creates output structure with the calculated values.

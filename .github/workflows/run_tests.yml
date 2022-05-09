@@ -2,7 +2,7 @@ name: SpinW Tests
 
 on:
   push:
-    branches: [ port_ci_gh_actions ]
+    branches: [ port_ci_gh_actions_127b797 ]
   pull_request:
     branches: [ main, development ]
   workflow_dispatch:
