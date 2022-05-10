@@ -2,9 +2,9 @@ name: SpinW Tests
 
 on:
   push:
-    branches: [ port_ci_gh_actions_127b797 ]
+    branches: [ port_ci ]
   pull_request:
-    branches: [ main, development ]
+    branches: [ master, development ]
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        matlab_version: [latest]
+        include:
+          - os: ubuntu-latest
+            matlab_version: R2020a
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -19,6 +23,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        with:
+          release: ${{ matrix.matlab_version }}
       - name: Run tests
         uses: matlab-actions/run-command@v1
         with:
