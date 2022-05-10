@@ -747,15 +747,8 @@ for jj = 1:nSlice
                 K2 = K*gComm*K';
                 K2 = 1/2*(K2+K2');
                 % Hermitian K2 will give orthogonal eigenvectors
-                if param.sortMode
-                    [U, D] = eigenshuffle(K2);
-                else
-                    [U, D] = eig(K2);
-                    D = diag(D);
-                end
-                
-                % sort eigenvalues to decreasing order this contradicts with
-                % eigenshuffle
+                [U, D] = eig(K2);
+                D = diag(D);
                 
                 % TODO
                 [D, idx] = sort(D,'descend');
@@ -943,6 +936,12 @@ for jj = 1:nSlice
     Sperp(:,hklIdxMEM) = permute(sumn(qPerp.*Sab,[1 2]),[3 4 1 2]);
     
     sw_timeit(jj/nSlice*100,0,param.tid);
+end
+
+if param.sortMode
+    % sort the spin wave modes
+    [omega, Sperp] = sortmode(omega, reshape(Sperp, 1, size(Sperp,1), []));
+    Sperp = squeeze(Sperp);
 end
 
 [~,singWarn] = lastwarn;
