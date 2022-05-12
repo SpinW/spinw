@@ -1,5 +1,5 @@
 classdef unittest_spinwave < matlab.mock.TestCase
-    % Runs through unit test for spinwave.m
+    % Runs through unit test for @spinw/spinwave.m
 
     properties
         swobj = [];
