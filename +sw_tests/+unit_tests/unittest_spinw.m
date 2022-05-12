@@ -1,5 +1,14 @@
 classdef unittest_spinw < matlab.mock.TestCase
     % Runs through unit tests for @spinw/spinw.m
+    properties (TestParameter)
+        spinw_struct_input = { ...
+            {struct('lattice', struct('angle', [pi, pi, (2*pi)/3], ...
+                                     'lat_const', [2, 2, 4])),
+             'spinw_from_struct_lat224.mat'}, ...
+            {struct('lattice', struct('angle', [pi; pi; (2*pi)/3], ...
+                                     'lat_const', [2; 2; 4])), ...
+             'spinw_from_struct_lat224.mat'}};
+    end
     methods
         function obj = load_spinw(testCase, filename)
             obj = load(fullfile('.', 'test_data', 'unit_tests', 'spinw', filename));
@@ -43,24 +52,18 @@ classdef unittest_spinw < matlab.mock.TestCase
         end
     end
     methods (Test)
-        function test_no_input(testCase)
+        function test_spinw_no_input(testCase)
             % Tests that if spinw is called with no input, a default spinw
             % object is created
             expected_spinw = testCase.load_spinw('spinw_default.mat');
             actual_spinw = spinw;
             testCase.verify_obj(expected_spinw, actual_spinw);
         end
-        function test_struct_input(testCase)
+        function test_spinw_from_struct_input(testCase, spinw_struct_input)
             % Tests that if spinw is called with struct input, the relevant
             % fields are set
-            angle = [pi, pi, (2*pi)/3];
-            lat_const = [2, 2, 4];
-            expected_spinw = testCase.load_spinw('spinw_default.mat');
-            expected_spinw.lattice.angle = angle;
-            expected_spinw.lattice.lat_const = lat_const;
-
-            actual_spinw = spinw(struct('lattice', struct('angle', angle, ...
-                                                          'lat_const', lat_const)));
+            expected_spinw = testCase.load_spinw(spinw_struct_input{2});
+            actual_spinw = spinw(spinw_struct_input{1});
             testCase.verify_obj(expected_spinw, actual_spinw);
         end
     end
