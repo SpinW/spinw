@@ -23,7 +23,7 @@ function result = run_tests(out_dir)
     import matlab.unittest.plugins.CodeCoveragePlugin
     import matlab.unittest.plugins.codecoverage.CoberturaFormat
 
-    suite = TestSuite.fromPackage('sw_tests');
+    suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
     runner = TestRunner.withTextOutput;
 
     cov_dirs = {'swfiles', 'external'};

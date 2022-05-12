@@ -1,4 +1,4 @@
-classdef systemstest_spinwave < matlab.unittest.TestCase
+classdef systemtest_spinwave < matlab.unittest.TestCase
     % Base class for all systems test of spinwave.m based on tutorials
 
     properties

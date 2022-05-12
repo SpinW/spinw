@@ -1,4 +1,4 @@
-classdef systemstest_spinwave_pcsmo < sw_tests.systemstest_spinwave
+classdef systemtest_spinwave_pcsmo < sw_tests.system_tests.systemtest_spinwave
 
     properties
         reference_data_file = 'systemstest_spinwave_pcsmo.mat';

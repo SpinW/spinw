@@ -1,4 +1,4 @@
-classdef systemstest_spinwave_biquadratic < sw_tests.systemstest_spinwave
+classdef systemtest_spinwave_biquadratic < sw_tests.system_tests.systemtest_spinwave
 
     properties
         reference_data_file = 'systemstest_spinwave_biquadratic.mat';

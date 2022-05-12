@@ -1,4 +1,4 @@
-classdef systemstest_spinwave_yb2ti2o7 < sw_tests.systemstest_spinwave
+classdef systemtest_spinwave_yb2ti2o7 < sw_tests.system_tests.systemtest_spinwave
 
     properties
         reference_data_file = 'systemstest_spinwave_yb2ti2o7.mat';
