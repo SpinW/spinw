@@ -157,7 +157,25 @@ switch fExt
         
         xyz0 = sprintf('%s; ',xyz0{:}); xyz0 = xyz0(1:end-2);
         %name0 = cif0.atom_site_type_symbol';
-        cell0 = [cif0.atom_site_label cif0.atom_site_type_symbol];
+        if ~isempty(cif0.atom_site_label) 
+            if ~isempty(cif0.atom_site_type_symbol)
+                cell0 = [cif0.atom_site_label cif0.atom_site_type_symbol];
+            else
+                try
+                    type_syms = cellfun(@(c) regexp(c, '([A-z])*[0-9]?', 'tokens'), cif0.atom_site_label);
+                    % regexp('tokens') returns nested cell - expand it out
+                    type_syms = [type_syms{:}]';
+                catch
+                    error(['_atom_site_type_symbol not defined in CIF input and _atom_site_labels ' ...
+                          'do not conform to the format <Element_name><index> so could not be ' ...
+                          'recognised by SpinW.'])
+                end
+                cell0 = [cif0.atom_site_label type_syms];
+            end
+        else
+            error(['The input CIF does not have _atom_site_label defined so SpinW ' ...
+                   'cannot know which atoms are where.']);
+        end
         name0 = cellfun(@(x,y)strjoin({x y}),cell0(:,1),cell0(:,2),'UniformOutput',false)';
         r0    = mod([cif0.atom_site_fract_x cif0.atom_site_fract_y cif0.atom_site_fract_z]',1);
         
