@@ -72,7 +72,7 @@ for ii = 1:numel(cifStr)
         isfirst = true;
     else
         if isfirst
-            cifStr2{end} = [cifStr2{end} ' '' ' cifStr{ii}(2:end)];
+            cifStr2{end} = [strtrim(cifStr2{end}) ' '' ' strtrim(cifStr{ii}(2:end))];
         else
             if all(ii~=lastBL)
                 cifStr2{end} = [cifStr2{end} '\n'  cifStr{ii}];            
@@ -229,11 +229,7 @@ while ~isempty(strin)
     
     % COMMENT
     if strin(1) == '#'
-        endcomIdx    = find(strin(1:end)=='?',1,'first');
-        if isempty(endcomIdx)
-            endcomIdx = numel(strin)+1;
-        end
-        
+        endcomIdx = numel(strin)+1;
         strout{1,end+1} = 'comment';
         strout{2,end}   = strin(2:(endcomIdx-1));
         strin = strin(endcomIdx:end);
@@ -242,7 +238,7 @@ while ~isempty(strin)
     
     % VARIABLE
     if strin(1) == '_'
-        whiteIdx    = find(strin(1:end)==' ',1,'first');
+        whiteIdx    = find(isspace(strin),1,'first');
         if isempty(whiteIdx)
             whiteIdx = numel(strin)+1;
         end
@@ -277,7 +273,7 @@ while ~isempty(strin)
        
         bracket1Idx = find(strin(1:end)=='(',1,'first');
         bracket2Idx = find(strin(1:end)==')',1,'first');
-        whiteIdx    = find(strin(1:end)==' ',1,'first');
+        whiteIdx    = find(isspace(strin),1,'first');
         if isempty(bracket1Idx)
             bracket1Idx = numel(strin)+1;
         end
@@ -314,7 +310,7 @@ while ~isempty(strin)
     
     % EMPTY NUMBER
     if strin(1) == '?'
-        whiteIdx    = find(strin(1:end)==' ',1,'first');
+        whiteIdx    = find(isspace(strin),1,'first');
         strout{1,end+1} = 'number';
         strout{2,end} = NaN;
         strin = strin((whiteIdx+1):end);
@@ -329,7 +325,7 @@ while ~isempty(strin)
     
     % STRING
     if (isstrprop(strin(1), 'alpha')) || true
-        whiteIdx    = find(strin(1:end)==' ',1,'first');
+        whiteIdx    = find(isspace(strin),1,'first');
         if isempty(whiteIdx)
             whiteIdx = numel(strin)+1;
         end

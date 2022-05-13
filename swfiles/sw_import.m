@@ -156,7 +156,6 @@ switch fExt
         end
         
         xyz0 = sprintf('%s; ',xyz0{:}); xyz0 = xyz0(1:end-2);
-        %name0 = cif0.atom_site_type_symbol';
         cell0 = [cif0.atom_site_label cif0.atom_site_type_symbol];
         name0 = cellfun(@(x,y)strjoin({x y}),cell0(:,1),cell0(:,2),'UniformOutput',false)';
         r0    = mod([cif0.atom_site_fract_x cif0.atom_site_fract_y cif0.atom_site_fract_z]',1);

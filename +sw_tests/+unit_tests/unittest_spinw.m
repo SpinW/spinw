@@ -11,6 +11,10 @@ classdef unittest_spinw < matlab.mock.TestCase
         spinw_figure_input = { ...
             {'default_structure.fig', 'spinw_default.mat'}, ...
             {'afm_chain_spec.fig', 'spinw_afm_chain.mat'}}
+        spinw_file_input = { ...
+            {'YFeO3_mcphase.cif', 'spinw_from_cif_YFeO3_mcphase.mat'}, ...
+            {'LaFeO3_fullprof.cif', 'spinw_from_cif_LaFeO3_fullprof.mat'}, ...
+            {'BiMn2O5.fst', 'spinw_from_fst_BiMn2O5.mat'}};
     end
     methods (Static)
         function udir = get_unit_test_dir()
@@ -96,6 +100,18 @@ classdef unittest_spinw < matlab.mock.TestCase
         function test_spinw_from_incorrect_figure(testCase)
             fig = figure('visible', 'off');
             testCase.verifyError(@() spinw(fig), 'spinw:spinw:WrongInput');
+        end
+        function test_spinw_from_file(testCase, spinw_file_input)
+            fname = fullfile(testCase.get_unit_test_dir(), 'cifs', spinw_file_input{1});
+            expected_spinw = testCase.load_spinw(spinw_file_input{2});
+            actual_spinw = spinw(fname);
+            testCase.verify_obj(expected_spinw, actual_spinw);
+        end
+        function test_spinw_from_file_wrong_sym(testCase)
+            % Test use of a symmetry not available in symmetry.dat gives
+            % an appropriate error
+            fname = fullfile(testCase.get_unit_test_dir(), 'cifs', 'BiMnO3.fst');
+            testCase.verifyError(@() spinw(fname), 'generator:WrongInput');
         end
     end
 

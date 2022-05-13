@@ -1,0 +1,422 @@
+##############################################################################
+###      FullProf-generated CIF output file  (version: May 2011)           ###
+###      Template of CIF submission form for structure report              ###
+##############################################################################
+ 
+# This file has been generated using FullProf.2k taking one example of 
+# structure report provided by Acta Cryst. It is given as a 'template' with 
+# filled structural items. Many other items are left unfilled and it is the  
+# responsibility of the user to properly fill or suppress them. In principle 
+# all question marks '?' should be replaced by the appropriate text or 
+# numerical value depending on the kind of CIF item. 
+# See the document: cif_core.dic (URL: http://www.iucr.org) for details. 
+ 
+# Please notify any error or suggestion to: 
+#           Juan Rodriguez-Carvajal (jrc@ill.eu)
+# Improvements will be progressively added as needed.
+ 
+#=============================================================================
+ data_global
+#=============================================================================
+ 
+# PROCESSING SUMMARY (IUCr Office Use Only)
+ 
+_journal_data_validation_number      ?
+ 
+_journal_date_recd_electronic        ?
+_journal_date_to_coeditor            ?
+_journal_date_from_coeditor          ?
+_journal_date_accepted               ?
+_journal_date_printers_first         ?
+_journal_date_printers_final         ?
+_journal_date_proofs_out             ?
+_journal_date_proofs_in              ?
+_journal_coeditor_name               ?
+_journal_coeditor_code               ?
+_journal_coeditor_notes
+; ?
+;
+_journal_techeditor_code             ?
+_journal_techeditor_notes
+; ?
+;
+_journal_coden_ASTM                  ?
+_journal_name_full                   ?
+_journal_year                        ?
+_journal_volume                      ?
+_journal_issue                       ?
+_journal_page_first                  ?
+_journal_page_last                   ?
+_journal_paper_category              ?
+_journal_suppl_publ_number           ?
+_journal_suppl_publ_pages            ?
+ 
+#=============================================================================
+ 
+# 1. SUBMISSION DETAILS
+ 
+_publ_contact_author_name            ?  # Name of author for correspondence
+_publ_contact_author_address            # Address of author for correspondence
+; ?
+;
+_publ_contact_author_email           ?
+_publ_contact_author_fax             ?
+_publ_contact_author_phone           ?
+ 
+_publ_contact_letter
+; ?
+;
+ 
+_publ_requested_journal              ?
+_publ_requested_coeditor_name        ?
+_publ_requested_category             ?   # Acta C: one of CI/CM/CO/FI/FM/FO
+ 
+ 
+# Definition of non standard CIF items (Reliability indices used in FULLPROF) 
+ 
+loop_ 
+_publ_manuscript_incl_extra_item
+_publ_manuscript_incl_extra_info
+_publ_manuscript_incl_extra_defn
+#      Name                               Explanation                 Standard?
+#     ------                              -----------                 ---------
+ '_pd_proc_ls_prof_cR_factor'    'Prof. R-factor CORRECTED for background'   no
+ '_pd_proc_ls_prof_cwR_factor'   'wProf.R-factor CORRECTED for background'   no
+ '_pd_proc_ls_prof_cwR_expected' 'wProf.Expected CORRECTED for background'   no
+ '_pd_proc_ls_prof_chi2'         'Chi-square for all considered points'      no
+ '_pd_proc_ls_prof_echi2'        'Chi-2 for points with Bragg contribution'  no
+#=============================================================================
+ 
+# 3. TITLE AND AUTHOR LIST
+ 
+_publ_section_title
+; ' LaFeO3 Bio-D'
+;
+_publ_section_title_footnote
+;
+;
+ 
+# The loop structure below should contain the names and addresses of all 
+# authors, in the required order of publication. Repeat as necessary.
+ 
+loop_
+    _publ_author_name
+    _publ_author_footnote
+    _publ_author_address
+?                                   #<--'Last name, first name' 
+; ?
+;
+; ?
+;
+ 
+#=============================================================================
+ 
+# 4. TEXT
+ 
+_publ_section_synopsis
+;  ?
+;
+_publ_section_abstract
+; ?
+;          
+_publ_section_comment
+; ?
+;
+_publ_section_exptl_prep      # Details of the preparation of the sample(s)
+                              # should be given here. 
+; ?
+;
+_publ_section_exptl_refinement
+; ?
+;
+_publ_section_references
+; ?
+;
+_publ_section_figure_captions
+; ?
+;
+_publ_section_acknowledgements
+; ?
+;
+ 
+#=============================================================================
+ 
+#=============================================================================
+# If more than one structure is reported, the remaining sections should be 
+# completed per structure. For each data set, replace the '?' in the
+# data_? line below by a unique identifier.
+ 
+data_LaFeO3                        
+ 
+#=============================================================================
+ 
+# 5. CHEMICAL DATA
+ 
+_chemical_name_systematic
+; ?
+;
+_chemical_name_common             ?
+_chemical_formula_moiety          ?
+_chemical_formula_structural      ?
+_chemical_formula_analytical      ?
+_chemical_formula_iupac           ?
+_chemical_formula_sum             ?
+_chemical_formula_weight          ?
+_chemical_melting_point           ?
+_chemical_compound_source         ?       # for minerals and 
+                                          # natural products
+ 
+loop_
+    _atom_type_symbol               
+    _atom_type_scat_length_neutron      
+    _atom_type_scat_source          
+FE     0.94500 V.F._Sears_Neutron_News_3_26_(1992)
+LA     0.82400 V.F._Sears_Neutron_News_3_26_(1992)
+O      0.58030 V.F._Sears_Neutron_News_3_26_(1992)
+ 
+#=============================================================================
+ 
+# 6. CRYSTAL DATA
+ 
+_symmetry_cell_setting                Orthorhombic
+_symmetry_space_group_name_H-M       'P n m a'
+_symmetry_space_group_name_Hall      '-P 2ac 2n'
+ 
+loop_
+    _symmetry_equiv_pos_as_xyz   #<--must include 'x,y,z'
+'x,y,z'
+'x+1/2,-y+1/2,-z+1/2'
+'-x,y+1/2,-z'
+'-x+1/2,-y,z+1/2'
+'-x,-y,-z'
+'-x+1/2,y+1/2,z+1/2'
+'x,-y+1/2,z'
+'x+1/2,y,-z+1/2'
+ 
+_cell_length_a                       5.59410
+_cell_length_b                       7.88740
+_cell_length_c                       5.55850
+_cell_angle_alpha                    90.00000
+_cell_angle_beta                     90.00000
+_cell_angle_gamma                    90.00000
+_cell_volume                         245.25731
+_cell_formula_units_Z                ?
+_cell_measurement_temperature        ?
+_cell_special_details
+; ?
+;
+_cell_measurement_reflns_used        ?
+_cell_measurement_theta_min          ?
+_cell_measurement_theta_max          ?
+ 
+_exptl_crystal_description           ?
+_exptl_crystal_colour                ?
+_exptl_crystal_size_max              ?
+_exptl_crystal_size_mid              ?
+_exptl_crystal_size_min              ?
+_exptl_crystal_size_rad              ?
+_exptl_crystal_density_diffrn        ?
+_exptl_crystal_density_meas          ?
+_exptl_crystal_density_method        ?
+_exptl_crystal_F_000                 ?
+ 
+# The next four fields are normally only needed for transmission experiments.
+ 
+_exptl_absorpt_coefficient_mu        ?
+_exptl_absorpt_correction_type       ?
+_exptl_absorpt_process_details       ?
+_exptl_absorpt_correction_T_min      ?
+_exptl_absorpt_correction_T_max      ?
+ 
+#=============================================================================
+ 
+# 7. EXPERIMENTAL DATA
+ 
+_exptl_special_details
+; ?
+;
+ 
+_diffrn_ambient_temperature          ?
+_diffrn_source           'nuclear reactor' 
+_diffrn_radiation_type   'Constant Wavelength Neutron Diffraction' 
+_diffrn_radiation_wavelength           1.54056
+_diffrn_source_type      ?  # Put here the diffractometer and site
+ 
+_diffrn_radiation_monochromator      ?
+_diffrn_measurement_device_type      ?
+_diffrn_measurement_method           ?
+_diffrn_detector_area_resol_mean     ? # Not in version 2.0.1
+_diffrn_detector                     ?
+_diffrn_detector_type                ? # make or model of detector
+ 
+_diffrn_reflns_number                ?
+_diffrn_reflns_av_R_equivalents      ?
+_diffrn_reflns_av_sigmaI/netI        ?
+_diffrn_reflns_theta_min             ?
+_diffrn_reflns_theta_max             ?
+_diffrn_reflns_theta_full            ?   # Not in version 2.0.1
+_diffrn_measured_fraction_theta_max  ?   # Not in version 2.0.1
+_diffrn_measured_fraction_theta_full ?   # Not in version 2.0.1
+_diffrn_reflns_limit_h_min           ?
+_diffrn_reflns_limit_h_max           ?
+_diffrn_reflns_limit_k_min           ?
+_diffrn_reflns_limit_k_max           ?
+_diffrn_reflns_limit_l_min           ?
+_diffrn_reflns_limit_l_max           ?
+_diffrn_reflns_reduction_process     ?
+ 
+_diffrn_standards_number             ?
+_diffrn_standards_interval_count     ?
+_diffrn_standards_interval_time      ?
+_diffrn_standards_decay_%            ?
+loop_
+    _diffrn_standard_refln_index_h
+    _diffrn_standard_refln_index_k
+    _diffrn_standard_refln_index_l
+?   ?   ?
+ 
+#=============================================================================
+ 
+# 8. REFINEMENT DATA
+ 
+_refine_special_details
+; ?
+;
+ 
+_reflns_number_total                 ?
+_reflns_number_gt                    ?  # Not in version 2.0.1
+_reflns_threshold_expression         ?  # Not in version 2.0.1
+ 
+_refine_ls_structure_factor_coef     ?
+_refine_ls_matrix_type               ?
+_refine_ls_R_I_factor                ?
+_refine_ls_R_Fsqd_factor             ?
+_refine_ls_R_factor_all              ?
+_refine_ls_R_factor_gt               ?   # Not in version 2.0.1
+_refine_ls_wR_factor_all             ?
+_refine_ls_wR_factor_ref             ?   # Not in version 2.0.1
+_refine_ls_goodness_of_fit_all       ?
+_refine_ls_goodness_of_fit_ref       ?   # Not in version 2.0.1
+_refine_ls_restrained_S_all          ?
+_refine_ls_restrained_S_obs          ?
+_refine_ls_number_reflns             ?
+_refine_ls_number_parameters         ?
+_refine_ls_number_restraints         ?
+_refine_ls_number_constraints        ?
+_refine_ls_hydrogen_treatment        ?
+_refine_ls_weighting_scheme          ?
+_refine_ls_weighting_details         ?
+_refine_ls_shift/su_max              ?   # Not in version 2.0.1
+_refine_ls_shift/su_mean             ?   # Not in version 2.0.1
+_refine_diff_density_max             ?
+_refine_diff_density_min             ?
+_refine_ls_extinction_method         ?
+_refine_ls_extinction_coef           ?
+_refine_ls_abs_structure_details     ?
+_refine_ls_abs_structure_Flack       ?
+_refine_ls_abs_structure_Rogers      ?
+ 
+# The following items are used to identify the programs used.
+ 
+_computing_data_collection           ?
+_computing_cell_refinement           ?
+_computing_data_reduction            'DATARED (CFML-v.1)'
+_computing_structure_solution        ?
+_computing_structure_refinement      FULLPROF
+_computing_molecular_graphics        ?
+_computing_publication_material      ?
+ 
+#=============================================================================
+ 
+# 9. ATOMIC COORDINATES AND DISPLACEMENT PARAMETERS
+ 
+loop_
+    _atom_site_label
+    _atom_site_fract_x
+    _atom_site_fract_y
+    _atom_site_fract_z
+    _atom_site_U_iso_or_equiv
+    _atom_site_occupancy
+    _atom_site_adp_type              # Not in version 2.0.1
+    _atom_site_type_symbol
+ Fe  0.00000  0.00000  0.50000  0.0083(5)  1.00000 Uiso FE  
+ La  0.0290(3)  0.25000 -0.0063(7)  0.0108(5)  1.00000 Uiso LA  
+ O1  0.4867(5)  0.25000  0.0789(11)  0.0143(7)  1.00000 Uiso O   
+ O2  0.2821(4)  0.0397(3)  0.7181(8)  0.0139(5)  1.00000 Uiso O   
+ 
+# Note: if the displacement parameters were refined anisotropically
+# the U matrices should be given as for single-crystal studies.
+ 
+#=============================================================================
+ 
+# 10. DISTANCES AND ANGLES / MOLECULAR GEOMETRY 
+ 
+_geom_special_details                ?
+ 
+loop_
+    _geom_bond_atom_site_label_1  
+    _geom_bond_atom_site_label_2  
+    _geom_bond_site_symmetry_1    
+    _geom_bond_site_symmetry_2    
+    _geom_bond_distance           
+    _geom_bond_publ_flag          
+    ?   ?   ?   ?   ?   ?
+ 
+loop_
+    _geom_contact_atom_site_label_1 
+    _geom_contact_atom_site_label_2 
+    _geom_contact_distance          
+    _geom_contact_site_symmetry_1   
+    _geom_contact_site_symmetry_2   
+    _geom_contact_publ_flag         
+    ?   ?   ?   ?   ?   ?
+ 
+loop_
+_geom_angle_atom_site_label_1 
+_geom_angle_atom_site_label_2 
+_geom_angle_atom_site_label_3 
+_geom_angle_site_symmetry_1   
+_geom_angle_site_symmetry_2   
+_geom_angle_site_symmetry_3   
+_geom_angle                   
+_geom_angle_publ_flag         
+?   ?   ?   ?   ?   ?   ?   ?
+ 
+loop_
+_geom_torsion_atom_site_label_1 
+_geom_torsion_atom_site_label_2 
+_geom_torsion_atom_site_label_3 
+_geom_torsion_atom_site_label_4 
+_geom_torsion_site_symmetry_1   
+_geom_torsion_site_symmetry_2   
+_geom_torsion_site_symmetry_3   
+_geom_torsion_site_symmetry_4   
+_geom_torsion                   
+_geom_torsion_publ_flag         
+?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+ 
+loop_
+_geom_hbond_atom_site_label_D 
+_geom_hbond_atom_site_label_H 
+_geom_hbond_atom_site_label_A 
+_geom_hbond_site_symmetry_D   
+_geom_hbond_site_symmetry_H   
+_geom_hbond_site_symmetry_A   
+_geom_hbond_distance_DH       
+_geom_hbond_distance_HA       
+_geom_hbond_distance_DA       
+_geom_hbond_angle_DHA         
+_geom_hbond_publ_flag         
+?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+ 
+#=============================================================================
+ 
+#=============================================================================
+# Additional structures (last six sections and associated data_? identifiers) 
+# may be added at this point.                                                 
+#=============================================================================
+ 
+# The following lines are used to test the character set of files sent by     
+# network email or other means. They are not part of the CIF data set.        
+# abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789              
+# !@#$%^&*()_+{}:"~<>?|\-=[];'`,./ 

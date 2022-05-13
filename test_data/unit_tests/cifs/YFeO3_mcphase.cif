@@ -1,0 +1,46 @@
+data_8700-ICSD
+_database_code_ICSD                8700
+_chemical_name_systematic
+'Yttrium iron(III) oxide'
+_chemical_formula_structural
+'Y Fe O3'
+_chemical_formula_sum
+'Fe1 O3 Y1'
+_citation
+' Acta Crystallographica (1,1948-23,1967) (1965), 19, 524-531  '
+loop_
+    _publ_author_name
+    'Coppens, P.'
+    'Eibschuetz, M. '
+_cell_length_a                     5.28
+_cell_length_b                     5.59
+_cell_length_c                     7.6
+_cell_angle_alpha                  90.0
+_cell_angle_beta                   90.0
+_cell_angle_gamma                  90.0
+_cell_volume                       224.76  
+_cell_formula_units_Z              4.0 
+_symmetry_space_group_name_H-M     P b n 21
+_symmetry_Int_Tables_number        33
+loop_
+    _symmetry_equiv_pos_as_xyz
+    'x,y,z'
+    '-x,-y,1/2+z'
+    '1/2-x,1/2+y,z'
+    '1/2+x,1/2-y,1/2+z'
+loop_
+    _atom_site_label
+    _atom_type_oxidation_number
+    _atom_site_symmetry_multiplicity
+    _atom_site_Wyckoff_symbol
+    _atom_site_fract_x
+    _atom_site_fract_y
+    _atom_site_fract_z
+    _atom_site_occupancy
+    _atom_site_B_iso_or_equiv
+    _atom_site_type_symbol
+    Y1	 3.0	4	a	-.0190	 0.0679	 0.25	 1.	 0.04 Y
+    Fe1	 3.0	4	a	-.0007	 0.5012	 0.0030	 1.	 0.12 Fe
+    O1	-2.0	4	a	0.1106	 0.4610	 0.2510	 1.	 0.1 O
+    O2	-2.0	4	a	-.3077	 0.3048	 0.0520	 1.	 -.63 O
+    O3	-2.0	4	a	0.3075	 -.3066	 -.0677	 1.	 0.43 O
