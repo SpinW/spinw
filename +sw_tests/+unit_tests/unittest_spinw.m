@@ -93,6 +93,10 @@ classdef unittest_spinw < matlab.mock.TestCase
             assert(actual_spinw ~= expected_spinw);
             testCase.verify_obj(expected_spinw, actual_spinw);
         end
+        function test_spinw_from_incorrect_figure(testCase)
+            fig = figure('visible', 'off');
+            testCase.verifyError(@() spinw(fig), 'spinw:spinw:WrongInput');
+        end
     end
 
 end

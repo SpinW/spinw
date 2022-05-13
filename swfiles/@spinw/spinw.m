@@ -483,16 +483,17 @@ classdef spinw < handle & matlab.mixin.SetGet
             
             if ishandle(firstArg)
                 % get spinw object from graphics handle
-                switch get(firstArg,'Tag')
-                    case 'swplot'
-                        figDat = getappdata(firstArg);
-                        obj = copy(figDat.obj);
-                    case 'sw_spectra'
-                        figDat = getappdata(firstArg);
-                        obj    = copy(figDat.spectra.obj);
+                figDat = getappdata(firstArg);
+                if isfield(figDat, 'spectra')
+                    figDat = figDat.spectra;
                 end
-                return
-
+                if isfield(figDat, 'obj') && isa(figDat.obj, 'spinw')
+                    obj = copy(figDat.obj);
+                    return
+                else
+                    error('spinw:spinw:WrongInput', ...
+                          'No spinw object could be found in the input figure');
+                end
             end
             
             if isa(firstArg, 'spinw')
