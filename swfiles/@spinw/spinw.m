@@ -484,7 +484,7 @@ classdef spinw < handle & matlab.mixin.SetGet
             if ishandle(firstArg)
                 % get spinw object from graphics handle
                 switch get(firstArg,'Tag')
-                    case 'sw_crystal'
+                    case 'swplot'
                         figDat = getappdata(firstArg);
                         obj = copy(figDat.obj);
                     case 'sw_spectra'

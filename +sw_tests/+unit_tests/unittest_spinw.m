@@ -8,11 +8,23 @@ classdef unittest_spinw < matlab.mock.TestCase
             {struct('lattice', struct('angle', [pi; pi; (2*pi)/3], ...
                                      'lat_const', [2; 2; 4])), ...
              'spinw_from_struct_lat224.mat'}};
+        spinw_figure_input = { ...
+            {'default_structure.fig', 'spinw_default.mat'}, ...
+            {'afm_chain_spec.fig', 'spinw_afm_chain.mat'}}
+    end
+    methods (Static)
+        function udir = get_unit_test_dir()
+            udir = fullfile('.', 'test_data', 'unit_tests');
+        end
     end
     methods
         function obj = load_spinw(testCase, filename)
-            obj = load(fullfile('.', 'test_data', 'unit_tests', 'spinw', filename));
+            obj = load(fullfile(testCase.get_unit_test_dir(), 'spinw', filename));
             obj = obj.data;
+        end
+        function obj = load_figure(testCase, filename)
+            path = fullfile(testCase.get_unit_test_dir(), 'Figure', filename);
+            obj = openfig(path, 'invisible');
         end
         function verify_obj(testCase, expected_obj, actual_obj, relTol, absTol)
             if nargin < 5
@@ -64,6 +76,21 @@ classdef unittest_spinw < matlab.mock.TestCase
             % fields are set
             expected_spinw = testCase.load_spinw(spinw_struct_input{2});
             actual_spinw = spinw(spinw_struct_input{1});
+            testCase.verify_obj(expected_spinw, actual_spinw);
+        end
+        function test_spinw_from_spinw_obj(testCase)
+            expected_spinw = testCase.load_spinw('spinw_from_struct_lat224.mat');
+            actual_spinw = spinw(expected_spinw);
+            % Ensure creating from a spinw obj creates a copy
+            assert(actual_spinw ~= expected_spinw);
+            testCase.verify_obj(expected_spinw, actual_spinw);
+        end
+        function test_spinw_from_figure(testCase, spinw_figure_input)
+            expected_spinw = testCase.load_spinw(spinw_figure_input{2});
+            figure = testCase.load_figure(spinw_figure_input{1});
+            actual_spinw = spinw(figure);
+            % Ensure creating from a figure creates a copy
+            assert(actual_spinw ~= expected_spinw);
             testCase.verify_obj(expected_spinw, actual_spinw);
         end
     end
