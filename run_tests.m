@@ -29,7 +29,9 @@ function result = run_tests(out_dir)
     cov_dirs = {'swfiles', 'external'};
     for i = 1:length(cov_dirs)
         reportFormat = CoberturaFormat(fullfile(out_dir, ['coverage_', cov_dirs{i}, '.xml']));
-        coverage_plugin = CodeCoveragePlugin.forFolder(cov_dirs{i}, 'Producing', reportFormat);
+        coverage_plugin = CodeCoveragePlugin.forFolder(cov_dirs{i}, ...
+                                                       'Producing', reportFormat, ...
+                                                       'IncludingSubfolders', true);
         runner.addPlugin(coverage_plugin);
         if verLessThan('matlab', '9.12') % Can add cov for multiple folders only from R2022a
             break;
