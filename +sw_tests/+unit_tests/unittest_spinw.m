@@ -95,10 +95,12 @@ classdef unittest_spinw < matlab.mock.TestCase
             % Ensure creating from a figure creates a copy
             assert(actual_spinw ~= expected_spinw);
             testCase.verify_obj(expected_spinw, actual_spinw);
+            close(figure);
         end
         function test_spinw_from_incorrect_figure(testCase)
             fig = figure('visible', 'off');
             testCase.verifyError(@() spinw(fig), 'spinw:spinw:WrongInput');
+            close(fig);
         end
         function test_spinw_from_file(testCase, spinw_file_input)
             fname = fullfile(testCase.get_unit_test_dir(), 'cifs', spinw_file_input{1});
