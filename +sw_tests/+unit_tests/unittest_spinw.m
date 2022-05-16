@@ -30,12 +30,12 @@ classdef unittest_spinw < matlab.mock.TestCase
             path = fullfile(testCase.get_unit_test_dir(), 'Figure', filename);
             obj = openfig(path, 'invisible');
         end
-        function verify_obj(testCase, expected_obj, actual_obj, relTol, absTol)
+        function verify_obj(testCase, expected_obj, actual_obj, rel_tol, abs_tol)
             if nargin < 5
-                absTol = 0;
+                abs_tol = 0;
             end
             if nargin < 4
-                relTol = 1e-10;
+                rel_tol = 1e-10;
             end
             all_fieldnames = union(fieldnames(expected_obj), fieldnames(actual_obj));
             for i=1:length(all_fieldnames)
@@ -43,28 +43,27 @@ classdef unittest_spinw < matlab.mock.TestCase
                 if strcmp(field{:}, "cache")
                     continue;
                 end
-                disp(field{:});
                 expected_value = expected_obj.(field{:});
                 actual_value = actual_obj.(field{:});
                 if isstruct(expected_value)
-                    testCase.verify_obj(expected_value, actual_value, relTol, absTol);
+                    testCase.verify_obj(expected_value, actual_value, rel_tol, abs_tol);
                 else
-                    testCase.verify_val(expected_value, actual_value, relTol, absTol);
+                    testCase.verify_val(expected_value, actual_value, rel_tol, abs_tol, field{:});
                 end
             end
         end
-        function verify_val(testCase, expected_val, actual_val, relTol, absTol)
+        function verify_val(testCase, expected_val, actual_val, rel_tol, abs_tol, field)
             if nargin < 5
-                absTol = 0;
+                abs_tol = 0;
             end
             if nargin < 4
-                relTol = 1e-10;
+                rel_tol = 1e-10;
             end
             import matlab.unittest.constraints.IsEqualTo
             import matlab.unittest.constraints.RelativeTolerance
             import matlab.unittest.constraints.AbsoluteTolerance
-            theseBounds = RelativeTolerance(relTol) | AbsoluteTolerance(absTol);
-            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds));
+            theseBounds = RelativeTolerance(rel_tol) | AbsoluteTolerance(abs_tol);
+            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field);
         end
     end
     methods (Test)
