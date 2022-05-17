@@ -20,7 +20,11 @@ classdef unittest_super < matlab.mock.TestCase
             if nargin < 4
                 rel_tol = 1e-10;
             end
-            all_fieldnames = union(fieldnames(expected_obj), fieldnames(actual_obj));
+            testCase.assertClass(actual_obj, class(expected_obj));
+            all_fieldnames = fieldnames(expected_obj);
+            if isa(expected_obj, 'struct')
+                all_fieldnames = union(all_fieldnames, fieldnames(actual_obj));
+            end
             for i=1:length(all_fieldnames)
                 field = all_fieldnames(i);
                 if strcmp(field{:}, "cache")
