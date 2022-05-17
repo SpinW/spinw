@@ -1,4 +1,4 @@
-classdef unittest_spinw < matlab.mock.TestCase
+classdef unittest_spinw < sw_tests.unit_tests.unittest_super
     % Runs through unit tests for @spinw/spinw.m
     properties (TestParameter)
         spinw_struct_input = { ...
@@ -15,56 +15,6 @@ classdef unittest_spinw < matlab.mock.TestCase
             {'YFeO3_mcphase.cif', 'spinw_from_cif_YFeO3_mcphase.mat'}, ...
             {'LaFeO3_fullprof.cif', 'spinw_from_cif_LaFeO3_fullprof.mat'}, ...
             {'BiMn2O5.fst', 'spinw_from_fst_BiMn2O5.mat'}};
-    end
-    methods (Static)
-        function udir = get_unit_test_dir()
-            udir = fullfile('.', 'test_data', 'unit_tests');
-        end
-    end
-    methods
-        function obj = load_spinw(testCase, filename)
-            obj = load(fullfile(testCase.get_unit_test_dir(), 'spinw', filename));
-            obj = obj.data;
-        end
-        function obj = load_figure(testCase, filename)
-            path = fullfile(testCase.get_unit_test_dir(), 'Figure', filename);
-            obj = openfig(path, 'invisible');
-        end
-        function verify_obj(testCase, expected_obj, actual_obj, rel_tol, abs_tol)
-            if nargin < 5
-                abs_tol = 0;
-            end
-            if nargin < 4
-                rel_tol = 1e-10;
-            end
-            all_fieldnames = union(fieldnames(expected_obj), fieldnames(actual_obj));
-            for i=1:length(all_fieldnames)
-                field = all_fieldnames(i);
-                if strcmp(field{:}, "cache")
-                    continue;
-                end
-                expected_value = expected_obj.(field{:});
-                actual_value = actual_obj.(field{:});
-                if isstruct(expected_value)
-                    testCase.verify_obj(expected_value, actual_value, rel_tol, abs_tol);
-                else
-                    testCase.verify_val(expected_value, actual_value, rel_tol, abs_tol, field{:});
-                end
-            end
-        end
-        function verify_val(testCase, expected_val, actual_val, rel_tol, abs_tol, field)
-            if nargin < 5
-                abs_tol = 0;
-            end
-            if nargin < 4
-                rel_tol = 1e-10;
-            end
-            import matlab.unittest.constraints.IsEqualTo
-            import matlab.unittest.constraints.RelativeTolerance
-            import matlab.unittest.constraints.AbsoluteTolerance
-            theseBounds = RelativeTolerance(rel_tol) | AbsoluteTolerance(abs_tol);
-            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field);
-        end
     end
     methods (Test)
         function test_spinw_no_input(testCase)
@@ -115,5 +65,4 @@ classdef unittest_spinw < matlab.mock.TestCase
             testCase.verifyError(@() spinw(fname), 'generator:WrongInput');
         end
     end
-
 end

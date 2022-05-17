@@ -24,7 +24,7 @@ classdef unittest_spinwave < matlab.mock.TestCase
         function test_noInput(testCase)
             % Tests that if call spinwave with no input, it calls the help
             % First mock the help call
-            help_function = sw_tests.unit_tests.mock_function('swhelp');
+            help_function = sw_tests.utilities.mock_function('swhelp');
             testCase.swobj.spinwave();
             testCase.assertEqual(help_function.n_calls, 1);
             testCase.assertEqual(help_function.arguments, {{'spinw.spinwave'}});
