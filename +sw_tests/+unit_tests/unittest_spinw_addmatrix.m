@@ -5,7 +5,7 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         swobj = [];
     end
 
-    methods (TestClassSetup)
+    methods (TestMethodSetup)
         function setup_spinw_model(testCase)
             testCase.swobj = spinw; % default init
         end
