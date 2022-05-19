@@ -3,7 +3,6 @@ classdef unittest_spinw_addatom < matlab.mock.TestCase
 
     properties
         swobj = [];
-        counter = 0
     end
 
     methods (TestMethodSetup)
