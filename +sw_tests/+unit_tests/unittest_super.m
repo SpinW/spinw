@@ -40,6 +40,9 @@ classdef unittest_super < matlab.mock.TestCase
             end
         end
         function verify_val(testCase, expected_val, actual_val, rel_tol, abs_tol, field)
+            if nargin < 6
+                field = "";
+            end
             if nargin < 5
                 abs_tol = 0;
             end
@@ -50,7 +53,7 @@ classdef unittest_super < matlab.mock.TestCase
             import matlab.unittest.constraints.RelativeTolerance
             import matlab.unittest.constraints.AbsoluteTolerance
             theseBounds = RelativeTolerance(rel_tol) | AbsoluteTolerance(abs_tol);
-            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field);
+            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field)
         end
     end
 end
