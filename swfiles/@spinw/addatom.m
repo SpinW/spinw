@@ -47,7 +47,8 @@ function addatom(obj, varargin)
 %   number is guessed from the given label of the atom. For example if
 %   `label` is `MCr3+` or `Cr3+` then the $S=3/2$ high spin state is
 %   assumed for Cr$^{3+}$. The spin values for every ion is stored in the
-%   [magion.dat] file. If the atom type is unknown $S=0$ is assumed.
+%   [magion.dat] file. If the atom type is unknown $S=0$ is assumed. Only
+%   positive S are allowed.
 % 
 % `color`
 % : RGB color of the atoms for plotting stored in a matrix with dimensions
@@ -128,6 +129,10 @@ inpForm.size   = [inpForm.size   {[1 -7] [-1 -9]     [-1 -10]    [1 -7] [-8 -9] 
 inpForm.soft   = [inpForm.soft   {true    true       true         true  true       true   true  }];
 
 newAtom = sw_readparam(inpForm, varargin{:});
+
+if any(sw_sub1(newAtom.S) < 0)
+    error('spinw:addatom:WrongInput','Require S>=0');
+end
 
 if isempty(newAtom.formfactn)
     newAtom.formfactn = newAtom.formfact;

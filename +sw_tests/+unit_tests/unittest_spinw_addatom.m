@@ -45,12 +45,6 @@ classdef unittest_spinw_addatom < matlab.mock.TestCase
                 'spinw:addatom:WrongInput')
         end
         
-        function test_add_atom_fails_with_non_half_integer_spin(testCase)
-            testCase.verifyError(...
-                @() testCase.swobj.addatom('r', [0; 0; 0], 'S', 0.1), ...
-                'spinw:addatom:WrongInput')
-        end
-        
         function test_add_single_default_atom_with_only_position(testCase)
             pos = [0; 0; 0];
             testCase.swobj.addatom('r', pos)
