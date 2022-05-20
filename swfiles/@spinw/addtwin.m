@@ -90,9 +90,9 @@ else
     % rotC matrix explicitly provided
     nTwin = size(param.rotC,3);
     for itwin = 1:nTwin
-        %  check valid rotation (|R|=1 and R.T = R^-1)
+        %  check valid rotation or reflection (|R|=1 and R.T = R^-1)
         twin_rotc = param.rotC(:,:,itwin);
-        if det(twin_rotc)~=1 || ~isequal(twin_rotc*(twin_rotc'), eye(3))
+        if abs(det(twin_rotc))~=1 || ~isequal(twin_rotc*(twin_rotc'), eye(3))
             error('spinw:addtwin:WrongInput', ... 
                 'rotC matrix for twin %d must be a valid rotation', itwin);
         end

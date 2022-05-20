@@ -68,7 +68,7 @@ classdef systemtest_spinwave_pcsmo < sw_tests.system_tests.systemtest_spinwave
             pcsmo.addcoupling('mat', 'JF2', 'bond', 8, 'subIdx', [idstart; idend]')
             pcsmo.addaniso('D')
             % Define twins
-            pcsmo.addtwin('rotC', [0 1 0; 1 0 0; 0 0 0]);
+            pcsmo.addtwin('rotC', [0 1 0; 1 0 0; 0 0 1]);
             pcsmo.twin.vol = [0.5 0.5];
             pcsmo.unit.qmat = diag([2 2 1]);
             % Assign to property
