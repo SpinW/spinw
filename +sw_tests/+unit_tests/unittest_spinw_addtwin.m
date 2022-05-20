@@ -1,5 +1,4 @@
 classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
-    % Runs through unit test for @spinw/spinwave.m
 
     properties
         swobj = [];
