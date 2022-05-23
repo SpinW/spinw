@@ -58,6 +58,11 @@ function gencoupling(obj, varargin)
 %   equivalent, default value is $10^{-3}$\\ang. Only used, when no
 %   space group is defined.
 %
+% `'tol'`
+% : Tolerance added to maxDistance to ensure bonds between same atom in
+%   neighbouring unit cells are included when maxDistance is equal to a
+%   lattice parameter.
+%
 % `'dMin'`
 % : Minimum bond length, below which an error is triggered.
 %   Default value is 0.5 \\ang.
