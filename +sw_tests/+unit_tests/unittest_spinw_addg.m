@@ -16,8 +16,7 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
     methods (Test)
             
         function test_addg_requires_matrix(testCase)
-            testCase.verifyError(...
-                @() testCase.swobj.addg(), ...
+            testCase.verifyError(@() testCase.swobj.addg(), ...
                 'MATLAB:minrhs') % better if sw_readparam:MissingParameter
         end
         
@@ -25,6 +24,13 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
             testCase.verifyError(...
                 @() testCase.swobj.addg('g2'), ...
                 'spinw:addg:WrongCouplingTypeIdx')
+        end
+        
+        function test_addg_validates_gmatrix(testCase)
+            testCase.swobj.addmatrix('label', 'g', ...
+                'value', ones(3));
+            testCase.verifyError(@() testCase.swobj.addg('g'), ...
+                'spinw:addg:InvalidgTensor')
         end
         
         function test_addg_with_wrong_atom_label_not_write_g(testCase)

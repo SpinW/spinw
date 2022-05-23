@@ -128,6 +128,16 @@ if matrixIdx == -1
     error('spinw:addg:WrongCouplingTypeIdx','Input matrix does not exists!');
 end
 
+% check matrix has the correct properties for a valid g-tensor
+% see Eq. 15.38 in Abragam and Bleaney (1970) EPR of Transition Ions
+gtensor = obj.matrix.mat(:, :, matrixIdx);
+G = gtensor' * gtensor;
+eigvals = eig(G);
+if ~issymmetric(G) || ~all(eigvals > 10*eps)
+    error('spinw:addg:InvalidgTensor',  ...
+        'Check input matrix - g*.g must be symmeteric positive-definite');
+end
+
 if nargin > 3
     atomIdx = varargin{2};
     if obj.lattice.sym > 1

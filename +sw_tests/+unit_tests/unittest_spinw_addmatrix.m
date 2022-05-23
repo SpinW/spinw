@@ -31,10 +31,7 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
             J = 1.0;
             testCase.swobj.addmatrix('value', J);
             % check diagonal elements are equal to J
-            testCase.assertTrue(isdiag(testCase.swobj.matrix.mat));
-            for elem = diag(testCase.swobj.matrix.mat)'
-               testCase.assertEqual(elem, J) 
-            end
+            testCase.assertEqual(testCase.swobj.matrix.mat, J*eye(3));
             % check default label and color 3 vector (randomly assigned)
             testCase.assertEqual(testCase.swobj.matrix.label{1}, 'mat1')
             testCase.assertEqual(size(testCase.swobj.matrix.color), [3,1])
@@ -43,14 +40,12 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         function test_matrix_value_added_no_modification(testCase)
             matrix = reshape(1:9, 3, 3);
             testCase.swobj.addmatrix('value', matrix);
-            % check diagonal elements are equal to J
             testCase.assertEqual(testCase.swobj.matrix.mat, matrix);
         end
         
         function test_vector_value_adds_DM_matrix(testCase)
             [m1, m2, m3] = deal(1,2,3);
             testCase.swobj.addmatrix('value', [m1, m2, m3]);
-            % check diagonal elements are equal to J
             testCase.assertEqual(testCase.swobj.matrix.mat, ...
                 [0 m3 -m2; -m3 0 m1; m2 -m1 0]);
         end

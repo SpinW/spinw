@@ -53,7 +53,7 @@ classdef unittest_super < matlab.mock.TestCase
             import matlab.unittest.constraints.RelativeTolerance
             import matlab.unittest.constraints.AbsoluteTolerance
             theseBounds = RelativeTolerance(rel_tol) | AbsoluteTolerance(abs_tol);
-            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field)
+            testCase.verifyThat(actual_val, IsEqualTo(expected_val, 'Within', theseBounds), field);
         end
     end
 end
