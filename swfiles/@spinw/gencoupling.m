@@ -100,6 +100,15 @@ tolD  = param.tolDist;
 % constant
 param.maxDistance = param.maxDistance + tol;
 
+if param.maxDistance < param.dMin
+    error('spinw:gencoupling:MaxDLessThanMinD', ...
+        'maxDistance is smaller then dMin parameter');
+end
+
+if param.maxDistance < 0
+    error('spinw:gencoupling:NoMagAtom','There is no magnetic atom (S>0) in the unit cell!');
+end
+
 if isempty(param.maxSym)
     param.maxSym = param.maxDistance;
 end
@@ -193,16 +202,18 @@ cMat = cMat(:,~isnan(cMat(1,:)));
 % cMat = sortrows(cMat',6)'; too slow
 [~,cIdx] = sort(cMat(6,:));
 cMat     = cMat(:,cIdx);
-% cutoff at maximum distance
-cMat = cMat(:,cMat(6,:)<=param.maxDistance);
-% index the bonds
-cMat(7,:) = cumsum([1 diff(cMat(6,:))>tolD]);
-
-% check whether some atoms are too close
+% check cutoff for bond lengths
 if cMat(6,1) < param.dMin
     error('spinw:gencoupling:AtomPos',['Some atoms are too close (Dmin=' ...
         num2str(cMat(6,1)) '<' num2str(param.dMin) '), check your crystal structure!']);
+elseif cMat(6,1) > param.maxDistance
+    error('spinw:gencoupling:maxDistance', ...
+        'There are no bonds with distance < maxDistance');
 end
+
+cMat = cMat(:,cMat(6,:)<=param.maxDistance);
+% index the bonds
+cMat(7,:) = cumsum([1 diff(cMat(6,:))>tolD]);
 
 dRA  = cMat(6,:);
 % keep the bond length
