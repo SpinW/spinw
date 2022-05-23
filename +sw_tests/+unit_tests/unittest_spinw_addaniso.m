@@ -27,12 +27,13 @@ classdef unittest_spinw_addaniso < matlab.mock.TestCase
                 'spinw:addaniso:WrongCouplingTypeIdx')
         end
         
-        function test_addaniso_with_wrong_atom_label_not_write_g(testCase)
-            testCase.swobj.addg('A1', 'atom_2')
-            testCase.assertFalse(any(testCase.swobj.single_ion.aniso))
+        function test_addaniso_with_wrong_atom_label(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.addaniso('A1', 'atom_2'), ...
+                'spinw:addaniso:WrongString')
         end
         
-        function test_addaniso_all_symm_equiv_atomsg(testCase)
+        function test_addaniso_all_symm_equiv_atoms(testCase)
             testCase.swobj.addaniso('A1')
             testCase.assertEqual(testCase.swobj.single_ion.aniso, ...
                 int32([1, 1]))
