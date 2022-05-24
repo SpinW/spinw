@@ -64,5 +64,10 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             fname = fullfile(testCase.get_unit_test_dir(), 'cifs', 'BiMnO3.fst');
             testCase.verifyError(@() spinw(fname), 'generator:WrongInput');
         end
+        function test_spinw_from_wrong_input(testCase)
+            % Test creating spinw object from invalid input gives an
+            % appropriate error
+            testCase.verifyError(@() spinw(4), 'spinw:spinw:WrongInput');
+        end
     end
 end

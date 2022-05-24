@@ -494,15 +494,11 @@ classdef spinw < handle & matlab.mixin.SetGet
                     error('spinw:spinw:WrongInput', ...
                           'No spinw object could be found in the input figure');
                 end
-            end
-            
-            if isa(firstArg, 'spinw')
+            elseif isa(firstArg, 'spinw')
                 %  it is used when objects are passed as arguments.
                 obj = copy(firstArg);
                 return
-            end
-            
-            if isstruct(firstArg)
+            elseif isstruct(firstArg)
                 objS = initfield(firstArg);
                 
                 % change lattice object
@@ -519,8 +515,7 @@ classdef spinw < handle & matlab.mixin.SetGet
                     obj.(fNames{ii}) = objS.(fNames{ii});
                 end
                 return;
-            end
-            if ischar(firstArg)
+            elseif ischar(firstArg)
                 % import data from file (cif/fst are supported)
                 
                 objS = initfield(struct);
@@ -530,7 +525,10 @@ classdef spinw < handle & matlab.mixin.SetGet
                 end
                 
                 obj = sw_import(firstArg,false,obj);
-                
+            else
+                error('spinw:spinw:WrongInput', ...
+                      ['Cannot create spinw object from input of type ' ...
+                       class(firstArg)])
             end
             
         end % .spinw
