@@ -93,7 +93,7 @@ end
 
 if nargin > 3
     atomIdx = varargin{2};
-    if obj.lattice.sym > 1
+    if size(obj.lattice.sym, 3) > 1
         error('spinw:addaniso:SymmetryProblem','atomIdx is not allowed when crystal symmetry is higher than P1!');
     end
 
@@ -131,7 +131,7 @@ if nargin > 2
         end
         atomTypeIdx = find(isSelectedAtom);
     end
-
+    
     for ii = 1:length(atomTypeIdx)
         aTemp = addField.aniso(mAtom.idx == atomTypeIdx(ii));
         if nargin > 3

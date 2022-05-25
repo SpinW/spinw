@@ -140,7 +140,7 @@ end
 
 if nargin > 3
     atomIdx = varargin{2};
-    if obj.lattice.sym > 1
+    if size(obj.lattice.sym, 3) > 1
         error('spinw:addg:SymmetryProblem','atomIdx is not allowed when crystal symmetry is not P1!');
     end
 
