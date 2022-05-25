@@ -1,7 +1,15 @@
-classdef unittest_spinw_addatom < matlab.mock.TestCase
+classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
+        abstol = 10*eps
+    end
+    properties (TestParameter)
+        property_error = {{'Z', 'spinw:addatom:WrongInput'}, ...
+            {'A', 'spinw:addatom:WrongInput'}, ...
+            {'biso', 'spinw:addatom:WrongInput'}, ...
+            {'ox', 'spinw:addatom:WrongInput'}, ...
+            {'S', 'spinw:sw_valid:SizeMismatch'}};
     end
 
     methods (TestMethodSetup)
@@ -19,11 +27,12 @@ classdef unittest_spinw_addatom < matlab.mock.TestCase
             testCase.assertEqual(help_function.arguments, ...
                 {{'spinw.addatom'}});
         end
-        
-        function test_add_multiple_atom_throws_mismatch_spin(testCase)
+               
+        function test_add_multiple_atom_throws_mismatch_parameter_size(testCase, property_error)
+            [prop, error] = property_error{:};
             testCase.verifyError(...
-                @() testCase.swobj.addatom('r', [0 0;0 0.5;0 0.5], 'S', 1), ...
-                'spinw:sw_valid:SizeMismatch')
+                @() testCase.swobj.addatom('r', [0 0;0 0.5;0 0.5], prop, 2), ...
+                error)
         end
         
         function test_add_atom_fails_invalid_position_size(testCase)
@@ -75,6 +84,7 @@ classdef unittest_spinw_addatom < matlab.mock.TestCase
             unit_cell = testCase.swobj.unit_cell;
             testCase.assertEqual(size(unit_cell.r), [3, 1])  % 1 atom
             testCase.assertEqual(unit_cell.S, 1)  % updated spin
+            testCase.assertEqual(unit_cell.label, {'atom1'})
         end
         
         function test_add_atom_update_false_different_spin(testCase)
@@ -98,11 +108,39 @@ classdef unittest_spinw_addatom < matlab.mock.TestCase
         function test_add_atom_named_ion_lookup(testCase)
             testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+')
             unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 1])  % 2 atom
+            testCase.assertEqual(size(unit_cell.r), [3, 1])
             testCase.assertEqual(unit_cell.S, 2)
             testCase.assertEqual(unit_cell.ox, 3)
             testCase.assertEqual(unit_cell.Z, int32(25))
             testCase.assertEqual(unit_cell.b(1), -3.73) % coh scat. len
+            testCase.assertEqual(unit_cell.label, {'Mn3+'})
+        end
+        
+        function test_add_atom_lookup_by_Z(testCase)
+            testCase.swobj.addatom('r', [0; 0; 0], 'Z', 26, 'ox', 3)
+            unit_cell = testCase.swobj.unit_cell;
+            testCase.assertEqual(size(unit_cell.r), [3, 1])
+            testCase.assertEqual(unit_cell.S, 0)  % not looked up
+            testCase.assertEqual(unit_cell.ox, 3)
+            testCase.assertEqual(unit_cell.Z, int32(26))
+            testCase.assertEqual(unit_cell.label, {'Fe3+_1'})
+        end
+        
+        function test_add_atom_in_symbolic_mode_has_symbolic_S(testCase)
+            pos = [0 0.5; 0 0.5; 0 0.5];
+            testCase.swobj.symbolic(true)
+            testCase.swobj.addatom('r', pos, 'S', [0,1])
+            unit_cell = testCase.swobj.unit_cell;
+            testCase.assertEqual(unit_cell.r, pos)
+            testCase.assertEqual(unit_cell.S, [sym('0'), sym('S_2')])  % default non-mag
+        end
+        
+        function test_add_atom_with_custom_form_factor(testCase)
+            testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+', ...
+                'formfact', 1:9);
+            ff = testCase.swobj.unit_cell.ff;
+            testCase.assertEqual(ff(1,:), [1:8 0 0 9]) % neutron
+            testCase.verify_val(ff(2,1), 6.926972, testCase.abstol) % x-ray
         end
         
      end
