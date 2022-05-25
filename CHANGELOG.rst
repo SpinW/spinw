@@ -1,6 +1,11 @@
 `Unreleased <https://github.com/SpinW/spinw/compare/v3.1.2...HEAD>`_
 ----------
 
+- Improvements:
+
+  - Change to preallocation of output energies in ``spinwave`` to reduce
+    memory usage and improve calculation speed
+
 - Bug fixes:
 
   - Fix generation of lattice from basis vectors in ``genlattice``, see issue
