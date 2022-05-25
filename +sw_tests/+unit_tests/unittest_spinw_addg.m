@@ -7,7 +7,6 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
     methods (TestMethodSetup)
         function setup_spinw_model(testCase)
             testCase.swobj = spinw();
-            testCase.swobj.genlattice('spgr','I 4'); % body-centred
             testCase.swobj.addatom('r',[0,0,0], 'S',1)
             testCase.swobj.addmatrix('label','g1','value',diag([2 1 1]))
         end
@@ -26,6 +25,14 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
                 'spinw:addg:WrongCouplingTypeIdx')
         end
         
+        function test_addaniso_with_no_magnetic_atom(testCase)
+            testCase.swobj.addatom('r',[0,0,0], 'S',0, ...
+                'label', 'atom_1', 'update', true)
+            testCase.verifyError(...
+                @() testCase.swobj.addg('g1'), ...
+                'spinw:addg:NoMagAtom')
+        end
+        
         function test_addg_validates_gmatrix(testCase)
             testCase.swobj.addmatrix('label', 'g', ...
                 'value', ones(3));
@@ -38,29 +45,41 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
             testCase.assertFalse(any(testCase.swobj.single_ion.g))
         end
         
-        function test_addg_all_symm_equiv_atomsg(testCase)
+        function test_addg_all_symm_equiv_atoms(testCase)
+            testCase.swobj.genlattice('spgr','I 4'); % body-centred
             testCase.swobj.addg('g1')
             testCase.assertEqual(testCase.swobj.single_ion.g, int32([1, 1]))
         end
         
-        function test_addg_specific_atoms_ignoring_symm(testCase)
-            testCase.swobj.addg('g1', 'atom_1', 1)  % only corner atoms
-            testCase.assertEqual(testCase.swobj.single_ion.g, int32([1, 0]))
+        function test_addg_with_atomIdx_error_when_high_symm(testCase)
+            testCase.swobj.genlattice('spgr','I 4'); % body-centred
+            testCase.verifyError(...
+                @() testCase.swobj.addg('g1', 'atom_1', 1), ...
+                'spinw:addg:SymmetryProblem')
         end
         
-        function test_addg_specific_atoms_wrong_atom_idx(testCase)
+        function test_addg_specific_atoms_wrong_atomIdx(testCase)
             testCase.verifyError(...
                 @() testCase.swobj.addg('g1', 'atom_1', 3), ...
                 'MATLAB:matrix:singleSubscriptNumelMismatch')
         end
         
         function test_addg_specific_atom_label(testCase)
-            % add body-centred atom as different species (revert P1 symm)
-            testCase.swobj.genlattice('spgr','P 1');
-            testCase.swobj.addatom('r',[0.5, 0.5, 0.5], 'S',2)
-            testCase.swobj.addg('g1', 'atom_2')
-            testCase.assertEqual(testCase.swobj.single_ion.g, int32([0, 1]))
+            % setup unit cell with body-centred atom as different species
+            sw = spinw();
+            sw.addatom('r',[0 0.5; 0 0.5; 0 0.5], 'S',[1, 1])
+            sw.addmatrix('label','g1','value',diag([2, 1, 1]))
+            sw.addg('g1', 'atom_2')
+            testCase.assertEqual(sw.single_ion.g, int32([0, 1]))
         end
+        
+        function test_addg_overwrites_previous_gtensor(testCase)
+            testCase.swobj.addmatrix('label','g2','value',diag([1, 1, 2]))
+            testCase.swobj.addg('g1')
+            testCase.swobj.addg('g2') 
+            testCase.assertEqual(testCase.swobj.single_ion.g, int32(2))
+        end
+        
      end
 
 end
