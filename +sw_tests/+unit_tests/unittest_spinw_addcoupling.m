@@ -3,6 +3,10 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
     properties
         swobj = [];
     end
+    properties (TestParameter)
+        bond_atoms = {{'atom_1', 'atom_1'}, 'atom_1', [1,1], 1};
+        invalid_bond_atoms = {{'atom_1', 'atom_2', 'atom_1'}, [1,2,1]}
+    end
 
     methods (TestMethodSetup)
         function setup_spinw_model(testCase)
@@ -45,7 +49,7 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
         end
         
         function test_add_coupling_with_invalid_matrix(testCase)
-            testCase.verifyWarning(...
+            testCase.verifyError(...
                 @() testCase.swobj.addcoupling('mat', 'J2', 'bond', 1), ...
                 'spinw:addcoupling:WrongMatrixLabel')
         end
@@ -74,7 +78,25 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             testCase.assertEqual(coupl.mat_idx(1,1), int32(1))
             testCase.assertFalse(any(coupl.mat_idx(1,2:end)))
             % check removes symmetry of that bond
-            testCase.assertFalse(any(coupl.sym(1,1)))
+            testCase.assertFalse(any(coupl.sym(1,:)))
+        end
+        
+        function test_add_ccoupling_lower_symm_with_subIdx(testCase)
+            testCase.swobj.genlattice('spgr', 'I 4')
+            testCase.swobj.gencoupling('maxDistance',5) % generate bond list
+            testCase.verifyWarning(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'subIdx', 1), ...
+                'spinw:addcoupling:SymetryLowered')
+            testCase.assertFalse(any(testCase.swobj.coupling.sym(1,:)))
+        end
+        
+        function test_add_coupling_uses_subIdx_only_first_bond(testCase)
+            testCase.verifyWarning(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', [1, 2], 'subIdx', 1), ...
+                'spinw:addcoupling:CouplingSize')
+            coupl = testCase.swobj.coupling;
+            testCase.assertEqual(coupl.mat_idx(1,1), int32(1))
+            testCase.assertFalse(any(coupl.mat_idx(1,2:end)))
         end
         
         function test_add_coupling_to_multiple_bonds(testCase)
@@ -83,23 +105,60 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             testCase.assertTrue(all(coupl.mat_idx(1,:)==int32(1)))
         end
         
-        function test_add_coupling_to_bonds_using__atom_label(testCase)
+        function test_add_coupling_to_bonds_using_atom_label(testCase, bond_atoms)
             % add other atom to the sw object made on setup
-            testCase.swobj.addatom('r',[0.5, 0; 0 0.5; 0 0],...
-                'S',[1,1], 'label', {'atom_1', 'atom_2'})
-            testCase.swobj.gencoupling('maxDistance',2) % generate bond list
-            % add bond only between atom_1 and atom_2
-            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
-                'atom', {'atom_1', 'atom_2'})
-            % check matrix added to atom_1-atom_2 bonds not atom_1-atom_1
-            testCase.assertEqual(testCase.swobj.coupling.mat_idx(1,:), ...
-                int32([0, 1, 0, 1]))
+            testCase.swobj.addatom('r',[0.5, 0.5, 0.5],...
+                'S',1, 'label', {'atom_2'})
+            testCase.swobj.gencoupling('maxDistance',3) % generate bond list
+            % add bond only between atom_1 and atom_1 (bond 2 in
+            % obj.coupling.idx)
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 2, ...
+                'atom', bond_atoms)
+            % check matrix added to atom_1-atom_1 bonds not atom_1-atom_2
+            coupl = testCase.swobj.coupling;
+            ibond = find(coupl.mat_idx(1,:));
+            testCase.assertEqual(ibond, 9:11);
+            testCase.assertTrue(all(coupl.atom1(ibond)==int32(1)))
+            testCase.assertTrue(all(coupl.atom2(ibond)==int32(1)))
+            testCase.assertTrue(all(coupl.idx(ibond)==int32(2)))
+        end
+        
+        function test_add_coupling_to_bond_between_atoms_different_to_label(testCase, bond_atoms)
+            % add other atom to the sw object made on setup
+            testCase.swobj.addatom('r',[0.5, 0.5, 0.5],...
+                'S',1, 'label', {'atom_2'})
+            testCase.swobj.gencoupling('maxDistance',3) % generate bond list
+            % atom_1-atom_1 bonds have 'bond' index 2 (in sw.coupling.idx)
+            testCase.verifyError(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
+                    'atom', bond_atoms), ...
+                'spinw:addcoupling:NoBond') 
+        end
+        
+        function test_add_coupling_to_bond_with_invalid_atom_label(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
+                'atom', {'atom_1', 'atom_3'}), ...
+                'spinw:addcoupling:WrongInput')
+        end
+        
+        function test_add_coupling_more_than_two_atom_labels(testCase, invalid_bond_atoms)
+            testCase.verifyError(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
+                'atom', invalid_bond_atoms), ...
+                'spinw:addcoupling:WrongInput')
         end
         
         function test_add_coupling_biquadratic_exchange(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'type', 'biquadratic')
             testCase.assertEqual(testCase.swobj.coupling.type(1,1:3), ...
                 int32([1 ,1, 1]))
+        end
+        
+        function test_add_coupling_invalid_exchange_type(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'type', 'invalid_type'), ...
+                'spinw:addcoupling:WrongInput')
         end
         
         function test_add_coupling_multiple_on_same_bond(testCase)
@@ -110,6 +169,41 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             coupl = testCase.swobj.coupling;
             testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
             testCase.assertEqual(coupl.mat_idx(2,1:3), int32([2, 2, 2]))
+        end
+        
+        function test_add_coupling_max_num_matrices_added(testCase)
+            % add 4 matrices to a bond
+            for imat = 1:4
+                mat_str = ['J', num2str(imat)];
+                testCase.swobj.addmatrix('label', mat_str,'value', imat)
+                if imat < 4
+                    testCase.swobj.addcoupling('mat', mat_str, 'bond', 1)
+                else
+                    % exceeded max. of 3 matrices on a bond
+                    testCase.verifyError(...
+                        @() testCase.swobj.addcoupling('mat', mat_str, 'bond', 1), ...
+                        'spinw:addcoupling:TooManyCoupling')
+                    
+                end
+            end
+        end
+        
+        function test_add_coupling_with_sym_false(testCase)
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'sym', false)
+            coupl = testCase.swobj.coupling;
+            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
+            testCase.assertFalse(any(coupl.sym(1,1:3)))
+        end
+        
+        function test_add_coupling_duplicate_matrix_on_same_bond(testCase)
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1)
+            testCase.verifyWarning(...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1), ...
+                'spinw:addcoupling:CouplingIdxWarning')
+            % check matrix only added once
+            coupl = testCase.swobj.coupling;
+            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
+            testCase.assertFalse(any(coupl.mat_idx(2,1:3)))
         end
         
      end
