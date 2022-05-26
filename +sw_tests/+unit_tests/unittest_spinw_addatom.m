@@ -126,15 +126,6 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(unit_cell.label, {'Fe3+_1'})
         end
         
-        function test_add_atom_in_symbolic_mode_has_symbolic_S(testCase)
-            pos = [0 0.5; 0 0.5; 0 0.5];
-            testCase.swobj.symbolic(true)
-            testCase.swobj.addatom('r', pos, 'S', [0,1])
-            unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(unit_cell.r, pos)
-            testCase.assertEqual(unit_cell.S, [sym('0'), sym('S_2')])  % default non-mag
-        end
-        
         function test_add_atom_with_custom_form_factor(testCase)
             testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+', ...
                 'formfact', 1:9);
@@ -143,6 +134,17 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             testCase.verify_val(ff(2,1), 6.926972, testCase.abstol) % x-ray
         end
         
-     end
+    end
+     
+    methods (Test, TestTags = {'Symbolic'})
+        function test_add_atom_in_symbolic_mode_has_symbolic_S(testCase)
+            pos = [0 0.5; 0 0.5; 0 0.5];
+            testCase.swobj.symbolic(true)
+            testCase.swobj.addatom('r', pos, 'S', [0,1])
+            unit_cell = testCase.swobj.unit_cell;
+            testCase.assertEqual(unit_cell.r, pos)
+            testCase.assertEqual(unit_cell.S, [sym(0), sym('S_2')])
+        end
+    end
 
 end
