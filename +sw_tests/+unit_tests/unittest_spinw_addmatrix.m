@@ -3,10 +3,13 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
     properties
         swobj = [];
     end
+    properties (TestParameter)
+        wrong_matrix_input = {'str', []};
+    end
 
     methods (TestMethodSetup)
         function setup_spinw_model(testCase)
-            testCase.swobj = spinw; % default init
+            testCase.swobj = spinw;
         end
     end
 
@@ -20,11 +23,18 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
                 {{'spinw.addmatrix'}});
         end
         
-        function test_non_numeric_input_warns_and_not_add_matrix(testCase)
-            testCase.verifyWarning(...
-                @() testCase.swobj.addmatrix('value', 'str'), ...
+        function test_non_numeric_input_warns_and_not_add_matrix(testCase, wrong_matrix_input)
+            testCase.verifyError(...
+                @() testCase.swobj.addmatrix('value', wrong_matrix_input), ...
                 'spinw:addmatrix:WrongInput');
             testCase.assertTrue(isempty(testCase.swobj.matrix.mat));
+        end
+        
+        function test_label_and_no_matrix_warns_and_adds_default(testCase)
+            testCase.verifyWarning(...
+                @() testCase.swobj.addmatrix('label', 'mat'), ...
+                'spinw:addmatrix:NoValue');
+            testCase.assertEqual(testCase.swobj.matrix.mat, eye(3));
         end
         
         function test_single_value_adds_diag_matrix_no_label_color(testCase)
@@ -50,7 +60,7 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
                 [0 m3 -m2; -m3 0 m1; m2 -m1 0]);
         end
         
-        function test_add_multiple_matrices(testCase)
+        function test_add_multiple_matrices_separate_calls(testCase)
             nmat = 2;
             for imat = 1:nmat
                 testCase.swobj.addmatrix('value', imat);
@@ -69,6 +79,31 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
             end
         end
         
+        function test_add_multiple_matrices_single_call(testCase)
+            mat = cat(3, eye(3), 2*eye(3));
+            testCase.swobj.addmatrix('value', mat);
+            % check matrix properties have correct dimensions
+            testCase.assertEqual(testCase.swobj.matrix.mat, mat)
+            testCase.assertEqual(testCase.swobj.matrix.label, ...
+                {'mat1'  'mat2'});
+        end
+        
+        function test_add_matrix_with_same_name_overwritten(testCase)
+            testCase.swobj.addmatrix('value', 1.0, 'label', 'mat');
+            testCase.swobj.addmatrix('value', 2.0, 'label', 'mat');
+            testCase.assertEqual(testCase.swobj.matrix.mat, 2*eye(3));
+        end
+        
+        function test_add_multiple_matrices_same_label(testCase)
+            % not possible to have more than two matrix.mat with same label
+            % if matrices are added with addmatrix. To test this need to
+            % modify spinw attribute directly
+            testCase.swobj.matrix.label = {'mat', 'mat'};
+            testCase.verifyError(...
+                @() testCase.swobj.addmatrix('value', 1, 'label', 'mat'), ...
+                'spinw:addmatrix:LabelError');
+        end
+        
         function test_user_supplied_label_used(testCase)
             testCase.swobj.addmatrix('value', 1.0, 'label', 'custom');
             testCase.assertEqual(testCase.swobj.matrix.label{1}, 'custom')
@@ -79,6 +114,14 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
             testCase.assertEqual(testCase.swobj.matrix.color', [0,0,int32(255)])
         end
         
-     end
+    end
+     
+    methods (Test, TestTags = {'Symbolic'})
+        function add_matrix_with_symbolic_value(testCase)
+            testCase.swobj.symbolic(true);
+            testCase.swobj.addmatrix('value', 1)
+            testCase.assertEqual(testCase.swobj.matrix.mat, sym('mat1')*eye(3))
+        end
+    end
 
 end
