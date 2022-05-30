@@ -72,5 +72,13 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             % appropriate error
             testCase.verifyError(@() spinw(4), 'spinw:spinw:WrongInput');
         end
+        function test_spinw_nmagext(testCase)
+             swobj = testCase.load_spinw('spinw_afm_chain.mat');
+             testCase.assertEqual(swobj.nmagext, 2);
+        end
+        function test_spinw_natom(testCase)
+             swobj = testCase.load_spinw('spinw_triAF.mat');
+             testCase.assertEqual(swobj.natom, 1);
+        end
     end
 end
