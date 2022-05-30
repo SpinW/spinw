@@ -77,8 +77,8 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
              testCase.assertEqual(swobj.nmagext, 2);
         end
         function test_spinw_natom(testCase)
-             swobj = testCase.load_spinw('spinw_triAF.mat');
-             testCase.assertEqual(swobj.natom, 1);
+             swobj = testCase.load_spinw('spinw_from_cif_YFeO3_mcphase.mat');
+             testCase.assertEqual(swobj.natom, 5);
         end
     end
 end
