@@ -30,7 +30,7 @@ jobs:
         with:
           command: "run run_tests.m"
       - uses: codecov/codecov-action@v2
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.matlab_version == 'latest' }}
+        if: ${{ always() && matrix.os == 'ubuntu-latest' && matrix.matlab_version == 'latest' }}
         with:
             files: coverage*.xml
             token: ${{ secrets.CODECOV_TOKEN }}
