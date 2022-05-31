@@ -166,7 +166,7 @@ if ~isempty(param.atom)
         end
     end
     if numel(param.atom)>2
-        error('spinw:addcoupling:WrongInput','A maximum of 2 atom labels can be proivided.');
+        error('spinw:addcoupling:WrongInput','A maximum of 2 atom labels can be provided.');
     else
         aIdx1 = param.atom{1}; % atom 1 index in matom.idx
         if numel(param.atom)>1
