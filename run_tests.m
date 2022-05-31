@@ -26,7 +26,9 @@ function result = run_tests(out_dir)
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
     if ispc || ismac
-     suite = suite.selectIf(~HasTag('Symbolic'));
+        % only run symbolic tests on ubuntu (winodws and mac don't have
+        % toolkit)
+        suite = suite.selectIf(~HasTag('Symbolic'));
     end
     runner = TestRunner.withTextOutput;
 
