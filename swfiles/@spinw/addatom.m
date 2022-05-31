@@ -87,10 +87,11 @@ function addatom(obj, varargin)
 %   mixture of isotopes.
 % 
 % `bn`
-% : Neutron scattering length, given as double. Not implemented yet.
+% : Neutron scattering length, given as double.
 % 
 % `bx`
-% : X-ray scattering length.
+% : X-ray scattering length, given as double. Not yet implmented, this
+%   input will be ignored.
 % 
 % `biso`
 % : Isotropic displacement factors in units of \\ang$^2$.
@@ -139,7 +140,17 @@ if isempty(newAtom.formfactn)
 end
 if isempty(newAtom.bn)
     newAtom.bn = newAtom.b;
+elseif ~isempty(newAtom.b)
+    warning('spinw:addatom:WrongInput', ...
+        ['Both b and bn have been provided - note that bn will ',...
+         'be used for the neutron scattering length (b will be ignored).']);
 end
+if ~isempty(newAtom.bx)
+    warning('spinw:addatom:WrongInput', ...
+        ['X-ray scattering length is not currently supported, the ' ...
+         'input bx will be ignored']);
+end
+
 
 if ~any(size(newAtom.r)-[1 3])
     newAtom.r = newAtom.r';
@@ -349,7 +360,6 @@ if isempty(newAtom.bn)
 else
     newAtom.b(1,:) = newAtom.bn;
 end
-
 
 newAtom.Z  = int32(newAtom.Z);
 
