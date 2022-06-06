@@ -26,6 +26,7 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             expected_spinw = testCase.load_spinw('spinw_default.mat');
             actual_spinw = spinw;
             testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.assertEqual(true, false)
         end
         function test_spinw_from_struct_input(testCase, spinw_struct_input)
             % Tests that if spinw is called with struct input, the relevant
