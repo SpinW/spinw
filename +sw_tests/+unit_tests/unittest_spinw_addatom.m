@@ -14,10 +14,27 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             {'biso', 'spinw:addatom:WrongInput'}, ...
             {'ox', 'spinw:addatom:WrongInput'}, ...
             {'S', 'spinw:sw_valid:SizeMismatch'}};
-        oxidation = {3, -3};
+        oxidation_label = {{3, 'Fe3+_1'}, {-3, 'Fe3-_1'}};
         pos_vector = {[0;0;0], [0 0 0]}
+        property_value = {{'S',1}, {'occ', 0.5}, {'biso', 0.5}};
+        b_name = {'b', 'bn'}
     end
-
+    
+    methods
+        function verify_unit_cell(testCase, actual_struct, non_default_fields_struct, varargin)
+            % varargin is cell array of fields to ignore
+            expected_struct = testCase.default_unit_cell;
+            for field = fieldnames(non_default_fields_struct)'
+                expected_struct.(field{1}) = non_default_fields_struct.(field{1});
+            end
+            % replace excluded fields with actual value (i.e. ensure match)
+            for field = varargin
+                expected_struct.(field{1}) = actual_struct.(field{1});
+            end
+            testCase.assertEqual(actual_struct, expected_struct)
+        end
+    end
+    
     methods (TestMethodSetup)
         function setup_spinw_model(testCase)
             testCase.swobj = spinw(); % default init
@@ -79,24 +96,40 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
                 testCase.default_unit_cell);
         end
         
-        function test_add_multiple_atom_with_only_position(testCase)
+        function test_add_single_atom_custom_parameters(testCase, property_value)
+            [prop, val] = property_value{:};
+            testCase.swobj.addatom('r', [0; 0; 0], prop, val)
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                struct(prop, val))
+        end
+        
+        function test_add_atom_with_custom_scatt_length(testCase, b_name)
+            b = 2;
+            testCase.swobj.addatom('r', [0;0;0], b_name, b)
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                struct(), 'b') % test all default fields excl. b
+            testCase.assertEqual(testCase.swobj.unit_cell.b(1,1), b)
+        end
+        
+        function test_add_multiple_atom_with_single_call(testCase)
             pos = [[0; 0; 0] [0; 0; 0.5]];
-            testCase.swobj.addatom('r', pos)
+            S = [0, 1];
+            testCase.swobj.addatom('r', pos, 'S', S)
             unit_cell = testCase.swobj.unit_cell;
             testCase.assertEqual(unit_cell.r, pos)
-            testCase.assertEqual(unit_cell.S, [0,0])  % default non-mag
+            testCase.assertEqual(unit_cell.S, S)  % default non-mag
             testCase.assertEqual(unit_cell.label, {'atom_1', 'atom_2'})
         end
 
         
         function test_add_atom_with_update_true_different_spin(testCase)
             pos = [0; 0; 0];
+            label = 'atom1';
             testCase.swobj.addatom('r', pos, 'label', 'atom1')
             testCase.swobj.addatom('r', pos, 'S', 1, 'label', 'atom1')
-            unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 1])  % 1 atom
-            testCase.assertEqual(unit_cell.S, 1)  % updated spin
-            testCase.assertEqual(unit_cell.label, {'atom1'})
+            non_default_fields = struct('S', 1, 'label',{{label}}, 'ox', 1);
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                non_default_fields) 
         end
         
         function test_add_atom_update_false_different_spin(testCase)
@@ -107,7 +140,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
                     'label', 'atom1', 'update', false), ...
                 'spinw:addatom:WrongInput')  % warns occ > 1
             unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 2])  % 2 atoms
+            testCase.assertEqual(unit_cell.r, [pos, pos])  % 2 atoms
             testCase.assertEqual(unit_cell.S, [0, 1])
         end
         
@@ -116,47 +149,41 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             testCase.swobj.addatom('r', pos, 'label', 'atom1')
             testCase.swobj.addatom('r', pos + 0.5, 'S', 1, 'label', 'atom1')
             unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 2])  % 2 atom
+            testCase.assertEqual(unit_cell.r, [pos, pos+0.5])  % 2 atom
             testCase.assertEqual(unit_cell.S, [0, 1])
         end
         
         function test_add_atom_named_ion_lookup(testCase)
-            testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+')
-            unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 1])
-            testCase.assertEqual(unit_cell.S, 2)
-            testCase.assertEqual(unit_cell.ox, 3)
-            testCase.assertEqual(unit_cell.Z, int32(25))
-            testCase.assertEqual(unit_cell.b(1), -3.73) % coh scat. len
-            testCase.assertEqual(unit_cell.ff(:,1), [0.4198; 6.926972])
-            testCase.assertEqual(unit_cell.label, {'Mn3+'})
-            % check default values
-            for field = {'occ', 'A', 'biso'}
-                testCase.assertEqual(unit_cell.(field{:}), ...
-                    testCase.default_unit_cell.(field{:}))
-            end
+            label = 'Mn3+';
+            testCase.swobj.addatom('r', [0; 0; 0], 'label', label)
+            non_default_fields = struct('S', 2, 'ox', 3, 'Z', int32(25), ...
+                'label', {{label}}, 'b', [-3.73; 1], ...
+                'color', int32([156; 122; 199]));
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                non_default_fields, 'ff')
+            testCase.assertEqual(testCase.swobj.unit_cell.ff(:,1), ...
+                [0.4198; 6.926972])
         end
         
-        function test_add_atom_lookup_by_Z_with_custom_ox(testCase, oxidation)
-            testCase.swobj.addatom('r', [0; 0; 0], 'Z', 26, ...
-                'ox', oxidation)
-            unit_cell = testCase.swobj.unit_cell;
-            testCase.assertEqual(size(unit_cell.r), [3, 1])
-            testCase.assertEqual(unit_cell.S, 0)  % not looked up
-            testCase.assertEqual(unit_cell.ox, oxidation)
-            testCase.assertEqual(unit_cell.Z, int32(26))
-            testCase.assertEqual(unit_cell.label, ...
-                {['Fe' flip(sprintf('%+i', oxidation)), '_1']})
-            % check default values (note no lookup on form-factor or b)
-            for field = {'occ', 'A', 'biso', 'b', 'ff'}
-                testCase.assertEqual(unit_cell.(field{:}), ...
-                    testCase.default_unit_cell.(field{:}))
-            end
+        function test_add_atom_lookup_by_Z_with_custom_ox(testCase, oxidation_label)
+            [ox, label] = oxidation_label{:};
+            Z = int32(26);
+            testCase.swobj.addatom('r',[ 0;0;0], 'Z', Z, 'ox', ox)
+            non_default_fields = struct('ox', ox, 'Z', Z, ...
+                'label', {{label}}, 'color', int32([224; 102; 51]));
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                non_default_fields) % note no lookup of S, ff or b
         end
         
         function test_add_atom_with_custom_form_factor(testCase)
-            testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+', ...
+            label = 'Mn3+';
+            testCase.swobj.addatom('r', [0; 0; 0], 'label', label, ...
                 'formfact', 1:9);
+            non_default_fields = struct('ox', 3, 'Z', int32(25), ...
+                'label', {{label}}, 'b', [-3.73; 1], ...
+                'color', int32([156; 122; 199])); % note S=0 (default)
+            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
+                non_default_fields, 'ff') 
             ff = testCase.swobj.unit_cell.ff;
             testCase.assertEqual(ff(1,:), [1:8 0 0 9]) % neutron
             testCase.verify_val(ff(2,1), 6.926972, testCase.abstol) % x-ray
@@ -167,8 +194,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.addatom('r', [0; 0; 0], 'label', 'Mn3+', ...
                     'formfact', 1:8), ...
                 'MATLAB:catenate:dimensionMismatch');
-        end
-        
+        end    
+                
     end
      
     methods (Test, TestTags = {'Symbolic'})
