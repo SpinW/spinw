@@ -6,6 +6,10 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             'label', {{'atom_1'}}, 'color', int32([255; 0; 0]), 'ox', 0, ...
             'occ', 1, 'b', [1; 1], 'ff', [zeros(2,10) [1; 1]], ...
             'A', int32(-1), 'Z', int32(113), 'biso', 0)
+        ff = [0.4198, 14.2829, 0.6054, 5.4689, 0.9241, -0.0088, ...
+                0,      0,        0,      0,      -0.9498;
+              6.9270, 0.3783, 2.0813, 0.0151, 11.1284, 5.3800, ...
+                2.3751, 14.4296, -0.4193, 0.0049, -0.0937]; % Mn3+ form-fac
     end
     properties (TestParameter)
         property_error = {{'Z', 'spinw:addatom:WrongInput'}, ...
@@ -17,21 +21,6 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         pos_vector = {[0;0;0], [0 0 0]}
         property_value = {{'S',1}, {'occ', 0.5}, {'biso', 0.5}};
         b_name = {'b', 'bn'}
-    end
-    
-    methods
-        function verify_unit_cell(testCase, actual_struct, non_default_fields_struct, varargin)
-            % varargin is cell array of fields to ignore
-            expected_struct = testCase.default_unit_cell;
-            for field = fieldnames(non_default_fields_struct)'
-                expected_struct.(field{1}) = non_default_fields_struct.(field{1});
-            end
-            % replace excluded fields with actual value (i.e. ensure match)
-            for field = varargin
-                expected_struct.(field{1}) = actual_struct.(field{1});
-            end
-            testCase.assertEqual(actual_struct, expected_struct)
-        end
     end
     
     methods (TestMethodSetup)
@@ -98,16 +87,18 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         function test_add_single_atom_custom_parameters(testCase, property_value)
             [prop, val] = property_value{:};
             testCase.swobj.addatom('r', [0; 0; 0], prop, val)
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                struct(prop, val))
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.(prop) = val;
+            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
+            
         end
         
         function test_add_atom_with_custom_scatt_length(testCase, b_name)
             b = 2;
             testCase.swobj.addatom('r', [0;0;0], b_name, b)
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                struct(), 'b') % test all default fields excl. b
-            testCase.assertEqual(testCase.swobj.unit_cell.b(1,1), b)
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.b = [b; 1];
+            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
         end
         
         function test_add_multiple_atom_with_single_call(testCase)
@@ -123,12 +114,13 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         
         function test_add_atom_with_update_true_different_spin(testCase)
             pos = [0; 0; 0];
-            label = 'atom1';
-            testCase.swobj.addatom('r', pos, 'label', 'atom1')
-            testCase.swobj.addatom('r', pos, 'S', 1, 'label', 'atom1')
-            non_default_fields = struct('S', 1, 'label',{{label}}, 'ox', 1);
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                non_default_fields) 
+            label = 'atom';
+            testCase.swobj.addatom('r', pos, 'label', label)
+            testCase.swobj.addatom('r', pos, 'S', 1, 'label', label)
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.S = 1;
+            expected_unit_cell.label = {label};
+            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
         end
         
         function test_add_atom_update_false_different_spin(testCase)
@@ -155,37 +147,43 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         function test_add_atom_named_ion_lookup(testCase)
             label = 'Mn3+';
             testCase.swobj.addatom('r', [0; 0; 0], 'label', label)
-            non_default_fields = struct('S', 2, 'ox', 3, 'Z', int32(25), ...
-                'label', {{label}}, 'b', [-3.73; 1], ...
-                'color', int32([156; 122; 199]));
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                non_default_fields, 'ff')
-            testCase.assertEqual(testCase.swobj.unit_cell.ff(:,1), ...
-                [0.4198; 6.926972])
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.S = 2;
+            expected_unit_cell.ox = 3;
+            expected_unit_cell.Z = int32(25);
+            expected_unit_cell.b = [-3.73; 1];
+            expected_unit_cell.ff = testCase.ff;
+            expected_unit_cell.label = {label};
+            expected_unit_cell.color = int32([156; 122; 199]);
+            testCase.verify_val(expected_unit_cell, ...
+                testCase.swobj.unit_cell, 'abs_tol', 1e-4)
         end
         
         function test_add_atom_lookup_by_Z_with_custom_ox(testCase, oxidation_label)
             [ox, label] = oxidation_label{:};
             Z = int32(26);
-            testCase.swobj.addatom('r',[ 0;0;0], 'Z', Z, 'ox', ox)
-            non_default_fields = struct('ox', ox, 'Z', Z, ...
-                'label', {{label}}, 'color', int32([224; 102; 51]));
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                non_default_fields) % note no lookup of S, ff or b
+            testCase.swobj.addatom('r',[0;0;0], 'Z', Z, 'ox', ox)
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.ox = ox;
+            expected_unit_cell.Z = Z;
+            expected_unit_cell.label = {label};
+            expected_unit_cell.color = int32([224; 102; 51]);
+            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
         end
         
         function test_add_atom_with_custom_form_factor(testCase)
             label = 'Mn3+';
             testCase.swobj.addatom('r', [0; 0; 0], 'label', label, ...
                 'formfact', 1:9);
-            non_default_fields = struct('ox', 3, 'Z', int32(25), ...
-                'label', {{label}}, 'b', [-3.73; 1], ...
-                'color', int32([156; 122; 199])); % note S=0 (default)
-            testCase.verify_unit_cell(testCase.swobj.unit_cell, ...
-                non_default_fields, 'ff') 
-            ff = testCase.swobj.unit_cell.ff;
-            testCase.assertEqual(ff(1,:), [1:8 0 0 9]) % neutron
-            testCase.verify_val(ff(2,1), 6.926972) % x-ray
+            expected_unit_cell = testCase.default_unit_cell;
+            expected_unit_cell.ox = 3;
+            expected_unit_cell.Z = int32(25);
+            expected_unit_cell.b = [-3.73; 1];
+            expected_unit_cell.ff = [1:8 0 0 9; testCase.ff(2,:)];
+            expected_unit_cell.label = {label};
+            expected_unit_cell.color = int32([156; 122; 199]);
+            testCase.verify_val(expected_unit_cell, ...
+                testCase.swobj.unit_cell, 'abs_tol', 1e-4)
         end
         
         function test_add_atom_with_custom_form_factor_wrong_size(testCase)
