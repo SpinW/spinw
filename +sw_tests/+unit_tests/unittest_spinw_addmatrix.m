@@ -1,7 +1,9 @@
-classdef unittest_spinw_addmatrix < matlab.mock.TestCase
+classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
+        default_matrix = struct('mat', eye(3), 'color', int32([0;0;0]), ...
+            'label', {{'mat1'}})
     end
     properties (TestParameter)
         wrong_matrix_input = {'str', []};
@@ -40,11 +42,9 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         function test_single_value_adds_diag_matrix_no_label_color(testCase)
             J = 1.0;
             testCase.swobj.addmatrix('value', J);
-            % check diagonal elements are equal to J
-            testCase.assertEqual(testCase.swobj.matrix.mat, J*eye(3));
-            % check default label and color 3 vector (randomly assigned)
-            testCase.assertEqual(testCase.swobj.matrix.label{1}, 'mat1')
-            testCase.assertEqual(size(testCase.swobj.matrix.color), [3,1])
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = J*eye(3);
+            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
         end
         
         function test_matrix_value_added_no_modification(testCase)
@@ -56,8 +56,9 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         function test_vector_value_adds_DM_matrix(testCase)
             [m1, m2, m3] = deal(1,2,3);
             testCase.swobj.addmatrix('value', [m1, m2, m3]);
-            testCase.assertEqual(testCase.swobj.matrix.mat, ...
-                [0 m3 -m2; -m3 0 m1; m2 -m1 0]);
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = [0 m3 -m2; -m3 0 m1; m2 -m1 0];
+            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
         end
         
         function test_add_multiple_matrices_separate_calls(testCase)
@@ -71,9 +72,8 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
             testCase.assertEqual(size(testCase.swobj.matrix.label), [1, nmat])
             % check value and label correct
             for imat = 1:nmat
-                for elem = diag(testCase.swobj.matrix.mat(:,:,imat))'
-                    testCase.assertEqual(elem, imat) 
-                end
+                testCase.assertEqual(testCase.swobj.matrix.mat(:,:,imat), ...
+                    imat*eye(3));
                 testCase.assertEqual(testCase.swobj.matrix.label{imat}, ...
                     ['mat' num2str(imat)])
             end
@@ -89,9 +89,11 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         end
         
         function test_add_matrix_with_same_name_overwritten(testCase)
-            testCase.swobj.addmatrix('value', 1.0, 'label', 'mat');
-            testCase.swobj.addmatrix('value', 2.0, 'label', 'mat');
-            testCase.assertEqual(testCase.swobj.matrix.mat, 2*eye(3));
+            testCase.swobj.addmatrix('value', 1.0);
+            testCase.swobj.addmatrix('value', 2.0, 'label', 'mat1');
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = 2*eye(3);
+            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
         end
         
         function test_add_multiple_matrices_same_label(testCase)
@@ -105,12 +107,17 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         end
         
         function test_user_supplied_label_used(testCase)
-            testCase.swobj.addmatrix('value', 1.0, 'label', 'custom');
-            testCase.assertEqual(testCase.swobj.matrix.label{1}, 'custom')
+            label = 'custom';
+            testCase.swobj.addmatrix('value', 1.0, 'label', label);
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.label = {label};
+            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
         end
 
         function test_user_supplied_color_string(testCase)
             testCase.swobj.addmatrix('value', 1.0, 'color', 'blue');
+            testCase.verify_spinw_matrix(testCase.default_matrix, testCase.swobj.matrix)
+            % test color explicitly (only size and data type checked above)
             testCase.assertEqual(testCase.swobj.matrix.color', [0,0,int32(255)])
         end
         
@@ -120,7 +127,9 @@ classdef unittest_spinw_addmatrix < matlab.mock.TestCase
         function add_matrix_with_symbolic_value(testCase)
             testCase.swobj.symbolic(true);
             testCase.swobj.addmatrix('value', 1)
-            testCase.assertEqual(testCase.swobj.matrix.mat, sym('mat1')*eye(3))
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = sym('mat1')*eye(3);
+            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
         end
     end
 

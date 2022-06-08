@@ -58,5 +58,15 @@ classdef unittest_super < matlab.mock.TestCase
             testCase.verifyThat(actual_val, ...
                 IsEqualTo(expected_val, 'Within', bounds), field);
         end
+        function verify_spinw_matrix(testCase, expected_matrix, actual_matrix, varargin)
+            % compare excl. color (which is randomly generated)
+            testCase.verify_val(rmfield(expected_matrix, 'color'), ...
+                rmfield(actual_matrix, 'color'), varargin{:})
+            % check size and data type of color
+            testCase.assertEqual(size(actual_matrix.color), ...
+                size(expected_matrix.color));
+            testCase.assertTrue(isa(actual_matrix.color, ...
+                class(expected_matrix.color)));
+        end
     end
 end
