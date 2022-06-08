@@ -2,7 +2,6 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        abstol = 10*eps
         default_unit_cell = struct('r', [0; 0; 0], 'S', 0, ...
             'label', {{'atom_1'}}, 'color', int32([255; 0; 0]), 'ox', 0, ...
             'occ', 1, 'b', [1; 1], 'ff', [zeros(2,10) [1; 1]], ...
@@ -186,7 +185,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
                 non_default_fields, 'ff') 
             ff = testCase.swobj.unit_cell.ff;
             testCase.assertEqual(ff(1,:), [1:8 0 0 9]) % neutron
-            testCase.verify_val(ff(2,1), 6.926972, testCase.abstol) % x-ray
+            testCase.verify_val(ff(2,1), 6.926972) % x-ray
         end
         
         function test_add_atom_with_custom_form_factor_wrong_size(testCase)

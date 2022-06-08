@@ -2,7 +2,6 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        abstol = 10*eps
     end
 
     methods (TestMethodSetup)
@@ -49,7 +48,7 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
                 'vol', 0.5, 'overwrite', true)
             testCase.assertEqual(testCase.swobj.twin.vol, 0.5)
             testCase.verify_val(testCase.swobj.twin.rotc, ...
-                [0 -1 0; 1 0 0; 0 0 1], 0, testCase.abstol)
+                [0 -1 0; 1 0 0; 0 0 1])
         end
         
         function test_addtwin_with_phid(testCase)
@@ -57,16 +56,16 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
             testCase.swobj.addtwin('axis', [0 0 1], 'phid', [90])
             testCase.assertEqual(testCase.swobj.twin.vol, [1, 1])          
             testCase.verify_val(testCase.swobj.twin.rotc(:,:,2), ...
-                [0 -1 0; 1 0 0; 0 0 1], 0, testCase.abstol)
+                [0 -1 0; 1 0 0; 0 0 1])
         end
           
         function test_addtwin_with_multiple_phid(testCase)
             testCase.swobj.addtwin('axis', [0 0 1], 'phid', [90, 180])
             testCase.assertEqual(testCase.swobj.twin.vol, [1, 1, 1])          
             testCase.verify_val(testCase.swobj.twin.rotc(:,:,2), ...
-                [0 -1 0; 1 0 0; 0 0 1], 0, testCase.abstol)
+                [0 -1 0; 1 0 0; 0 0 1])
             testCase.verify_val(testCase.swobj.twin.rotc(:,:,3), ...
-               [-1 0 0; 0 -1 0; 0 0 1], 0, testCase.abstol)
+               [-1 0 0; 0 -1 0; 0 0 1])
             
         end
         
