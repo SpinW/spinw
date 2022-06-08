@@ -1,9 +1,9 @@
-classdef unittest_spinw_addg < matlab.mock.TestCase
+classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        make_single_ion_struct_with_g = @(g) struct(...
-            'aniso', zeros(1,0,'int32'), 'g', g, 'field', [0,0,0], 'T', 0)
+        default_single_ion = struct('g', int32(1), ...
+            'aniso', zeros(1,0,'int32'), 'field', [0,0,0], 'T', 0)
     end
 
     methods (TestMethodSetup)
@@ -50,8 +50,10 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
         function test_addg_all_symm_equiv_atoms(testCase)
             testCase.swobj.genlattice('spgr','I 4'); % body-centred
             testCase.swobj.addg('g1')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_g(int32([1, 1])))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.g = int32([1, 1]);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
         function test_addg_with_atomIdx_error_when_high_symm(testCase)
@@ -71,16 +73,20 @@ classdef unittest_spinw_addg < matlab.mock.TestCase
             % setup unit cell with body-centred atom as different species
             testCase.swobj.addatom('r',[0.5; 0.5; 0.5], 'S',1)
             testCase.swobj.addg('g1', 'atom_2')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_g(int32([0, 1])))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.g = int32([0, 1]);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
         function test_addg_overwrites_previous_gtensor(testCase)
             testCase.swobj.addmatrix('label','g2','value',diag([1, 1, 2]))
             testCase.swobj.addg('g1')
             testCase.swobj.addg('g2')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_g(int32(2)))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.g = int32(2);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
      end

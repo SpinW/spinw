@@ -1,9 +1,9 @@
-classdef unittest_spinw_addaniso < matlab.mock.TestCase
+classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        make_single_ion_struct_with_aniso = @(aniso) struct(...
-            'aniso', aniso, 'g', zeros(1,0,'int32'), 'field', [0,0,0], 'T', 0)
+        default_single_ion = struct('aniso', int32(1), ...
+            'g', zeros(1,0,'int32'), 'field', [0,0,0], 'T', 0)
     end
 
     methods (TestMethodSetup)
@@ -45,8 +45,10 @@ classdef unittest_spinw_addaniso < matlab.mock.TestCase
         function test_addaniso_all_symm_equiv_atoms(testCase)
             testCase.swobj.genlattice('spgr','I 4'); % body-centred
             testCase.swobj.addaniso('A1')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_aniso(int32([1, 1])))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.aniso = int32([1, 1]);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
         function test_addaniso_specific_atoms_wrong_atomIdx(testCase)
@@ -66,16 +68,20 @@ classdef unittest_spinw_addaniso < matlab.mock.TestCase
             % setup unit cell with body-centred atom as different species
             testCase.swobj.addatom('r',[0.5; 0.5; 0.5], 'S',1)
             testCase.swobj.addaniso('A1', 'atom_2')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_aniso(int32([0, 1])))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.aniso = int32([0, 1]);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
         function test_addaniso_overwrites_previous_aniso(testCase)
             testCase.swobj.addmatrix('label','A2','value',diag([-0.5 0 0]))
             testCase.swobj.addaniso('A1')
             testCase.swobj.addaniso('A2')
-            testCase.assertEqual(testCase.swobj.single_ion, ...
-                testCase.make_single_ion_struct_with_aniso(int32(2)))
+            expected_single_ion = testCase.default_single_ion;
+            expected_single_ion.aniso = int32(2);
+            testCase.verify_val(expected_single_ion.aniso, ...
+                testCase.swobj.single_ion.aniso)
         end
         
      end
