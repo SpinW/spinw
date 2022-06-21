@@ -1,11 +1,19 @@
-classdef unittest_spinw_addcoupling < matlab.mock.TestCase
+classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
+        default_coupling = struct('dl', int32([1, 0, 0, 1, 1, 1, 0, 1, 0;
+                                               0, 1, 0, 0,-1, 1,-1, 0, 1;
+                                               0, 0, 1,-1, 0, 0, 1, 1, 1]), ...
+            'atom1', ones(1,9, 'int32'), 'atom2', ones(1, 9, 'int32'), ...
+            'mat_idx', zeros(3, 9, 'int32'), 'idx', int32([1 1 1 2 2 2 2 2 2]), ...
+            'type', zeros(3, 9, 'int32'), 'sym', zeros(3, 9, 'int32'), ...
+            'rdip', 0.0, 'nsym',int32(0))
     end
     properties (TestParameter)
         bond_atoms = {{'atom_1', 'atom_1'}, 'atom_1', [1,1], 1};
         invalid_bond_atoms = {{'atom_1', 'atom_2', 'atom_1'}, [1,2,1]}
+        mat_label = {'J1', 1}
     end
 
     methods (TestMethodSetup)
@@ -54,31 +62,21 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
                 'spinw:addcoupling:WrongMatrixLabel')
         end
         
-        function test_add_coupling_to_sym_equivalent_bonds(testCase)
-            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1)
-            % check matrix added to first three (symm equiv.) bonds 
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1 ,1, 1]))
-            testCase.assertFalse(any(coupl.mat_idx(1,4:end)))
-            testCase.assertTrue(all(coupl.sym(1,1:3)))
-            % check default quadratic exchange
-            testCase.assertFalse(any(testCase.swobj.coupling.type(1,:)))
-        end
-        
-        function test_add_coupling_using_matrix_index(testCase)
-            testCase.swobj.addcoupling('mat', 1, 'bond', 1)
-            testCase.assertEqual(testCase.swobj.coupling.mat_idx(1,1:3), ...
-                int32([1 ,1, 1]))
+        function test_add_coupling_to_sym_equivalent_bonds(testCase, mat_label)
+            testCase.swobj.addcoupling('mat', mat_label, 'bond', 1)
+            % check matrix added to first three (symm equiv.) bonds
+            testCase.default_coupling.mat_idx(1,1:3) = 1;
+            testCase.default_coupling.sym(1,1:3) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_to_individual_bond(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'subIdx', 1)
             % check matrix added to only first bond with subIdx = 1
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1), int32(1))
-            testCase.assertFalse(any(coupl.mat_idx(1,2:end)))
-            % check removes symmetry of that bond
-            testCase.assertFalse(any(coupl.sym(1,:)))
+            testCase.default_coupling.mat_idx(1,1) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_ccoupling_lower_symm_with_subIdx(testCase)
@@ -94,15 +92,17 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             testCase.verifyWarning(...
                 @() testCase.swobj.addcoupling('mat', 'J1', 'bond', [1, 2], 'subIdx', 1), ...
                 'spinw:addcoupling:CouplingSize')
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1), int32(1))
-            testCase.assertFalse(any(coupl.mat_idx(1,2:end)))
+            testCase.default_coupling.mat_idx(1,1) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_to_multiple_bonds(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', [1, 2])
-            coupl = testCase.swobj.coupling;
-            testCase.assertTrue(all(coupl.mat_idx(1,:)==int32(1)))
+            testCase.default_coupling.mat_idx(1,:) = 1;
+            testCase.default_coupling.sym(1,:) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_to_bonds_using_atom_label(testCase, bond_atoms)
@@ -114,7 +114,7 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             % obj.coupling.idx)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 2, ...
                 'atom', bond_atoms)
-            % check matrix added to atom_1-atom_1 bonds not atom_1-atom_2
+            % check matrix added to atom_1-atom_1 bonds not atom_1-atom_2    
             coupl = testCase.swobj.coupling;
             ibond = find(coupl.mat_idx(1,:));
             testCase.assertEqual(ibond, 9:11);
@@ -150,14 +150,19 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
         end
         
         function test_add_coupling_biquadratic_exchange(testCase)
-            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'type', 'biquadratic')
-            testCase.assertEqual(testCase.swobj.coupling.type(1,1:3), ...
-                int32([1 ,1, 1]))
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
+                'type', 'biquadratic')
+            testCase.default_coupling.mat_idx(1,1:3) = 1;
+            testCase.default_coupling.sym(1,1:3) = 1;
+            testCase.default_coupling.type(1,1:3) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_invalid_exchange_type(testCase)
             testCase.verifyError(...
-                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'type', 'invalid_type'), ...
+                @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
+                    'type', 'invalid_type'), ...
                 'spinw:addcoupling:WrongInput')
         end
         
@@ -166,9 +171,11 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1)
             testCase.swobj.addcoupling('mat', 2, 'bond', 1)
             % check matrix added to first three (symm equiv.) bonds 
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
-            testCase.assertEqual(coupl.mat_idx(2,1:3), int32([2, 2, 2]))
+            testCase.default_coupling.mat_idx(1,1:3) = 1;
+            testCase.default_coupling.mat_idx(2,1:3) = 2;
+            testCase.default_coupling.sym(1:2,1:3) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_max_num_matrices_added(testCase)
@@ -190,9 +197,9 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
         
         function test_add_coupling_with_sym_false(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'sym', false)
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
-            testCase.assertFalse(any(coupl.sym(1,1:3)))
+            testCase.default_coupling.mat_idx(1,1:3) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_add_coupling_duplicate_matrix_on_same_bond(testCase)
@@ -201,9 +208,10 @@ classdef unittest_spinw_addcoupling < matlab.mock.TestCase
                 @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1), ...
                 'spinw:addcoupling:CouplingIdxWarning')
             % check matrix only added once
-            coupl = testCase.swobj.coupling;
-            testCase.assertEqual(coupl.mat_idx(1,1:3), int32([1, 1, 1]))
-            testCase.assertFalse(any(coupl.mat_idx(2,1:3)))
+            testCase.default_coupling.mat_idx(1,1:3) = 1;
+            testCase.default_coupling.sym(1,1:3) = 1;
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
      end
