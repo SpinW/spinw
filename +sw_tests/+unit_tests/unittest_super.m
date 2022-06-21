@@ -47,7 +47,7 @@ classdef unittest_super < matlab.mock.TestCase
                     case 'abs_tol'
                         abs_tol = varargin{iarg + 1};
                     case 'rel_tol'
-                        if expected_val > 0
+                        if expected_val ~= 0
                             rel_tol = varargin{iarg + 1};
                         end
                     case 'field' 
