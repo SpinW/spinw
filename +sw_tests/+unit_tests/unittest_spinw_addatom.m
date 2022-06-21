@@ -67,7 +67,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         function test_add_atom_warns_bx_provided(testCase)
             testCase.verifyWarning(...
                 @() testCase.swobj.addatom('r', [0; 0; 0], 'bx', 2), ...
-                'spinw:addatom:WrongInput')
+                'spinw:addatom:DeprecationWarning')
         end
         
         function test_add_atom_warns_b_and_bn_provided(testCase)
