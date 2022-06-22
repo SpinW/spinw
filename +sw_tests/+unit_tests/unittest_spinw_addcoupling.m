@@ -65,17 +65,19 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
         function test_add_coupling_to_sym_equivalent_bonds(testCase, mat_label)
             testCase.swobj.addcoupling('mat', mat_label, 'bond', 1)
             % check matrix added to first three (symm equiv.) bonds
-            testCase.default_coupling.mat_idx(1,1:3) = 1;
-            testCase.default_coupling.sym(1,1:3) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1:3) = 1;
+            expected_coupling.sym(1,1:3) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
         function test_add_coupling_to_individual_bond(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'subIdx', 1)
             % check matrix added to only first bond with subIdx = 1
-            testCase.default_coupling.mat_idx(1,1) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
@@ -92,16 +94,18 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             testCase.verifyWarning(...
                 @() testCase.swobj.addcoupling('mat', 'J1', 'bond', [1, 2], 'subIdx', 1), ...
                 'spinw:addcoupling:CouplingSize')
-            testCase.default_coupling.mat_idx(1,1) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
         function test_add_coupling_to_multiple_bonds(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', [1, 2])
-            testCase.default_coupling.mat_idx(1,:) = 1;
-            testCase.default_coupling.sym(1,:) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,:) = 1;
+            expected_coupling.sym(1,:) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
@@ -152,10 +156,11 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
         function test_add_coupling_biquadratic_exchange(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, ...
                 'type', 'biquadratic')
-            testCase.default_coupling.mat_idx(1,1:3) = 1;
-            testCase.default_coupling.sym(1,1:3) = 1;
-            testCase.default_coupling.type(1,1:3) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1:3) = 1;
+            expected_coupling.sym(1,1:3) = 1;
+            expected_coupling.type(1,1:3) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
@@ -171,10 +176,11 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1)
             testCase.swobj.addcoupling('mat', 2, 'bond', 1)
             % check matrix added to first three (symm equiv.) bonds 
-            testCase.default_coupling.mat_idx(1,1:3) = 1;
-            testCase.default_coupling.mat_idx(2,1:3) = 2;
-            testCase.default_coupling.sym(1:2,1:3) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1:3) = 1;
+            expected_coupling.mat_idx(2,1:3) = 2;
+            expected_coupling.sym(1:2,1:3) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
@@ -197,8 +203,9 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
         
         function test_add_coupling_with_sym_false(testCase)
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'sym', false)
-            testCase.default_coupling.mat_idx(1,1:3) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1:3) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
@@ -208,9 +215,10 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1), ...
                 'spinw:addcoupling:CouplingIdxWarning')
             % check matrix only added once
-            testCase.default_coupling.mat_idx(1,1:3) = 1;
-            testCase.default_coupling.sym(1,1:3) = 1;
-            testCase.verify_val(testCase.default_coupling, ...
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.mat_idx(1,1:3) = 1;
+            expected_coupling.sym(1,1:3) = 1;
+            testCase.verify_val(expected_coupling, ...
                 testCase.swobj.coupling)
         end
         
