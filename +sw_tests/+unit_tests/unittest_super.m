@@ -47,9 +47,7 @@ classdef unittest_super < matlab.mock.TestCase
                     case 'abs_tol'
                         abs_tol = varargin{iarg + 1};
                     case 'rel_tol'
-                        if expected_val ~= 0
-                            rel_tol = varargin{iarg + 1};
-                        end
+                        rel_tol = varargin{iarg + 1};
                     case 'field' 
                         field = varargin{iarg + 1};
                 end
@@ -67,6 +65,17 @@ classdef unittest_super < matlab.mock.TestCase
              [3, size(expected_matrix.mat, 3)]);
             testCase.assertTrue(isa(actual_matrix.color, ...
                 class(expected_matrix.color)));
+        end
+        function verify_spinwave(testCase, expected_spinwave, ...
+                                 actual_spinwave, varargin)
+            % List of fields to test separately
+            rmfields = {'datestart', 'dateend', 'obj'};
+            testCase.verify_obj(rmfield(expected_spinwave, rmfields), ...
+                                rmfield(actual_spinwave, rmfields), varargin{:})
+            for field = ["datestart", "dateend"]
+                testCase.assertTrue(isa(actual_spinwave.(field), 'char'));
+            end
+            testCase.verify_obj(expected_spinwave.obj, actual_spinwave.obj);
         end
     end
 end
