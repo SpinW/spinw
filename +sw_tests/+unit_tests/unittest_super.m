@@ -64,7 +64,7 @@ classdef unittest_super < matlab.mock.TestCase
                 rmfield(actual_matrix, 'color'), varargin{:})
             % check size and data type of color
             testCase.assertEqual(size(actual_matrix.color), ...
-                size(expected_matrix.color));
+             [3, size(expected_matrix.mat, 3)]);
             testCase.assertTrue(isa(actual_matrix.color, ...
                 class(expected_matrix.color)));
         end

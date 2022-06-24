@@ -48,9 +48,12 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
         end
         
         function test_matrix_value_added_no_modification(testCase)
-            matrix = reshape(1:9, 3, 3);
-            testCase.swobj.addmatrix('value', matrix);
-            testCase.assertEqual(testCase.swobj.matrix.mat, matrix);
+            mat = reshape(1:9, 3, 3);
+            testCase.swobj.addmatrix('value', mat);
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = mat;
+            testCase.verify_spinw_matrix(expected_matrix, ...
+                                         testCase.swobj.matrix);
         end
         
         function test_vector_value_adds_DM_matrix(testCase)
@@ -67,25 +70,21 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
                 testCase.swobj.addmatrix('value', imat);
             end
             % check matrix properties have correct dimensions
-            testCase.assertEqual(size(testCase.swobj.matrix.mat), [3,3,nmat])
-            testCase.assertEqual(size(testCase.swobj.matrix.color), [3,nmat])
-            testCase.assertEqual(size(testCase.swobj.matrix.label), [1, nmat])
-            % check value and label correct
-            for imat = 1:nmat
-                testCase.assertEqual(testCase.swobj.matrix.mat(:,:,imat), ...
-                    imat*eye(3));
-                testCase.assertEqual(testCase.swobj.matrix.label{imat}, ...
-                    ['mat' num2str(imat)])
-            end
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = cat(3, diag([1,1,1]), diag([2,2,2]));
+            expected_matrix.label = {'mat1', 'mat2'};
+            testCase.verify_spinw_matrix(expected_matrix, ...
+                                         testCase.swobj.matrix);
         end
         
         function test_add_multiple_matrices_single_call(testCase)
             mat = cat(3, eye(3), 2*eye(3));
             testCase.swobj.addmatrix('value', mat);
-            % check matrix properties have correct dimensions
-            testCase.assertEqual(testCase.swobj.matrix.mat, mat)
-            testCase.assertEqual(testCase.swobj.matrix.label, ...
-                {'mat1'  'mat2'});
+            expected_matrix = testCase.default_matrix;
+            expected_matrix.mat = mat;
+            expected_matrix.label = {'mat1', 'mat2'};
+            testCase.verify_spinw_matrix(expected_matrix, ...
+                                         testCase.swobj.matrix);
         end
         
         function test_add_matrix_with_same_name_overwritten(testCase)
