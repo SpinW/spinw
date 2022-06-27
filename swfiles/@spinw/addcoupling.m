@@ -113,7 +113,7 @@ if iscell(param.type)
     param.type(qSel)  = 0;
     param.type(bqSel) = 1;
     if any(isnan(param.type))
-        error(['spinw:addcoupling:WrongInput','Wrong coupling type, '...
+        error('spinw:addcoupling:WrongInput',['Wrong coupling type, '...
             'currently only quadratic and biquadratic exchanges '...
             'are supported!']);
     end
@@ -140,21 +140,40 @@ if any(size(param.mat)~=size(param.type))
         'provided for each input matrix!'])
 end
 
-% select atoms
-if ~isnumeric(param.atom)
-    if ~iscell(param.atom)
-        param.atom = {param.atom};
+if ~isempty(param.atom)
+    % select atoms based on label or index
+    if ~isnumeric(param.atom)
+        % atom labels provided - convert to index
+        if ~iscell(param.atom)
+            % single label provided as string - convert to cell for consistency
+            param.atom = {param.atom};
+        end
+        % replace label with index (note can have more than one atom with
+        % the same label)
+        param.atom = cellfun(@(label) find(strcmp(obj.unit_cell.label, label)), ...
+            param.atom, 'UniformOutput', false); % outputs cell
+        if any(cellfun(@(idx) isempty(idx), param.atom))
+            error('spinw:addcoupling:WrongInput', 'Atom label does not exist in unit cell.');
+        end
+    else
+        % indices provided - convert to a cell if not already
+        if ~iscell(param.atom)
+            param.atom = num2cell(param.atom);
+        end
+        % check that all are present in matom
+        if ~all(cellfun(@(idx) any(obj.matom.idx==idx), param.atom))
+            error('spinw:addcoupling:WrongInput', 'Atom index does not correspond to a valid magentic atom.');
+        end
     end
     if numel(param.atom)>2
-        error('spinw:addcoupling:WrongInput','Only two different atom label can be given at once!');
-    end
-    %aIdx1 = find(ismember(obj.unit_cell.label,param.atom{1}));
-    aIdx1 = find(cellfun(@(C)~isempty(C),strfind(obj.unit_cell.label,param.atom{1})));
-    if numel(param.atom)>1
-        %aIdx2 = find(ismember(obj.unit_cell.label,param.atom{2}));
-        aIdx2 = find(cellfun(@(C)~isempty(C),strfind(obj.unit_cell.label,param.atom{2})));
+        error('spinw:addcoupling:WrongInput','A maximum of 2 atom labels can be provided.');
     else
-        aIdx2 = aIdx1;
+        aIdx1 = param.atom{1}; % atom 1 index in matom.idx
+        if numel(param.atom)>1
+           aIdx2 = param.atom{2}; % atom 2 index in matom.idx
+        else
+           aIdx2 = aIdx1;
+        end
     end
 end
 
@@ -204,8 +223,7 @@ if ~isempty(param.subIdx)
 end
 
 if isempty(idx)
-    warning('spinw:addcoupling:NoBond','No matrix assigned, since no bond fulfilled the given conditions!')
-    return
+    error('spinw:addcoupling:NoBond','No matrix assigned, since no bond fulfilled the given conditions!')
 end
 
 Jmod   = obj.coupling.mat_idx(:,idx);
@@ -222,8 +240,7 @@ if any(ismember(Jmod(:),param.mat))
 end
 
 if isempty(param.mat)
-    warning('spinw:addcoupling:WrongMatrixLabel','The selected matrix label does not exists!')
-    return
+    error('spinw:addcoupling:WrongMatrixLabel','The selected matrix label does not exists!')
 end
 
 if any(Jmod(3,:))

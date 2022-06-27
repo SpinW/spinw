@@ -47,7 +47,8 @@ function addatom(obj, varargin)
 %   number is guessed from the given label of the atom. For example if
 %   `label` is `MCr3+` or `Cr3+` then the $S=3/2$ high spin state is
 %   assumed for Cr$^{3+}$. The spin values for every ion is stored in the
-%   [magion.dat] file. If the atom type is unknown $S=0$ is assumed.
+%   [magion.dat] file. If the atom type is unknown $S=0$ is assumed. Only
+%   positive S are allowed.
 % 
 % `color`
 % : RGB color of the atoms for plotting stored in a matrix with dimensions
@@ -86,10 +87,11 @@ function addatom(obj, varargin)
 %   mixture of isotopes.
 % 
 % `bn`
-% : Neutron scattering length, given as double. Not implemented yet.
+% : Neutron scattering length, given as double.
 % 
 % `bx`
-% : X-ray scattering length.
+% : X-ray scattering length, given as double. Not yet implmented, this
+%   input will be ignored.
 % 
 % `biso`
 % : Isotropic displacement factors in units of \\ang$^2$.
@@ -129,12 +131,31 @@ inpForm.soft   = [inpForm.soft   {true    true       true         true  true    
 
 newAtom = sw_readparam(inpForm, varargin{:});
 
+if any(sw_sub1(newAtom.S) < 0)
+    error('spinw:addatom:WrongInput','Require S>=0');
+end
+
 if isempty(newAtom.formfactn)
     newAtom.formfactn = newAtom.formfact;
 end
 if isempty(newAtom.bn)
     newAtom.bn = newAtom.b;
+else
+    warning('spinw:addatom:DeprecationWarning', ...
+        'bn is deprecated please use b instead.');
+    if ~isempty(newAtom.b)
+        warning('spinw:addatom:WrongInput', ...
+            ['Both b and bn have been provided - note that bn will ',...
+             'be used for the neutron scattering length (b will be ignored).']);
+    end
 end
+if ~isempty(newAtom.bx)
+    warning('spinw:addatom:DeprecationWarning', ...
+        ['X-ray scattering length is not currently supported and will ' ...
+         'be deprecated in the next release. Note that the input ' ...
+         'provided for bx will be ignored.']);
+end
+
 
 if ~any(size(newAtom.r)-[1 3])
     newAtom.r = newAtom.r';
@@ -344,7 +365,6 @@ if isempty(newAtom.bn)
 else
     newAtom.b(1,:) = newAtom.bn;
 end
-
 
 newAtom.Z  = int32(newAtom.Z);
 

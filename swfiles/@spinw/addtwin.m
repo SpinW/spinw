@@ -87,15 +87,21 @@ if any(param.axis)
         [~, param.rotC(:,:,ii)] = sw_rot(param.axis,param.phi(ii));
     end
 else
+    % rotC matrix explicitly provided
     nTwin = size(param.rotC,3);
+    for itwin = 1:nTwin
+        %  check valid rotation or reflection (|R|=1 and R.T = R^-1)
+        twin_rotc = param.rotC(:,:,itwin);
+        if abs(det(twin_rotc))~=1 || ~isequal(twin_rotc*(twin_rotc'), eye(3))
+            error('spinw:addtwin:WrongInput', ... 
+                'rotC matrix for twin %d must be a valid rotation', itwin);
+        end
+    end
+
 end
 
 if size(param.vol,2)<nTwin
     param.vol = ones(1,nTwin);
-end
-
-if (size(param.rotC,1)~=3) || (size(param.rotC,2)~=3)
-    error('spinw:addtwin:WrongInput','rotC matrix dimensions have to be [3 3 nTwin]!');
 end
 
 if param.overwrite

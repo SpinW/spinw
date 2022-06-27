@@ -22,10 +22,19 @@ function result = run_tests(out_dir)
     import matlab.unittest.TestRunner
     import matlab.unittest.plugins.CodeCoveragePlugin
     import matlab.unittest.plugins.codecoverage.CoberturaFormat
+    import matlab.unittest.selectors.HasTag
+    import matlab.unittest.plugins.XMLPlugin
+
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
+    if ispc || ismac
+        % only run symbolic tests on ubuntu (winodws and mac don't have
+        % toolkit)
+        suite = suite.selectIf(~HasTag('Symbolic'));
+    end
     runner = TestRunner.withTextOutput;
 
+    % Add coverage output
     cov_dirs = {'swfiles', 'external'};
     for i = 1:length(cov_dirs)
         reportFormat = CoberturaFormat(fullfile(out_dir, ['coverage_', cov_dirs{i}, '.xml']));
@@ -37,6 +46,11 @@ function result = run_tests(out_dir)
             break;
         end
     end
+
+    % Add JUnit output - unique name so they are not overwritten on CI
+    junit_fname = ['junit_report_', computer, version('-release'), '.xml'];
+    junit_plugin = XMLPlugin.producingJUnitFormat(junit_fname);
+    runner.addPlugin(junit_plugin)
 
     result = runner.run(suite)
     if(any(arrayfun(@(x) x.Failed, result)))
