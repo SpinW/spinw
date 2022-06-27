@@ -1,7 +1,12 @@
-classdef unittest_spinw_gencoupling < matlab.mock.TestCase
+classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
+        default_coupling = struct('dl', int32([1, 0; 0 1; 0 0]), ...
+            'atom1', ones(1,2, 'int32'), 'atom2', ones(1, 2, 'int32'), ...
+            'mat_idx', zeros(3, 2, 'int32'), 'idx', int32([1 1]), ...
+            'type', zeros(3, 2, 'int32'), 'sym', zeros(3, 2, 'int32'), ...
+            'rdip', 0.0, 'nsym',int32(0))
     end
 
     methods (TestMethodSetup)
@@ -9,7 +14,6 @@ classdef unittest_spinw_gencoupling < matlab.mock.TestCase
             testCase.swobj = spinw(); % default init
             testCase.swobj.genlattice('lat_const',[3 3 5])
             testCase.swobj.addatom('r',[0 0 0],'S',1)
-            testCase.swobj.gencoupling('maxDistance',5) % generate bond list
         end
     end
 
@@ -43,10 +47,8 @@ classdef unittest_spinw_gencoupling < matlab.mock.TestCase
             delta = 1e-2;
             testCase.swobj.gencoupling('tol', 10*delta, 'maxDistance', ...
                 testCase.swobj.lattice.lat_const(1) - delta)
-            testCase.assertEqual(testCase.swobj.coupling.atom1, int32([1,1]))
-            testCase.assertEqual(testCase.swobj.coupling.atom2, int32([1,1]))
-            testCase.assertEqual(testCase.swobj.coupling.dl, ...
-                int32([1, 0; 0 1; 0 0]))
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         function test_gencoupling_with_tolDist_for_symm_equiv_bonds(testCase)
@@ -55,16 +57,21 @@ classdef unittest_spinw_gencoupling < matlab.mock.TestCase
             testCase.swobj.genlattice('lat_const',[3 3+delta 5])
             % check that when tolDist > delta the bonds are equiv.
             testCase.swobj.gencoupling('maxDistance', 4, 'tolDist', 10*delta)
-            testCase.assertEqual(testCase.swobj.coupling.idx, int32([1,1]))
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
             % check that when tolDist > delta the bonds are inequiv.
             testCase.swobj.gencoupling('maxDistance', 4, 'tolDist', 0.1*delta)
-            testCase.assertEqual(testCase.swobj.coupling.idx, int32([1,2]))
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.idx = int32([1, 2]); % i.e. not sym sequiv
+            testCase.verify_val(expected_coupling, testCase.swobj.coupling)
         end
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
             testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
             testCase.swobj.gencoupling('maxDistance', 4)
-            testCase.assertEqual(testCase.swobj.coupling.nsym, int32(1))
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.nsym = int32(1);
+            testCase.verify_val(expected_coupling, testCase.swobj.coupling)
         end
         
         % also validate maxSym < dMin
