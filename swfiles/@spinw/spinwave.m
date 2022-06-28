@@ -94,6 +94,21 @@ function spectra = spinwave(obj, hkl, varargin)
 %   * `Q`           matrix with dimensions of $[3\times n_Q]$, where each
 %                   column contains a $Q$ vector in $\\ang^{-1}$ units.
 %
+% `'cmplxBase'`
+% : If `true`, we use a local coordinate system fixed by the
+%   complex magnetisation vectors:
+%   $\begin{align}  e_1 &= \Im(\hat{M})\\
+%                   e_3 &= Re(\hat{M})\\
+%                   e_2 &= e_3\times e_1
+%    \end{align}$
+%   If `false`, we use a coordinate system fixed to the moments:
+%   $\begin{align}  e_3 \parallel S_i\\
+%                   e_2 &= \S_i \times [1, 0, 0]\\
+%                   e_1 &= e_2 \times e_3
+%   \end{align}$
+%   Except if $S_i \parallel [1, 0, 0], e_2 = [0, 0, 1]$. The default is
+%  `false`.
+%
 % `'gtensor'`
 % : If true, the g-tensor will be included in the spin-spin correlation
 %   function. Including anisotropic g-tensor or different
@@ -108,7 +123,7 @@ function spectra = spinwave(obj, hkl, varargin)
 %
 % `'notwin'`
 % : If `true`, the spectra of the twins won't be calculated. Default is
-% `false`.
+%   `false`.
 %
 % `'sortMode'`
 % : If `true`, the spin wave modes will be sorted by continuity. Default is 
@@ -202,21 +217,32 @@ function spectra = spinwave(obj, hkl, varargin)
 %               dimensions are $[3\times 3\times n_{mode}\times n_{Q}]$,
 %               but the number of modes are equal to twice the number of
 %               magnetic atoms.
-%   * `formfact`  Cell containing the labels of the magnetic ions if form
-%               factor in included in the spin-spin correlation function.
-%   * `cmplxBase` The local coordinate system on each magnetic moment is
-%               defined by the complex magnetic moments:
-%               $\begin{align}  e_1 &= \Im(\hat{M})\\
-%                               e_3 &= Re(\hat{M})\\
-%                               e_2 &= e_3\times e_1
-%               \end{align}$
-%
 %   * `hkl`     Contains the input $Q$ values, dimensions are $[3\times n_{Q}]$.
 %   * `hklA`    Same $Q$ values, but in $\\ang^{-1}$ unit, in the
 %               lab coordinate system, dimensins are $[3\times n_{Q}]$.
+%   * `formfact`Logical value, whether the form factor has been included in
+%               the spin-spin correlation function.
 %   * `incomm`  Logical value, tells whether the calculated spectra is
 %               incommensurate or not.
+%   * `helical` Logical value, whether the magnetic structure is a helix
+%               i.e. whether 2*k is non-integer.
+%   * `norm`    Logical value, is always false.
+%   * `nformula`Number of formula units in the unit cell that have been
+%               used to scale Sab, as given in spinw.unit.nformula.
+%   * `param`   Struct containing input parameters, each corresponds to the
+%               input parameter of the same name:
+%               * `notwin`
+%               * `sortMode`
+%               * `tol`
+%               * `omega_tol`
+%               * `hermit`
+%   * `title`   Character array, the title for the output spinwave, default
+%               is 'Numerical LSWT spectrum'
+%   * `gtensor` Logical value, whether a g-tensor has been included in the
+%               calculation.
 %   * `obj`     The copy (clone) of the input `obj`, see [spinw.copy].
+%   * `datestart`Character array, start date and time of the calculation
+%   * `dateend` Character array, end date and time of the calculation
 %
 % The number of magnetic modes (labeled by `nMode`) for commensurate
 % structures is double the number of magnetic atoms in the magnetic cell.
