@@ -34,6 +34,12 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 'spinw:gencoupling:MaxDLessThanMinD')
         end
         
+        function test_gencoupling_with_atom_dist_less_than_dMin(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.gencoupling('dMin', 5), ...
+                'spinw:gencoupling:AtomPos')
+        end
+        
         function test_gencoupling_with_maxDistance_less_than_lattice_param(testCase)
             testCase.verifyError(...
                 @() testCase.swobj.gencoupling('maxDistance', ...
@@ -68,10 +74,28 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
             testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
+            % test 'forceNoSym' does not change nsym 
+            testCase.swobj.gencoupling('maxDistance', 4, 'forceNoSym', true)
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
+            % test with 'forceNoSym'=false (default)
             testCase.swobj.gencoupling('maxDistance', 4)
             expected_coupling = testCase.default_coupling;
             expected_coupling.nsym = int32(1);
             testCase.verify_val(expected_coupling, testCase.swobj.coupling)
+        end
+        
+        function test_gencoupling_with_nonzero_fid(testCase)
+            mock_fprintf = sw_tests.utilities.mock_function('fprintf0');
+            fid = 3;
+            testCase.swobj.gencoupling('maxDistance', 4, 'fid', fid)
+            testCase.assertEqual(mock_fprintf.n_calls, 2);
+            % check fid used to write file
+            for irow = 1:mock_fprintf.n_calls
+                testCase.assertEqual(mock_fprintf.arguments{irow}{1}, fid)
+            end
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
         end
         
         % also validate maxSym < dMin
