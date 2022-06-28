@@ -3,8 +3,6 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        relToll = 0.01;
-        absToll = 1e-6;
         default_spinwave = struct('formfact', boolean(0), ...
                                   'incomm', boolean(0), ...
                                   'helical', boolean(0), ...
@@ -32,9 +30,9 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             % Just create a very simple FM 1D chain model
             testCase.swobj = spinw;
             testCase.swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
-            testCase.swobj.addatom('r', [0 0 0],'S', 1, 'label', 'MNi2', 'color', 'blue');
+            testCase.swobj.addatom('r', [0 0 0],'S', 1, 'label', 'MNi2');
             testCase.swobj.gencoupling('maxDistance', 7);
-            testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja', 'color', 'green');
+            testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
             testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
         end
@@ -69,7 +67,7 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw_out, sw_out, ...
                                      'rel_tol', 1e-10);
         end
-        function test_symbollic(testCase)
+        function test_symbolic(testCase)
             % Test that spinw.spinwavesym() is called if spinw.symbolic==true and spinw.spinwave() is called
             % Mock the spinwavesym and symbolic methods
             [mocksw, bh] = testCase.createMock(?spinw, 'MockedMethods', {'symbolic', 'spinwavesym'});
@@ -96,19 +94,36 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
         end
         function test_twin(testCase)
-            % Tests that setting twins gives correct outputs (cell arrays)
+            % Tests that setting twins gives correct outputs
             testCase.swobj.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 1]);
+            rotc = testCase.swobj.twin.rotc;
             hkl = [1 2; 3 4; 5 6];
-            out_spec = testCase.swobj.spinwave(hkl);
-            testCase.assertTrue(iscell(out_spec.omega))
-            testCase.assertEqual(numel(out_spec.omega), 3);  % Two _additional_ twins
+            sw_out = testCase.swobj.spinwave(hkl);
+
+            expected_sw = testCase.default_spinwave;
+            expected_sw.param.notwin = boolean(0);
+            expected_sw.omega = {};
+            expected_sw.Sab = {};
+            expected_sw.obj = copy(testCase.swobj);
+            expected_sw.hkl = hkl;
+            expected_sw.hklA = [2/3 4/3; 0.75, 1; 1.25, 1.5]*pi;
             % Recalculate without twins for each set of hkl's and compare
             [~, rotQ] = testCase.swobj.twinq([0;0;0]);
             testCase.swobj.twin = struct('vol', 1, 'rotc', eye(3));
             for ii = 1:3
-                spec_single = testCase.swobj.spinwave((hkl' * rotQ(:,:,ii))');
-                testCase.assertEqual(spec_single.omega, out_spec.omega{ii});
+                sw_single = testCase.swobj.spinwave((hkl' * rotQ(:, :, ii))');
+                expected_sw.omega = [expected_sw.omega sw_single.omega];
+                rot = rotc(:, :, ii);
+                rot_Sab = zeros(3, 3, 2, 2);
+                % Twin Sab is a rotation of single Sab
+                for jj = 1:2
+                    for kk = 1:2
+                        rot_Sab(:, :, jj, kk) = rot*sw_single.Sab(:, :, jj, kk)*rot';
+                    end
+                end
+                expected_sw.Sab = [expected_sw.Sab rot_Sab];
             end
+            testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_formfact(testCase)
             % Tests that the form factor calculation is applied correctly
@@ -116,14 +131,10 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             % Runs calculation with/without formfactor
             spec_no_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', false));
             spec_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', true));
-            import matlab.unittest.constraints.IsEqualTo
-            import matlab.unittest.constraints.RelativeTolerance
-            import matlab.unittest.constraints.AbsoluteTolerance
-            theseBounds = RelativeTolerance(testCase.relToll) | AbsoluteTolerance(testCase.absToll);
             % The form factor is calculated using sw_mff, and the scaling is F(Q)^2 not F(Q).
             implied_ff = spec_ff.Sperp ./ spec_no_ff.Sperp;
             ff = sw_mff(testCase.swobj.unit_cell.label{1}, spec_ff.hklA);
-            testCase.assertThat(implied_ff(1,:), IsEqualTo(ff.^2, 'Within', theseBounds));
+            testCase.verify_val(implied_ff(1,:), ff.^2, 'rel_tol', 0.01, 'abs_tol', 1e-6);
         end
         function test_hermit(testCase)
             % Tests that the 'hermit' option to switch to a non-hermitian calculation works
