@@ -114,6 +114,26 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 testCase.swobj.coupling)
         end
         
+        function test_dencoupling_with_maxSym_multiple_bonds(testCase)
+            testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
+            % set maxSym distance to only include bond idx = 1
+            testCase.swobj.gencoupling('maxDistance', 4.5 , 'maxSym', 4)
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.dl = int32([1 0 1 1; 0 1 -1 1; 0 0 0 0]);
+            expected_coupling.atom1 = ones(1, 4, 'int32');
+            expected_coupling.atom2 = ones(1, 4, 'int32');
+            expected_coupling.mat_idx = zeros(3, 4, 'int32');
+            expected_coupling.idx = int32([1 1 2 2]);
+            expected_coupling.type = zeros(3, 4, 'int32');
+            expected_coupling.sym = zeros(3, 4, 'int32');
+            expected_coupling.nsym = int32(1);
+            testCase.verify_val(expected_coupling, testCase.swobj.coupling);
+            % increase maxSym to include bond idx = 2 (length sqrt(2)*3)
+            testCase.swobj.gencoupling('maxDistance', 4.5 , 'maxSym', 4.25);
+            expected_coupling.nsym = int32(2);
+            testCase.verify_val(expected_coupling, testCase.swobj.coupling);
+        end
+        
         function test_gencoupling_maxSym_less_than_any_bond_length(testCase)
             testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
             testCase.verifyWarning(...
@@ -123,6 +143,8 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.default_coupling, ...
                 testCase.swobj.coupling)
         end
+        
+
      end
 
 end
