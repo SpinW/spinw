@@ -144,6 +144,14 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 testCase.swobj.coupling)
         end
         
+        function test_gencoupling_when_tol_violates_symmetry(testCase)
+            testCase.swobj.genlattice('lat_const',[3 3.5 5], 'spgr', 'P 4')
+            % bond along a and b are sym. equiv. accroding to P 4
+            % but lengths differ by 0.5 Ang
+            testCase.verifyError(...
+                @() testCase.swobj.gencoupling('maxDistance', 4, ...
+                    'tol', 0.6), 'spinw:gencoupling:SymProblem')
+        end
 
      end
 
