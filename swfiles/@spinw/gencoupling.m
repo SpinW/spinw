@@ -98,6 +98,10 @@ inpForm.soft   = {false        false          false false    false  true    fals
 param = sw_readparam(inpForm, varargin{:});
 pref = swpref;
 
+if any([param.maxDistance, param.tol, param.tolDist, param.dMin, param.maxSym] < 0)
+    error('spinw:gencoupling:NegativeDistances','All distances should be positive.');
+end
+
 tol   = param.tol;
 tolD  = param.tolDist;
 
@@ -108,10 +112,6 @@ param.maxDistance = param.maxDistance + tol;
 if param.maxDistance < param.dMin
     error('spinw:gencoupling:MaxDLessThanMinD', ...
         'maxDistance is smaller then dMin parameter');
-end
-
-if param.maxDistance < 0
-    error('spinw:gencoupling:NoMagAtom','There is no magnetic atom (S>0) in the unit cell!');
 end
 
 if isempty(param.maxSym)

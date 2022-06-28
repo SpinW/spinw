@@ -8,7 +8,10 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             'type', zeros(3, 2, 'int32'), 'sym', zeros(3, 2, 'int32'), ...
             'rdip', 0.0, 'nsym',int32(0))
     end
-
+    properties (TestParameter)
+        dist_params = {'maxDistance', 'tol', 'tolDist', 'dMin', 'maxSym'}
+    end
+    
     methods (TestMethodSetup)
         function setup_spinw_model(testCase)
             testCase.swobj = spinw(); % default init
@@ -45,6 +48,12 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.gencoupling('maxDistance', ...
                 testCase.swobj.lattice.lat_const(1)/2), ...
                 'spinw:gencoupling:maxDistance')
+        end
+        
+        function test_gencoupling_with_negative_distances(testCase, dist_params)
+            testCase.verifyError(...
+                @() testCase.swobj.gencoupling(dist_params, -1), ...
+                'spinw:gencoupling:NegativeDistances')
         end
         
         function test_gencoupling_with_tol_when_maxDistance_equal_lattice_param(testCase)
