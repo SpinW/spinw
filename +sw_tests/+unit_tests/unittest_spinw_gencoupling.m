@@ -83,11 +83,11 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
             testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
-            % test 'forceNoSym' does not change nsym 
+            % test forceNoSym = true doesn't set nsym
             testCase.swobj.gencoupling('maxDistance', 4, 'forceNoSym', true)
             testCase.verify_val(testCase.default_coupling, ...
                 testCase.swobj.coupling)
-            % test with 'forceNoSym'=false (default)
+            % test forceNoSym = false (default) does set nsym
             testCase.swobj.gencoupling('maxDistance', 4)
             expected_coupling = testCase.default_coupling;
             expected_coupling.nsym = int32(1);
@@ -107,8 +107,22 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 testCase.swobj.coupling)
         end
         
-        % also validate maxSym < dMin
+        function test_gencoupling_overwrites_previous_call(testCase)
+            testCase.swobj.gencoupling('maxDistance', 8)
+            testCase.swobj.gencoupling('maxDistance', 4)
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
+        end
         
+        function test_gencoupling_maxSym_less_than_any_bond_length(testCase)
+            testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
+            testCase.verifyWarning(...
+                @() testCase.swobj.gencoupling('maxDistance', 4, ...
+                'maxSym', 2), 'spinw:gencoupling:maxSym')
+            % check nsym not set (bonds reduced to P0)
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
+        end
      end
 
 end
