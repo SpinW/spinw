@@ -22,7 +22,7 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
     properties (TestParameter)
         % Test directions and literal qpts work
         qpts_h5 = {{[0 0 0], [1 0 0], 5}, ...
-                   [0:0.25:1; zeros(2,5)]}
+                   [0:0.25:1; zeros(2,5)]};
     end
 
     methods (TestClassSetup)
@@ -37,7 +37,24 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
         end
     end
+    methods
+        function sw = get_expected_sw_qh5(testCase)
+            expected_hkl = [0:0.25:1; zeros(2,5)];
+            expected_Sab = zeros(3, 3, 2, 5);
+            expected_Sab([1 9 10 18 19 27 28 36 37 45 46 ...
+                          54 55 63 64 72 73 81 82 90]) = 0.5;
+            expected_Sab([7 12 25 30 43 48 61 66 75 88]) =  0.5i;
+            expected_Sab([3 16 21 34 39 52 57 70 79 84]) = -0.5i;
 
+            sw = testCase.default_spinwave;
+            sw.omega = [ 1e-5  2.  4.  2. -1e-5; ...
+                        -1e-5 -2. -4. -2.  1e-5];
+            sw.Sab = expected_Sab;
+            sw.hkl = expected_hkl;
+            sw.hklA = expected_hkl*2/3*pi;
+            sw.obj = testCase.swobj;
+        end
+    end
     methods (Test)
         function test_noInput(testCase)
             % Tests that if call spinwave with no input, it calls the help
@@ -47,24 +64,32 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(help_function.n_calls, 1);
             testCase.assertEqual(help_function.arguments, {{'spinw.spinwave'}});
         end
-        function test_sw_output(testCase, qpts_h5)
+        function test_sw_qh5(testCase, qpts_h5)
             sw_out = testCase.swobj.spinwave(qpts_h5);
+            expected_sw = testCase.get_expected_sw_qh5();
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_qh5_periodic(testCase)
+            % Test qpts in different BZ give same omega, Sab
+            qpts = [1:0.25:2; ones(2,5)];
+            sw_out = testCase.swobj.spinwave(qpts);
+            expected_sw = testCase.get_expected_sw_qh5();
+            expected_sw.hkl = qpts;
+            expected_sw.hklA =  [qpts(1, :)*2/3; qpts(2:end, :)*0.25 ]*pi;
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_qh5_saveH_saveV(testCase)
+            sw_out = testCase.swobj.spinwave([0:0.25:1; zeros(2,5)], ...
+                                             'saveV', true, 'saveH', true);
+            expected_V = repmat(eye(2), 1, 1, 5);
+            expected_H = zeros(2, 2, 5);
+            expected_H(:, :, [2 4]) = 2*repmat(eye(2), 1, 1, 2);
+            expected_H(:, :, 3) = 4*eye(2);
 
-            expected_hkl = [0:0.25:1; zeros(2,5)];
-            expected_Sab = zeros(3, 3, 2, 5);
-            expected_Sab([1 9 10 18 19 27 28 36 37 45 46 ...
-                          54 55 63 64 72 73 81 82 90]) = 0.5;
-            expected_Sab([7 12 25 30 43 48 61 66 75 88]) =  0.5i;
-            expected_Sab([3 16 21 34 39 52 57 70 79 84]) = -0.5i;
-
-            expected_sw_out = testCase.default_spinwave;
-            expected_sw_out.omega = [ 1e-5  2.  4.  2. -1e-5; ...
-                                     -1e-5 -2. -4. -2.  1e-5];
-            expected_sw_out.Sab = expected_Sab;
-            expected_sw_out.hkl = expected_hkl;
-            expected_sw_out.hklA = expected_hkl*2/3*pi;
-            expected_sw_out.obj = testCase.swobj;
-            testCase.verify_spinwave(expected_sw_out, sw_out);
+            expected_sw = testCase.get_expected_sw_qh5();
+            expected_sw.V = expected_V;
+            expected_sw.H = expected_H;
+            testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_symbolic(testCase)
             % Test that spinw.spinwavesym() is called if spinw.symbolic==true and spinw.spinwave() is called
