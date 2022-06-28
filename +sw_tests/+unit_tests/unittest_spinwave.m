@@ -62,10 +62,9 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
                                      -1e-5 -2. -4. -2.  1e-5];
             expected_sw_out.Sab = expected_Sab;
             expected_sw_out.hkl = expected_hkl;
-            expected_sw_out.hklA = expected_hkl*2.0943951023932;
+            expected_sw_out.hklA = expected_hkl*2/3*pi;
             expected_sw_out.obj = testCase.swobj;
-            testCase.verify_spinwave(expected_sw_out, sw_out, ...
-                                     'rel_tol', 1e-10);
+            testCase.verify_spinwave(expected_sw_out, sw_out);
         end
         function test_symbolic(testCase)
             % Test that spinw.spinwavesym() is called if spinw.symbolic==true and spinw.spinwave() is called
@@ -124,6 +123,26 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
                 expected_sw.Sab = [expected_sw.Sab rot_Sab];
             end
             testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_cmplxBase_equivalent_with_tri(testCase)
+            swobj = spinw;
+            swobj.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
+            swobj.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
+            swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], 'n', [0 0 1], 'k', [1/3 1/3 0]);
+            J1 = 1;
+            swobj.addmatrix('label','J1','value',J1);
+            swobj.gencoupling;
+            swobj.addcoupling('mat','J1','bond',1);
+            qpts = {[0 0 0], [1 0 0], 5};
+            sw_out = swobj.spinwave(qpts);
+            sw_out_cmplx = swobj.spinwave(qpts, 'cmplxBase', true);
+            testCase.verify_spinwave(sw_out, sw_out_cmplx);
+        end
+        function test_cmplxBase_fails_with_chain(testCase)
+            qpts = {[0 0 0], [1 0 0], 5};
+            testCase.verifyError(...
+                @() testCase.swobj.spinwave(qpts, 'cmplxBase', true), ...
+                'spinw:spinwave:NonPosDefHamiltonian');
         end
         function test_formfact(testCase)
             % Tests that the form factor calculation is applied correctly

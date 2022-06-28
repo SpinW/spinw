@@ -451,14 +451,16 @@ else
         '(nMagExt = %d, nHkl = %d, nTwin = %d)...\n'],nMagExt, nHkl0, nTwin);
 end
 
-% Local (e1,e2,e3) coordinate system fixed to the moments,
+% If cmplxBase is false, we use a local (e1,e2,e3) coordinate system fixed
+% to the moments:
 % e3||Si,ata
 % e2 = Si x [1,0,0], if Si || [1,0,0] --> e2 = [0,0,1]
 % e1 = e2 x e3
-% Local (e1,e2,e3) coordinate system fixed to the moments.
-% TODO add the possibility that the coordinate system is fixed by the
-% comples magnetisation vectors: e1 = imag(M), e3 = real(M), e2 =
-% cross(e3,e1)
+% If cmplxBase is true, we use a coordinate system fixed by the
+% complex magnetisation vectors:
+% e1 = imag(M)
+% e3 = real(M)
+% e2 = e3 x e1
 if ~param.cmplxBase
     if obj.symbolic
         e3 = simplify(M0./[S0; S0; S0]);
