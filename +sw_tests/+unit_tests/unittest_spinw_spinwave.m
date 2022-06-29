@@ -64,7 +64,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             sw.Sab = expected_Sab;
             sw.hkl = expected_hkl;
             sw.hklA = expected_hkl*2/3*pi;
-            sw.obj = testCase.swobj;
+            sw.obj = copy(testCase.swobj);
         end
     end
     methods (Test)
@@ -129,13 +129,13 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_incommensurate(testCase)
             % Tests that incommensurate calculation is ok
             hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
-            commensurate_spec = testCase.swobj.spinwave(hkl);
-            testCase.swobj.genmagstr('mode', 'direct', 'k', [0.123 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
+            % Create copy to avoid changing obj for other tests
+            swobj = copy(testCase.swobj)
+            commensurate_spec = swobj.spinwave(hkl);
+            swobj.genmagstr('mode', 'direct', 'k', [0.123 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
             % Forcing incomm struct means exchange parameters don't agree, so we need 'hermit' false
-            incomm_spec = testCase.swobj.spinwave(hkl, 'hermit', false);
+            incomm_spec = swobj.spinwave(hkl, 'hermit', false);
             testCase.assertEqual(size(incomm_spec.omega, 1), size(commensurate_spec.omega, 1) * 3);
-            % Rests the structure for the following tests
-            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
         end
         function test_twin(testCase)
             % Tests that setting twins gives correct outputs
@@ -168,6 +168,17 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 end
                 expected_sw.Sab = [expected_sw.Sab rot_Sab];
             end
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_notwin(testCase)
+            % Create copy to avoid changing obj for other tests
+            swobj_twin = copy(testCase.swobj);
+            swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
+            qpts = [0:0.25:1; zeros(2,5)];
+            sw_out = swobj_twin.spinwave(qpts, 'notwin', true);
+
+            expected_sw = testCase.get_expected_sw_qh5;
+            expected_sw.obj.twin = swobj_twin.twin;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_cmplxBase_equivalent_with_tri(testCase)
