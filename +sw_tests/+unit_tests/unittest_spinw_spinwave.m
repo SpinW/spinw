@@ -3,18 +3,19 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        default_spinwave = struct('formfact', boolean(0), ...
-                                  'incomm', boolean(0), ...
-                                  'helical', boolean(0), ...
-                                  'norm', boolean(0), ...
+        swobj_tri = [];
+        default_spinwave = struct('formfact', false, ...
+                                  'incomm', false, ...
+                                  'helical', false, ...
+                                  'norm', false, ...
                                   'nformula', 0, ...
-                                  'param', struct('notwin', boolean(1), ...
-                                                  'sortMode', boolean(1), ...
+                                  'param', struct('notwin', true, ...
+                                                  'sortMode', true, ...
                                                   'tol', 1e-4, ...
                                                   'omega_tol', 1e-5, ...
-                                                  'hermit', boolean(1)), ...
+                                                  'hermit', true), ...
                                   'title', 'Numerical LSWT spectrum', ...
-                                  'gtensor', boolean(0), ...
+                                  'gtensor', false, ...
                                   'datestart', '', ...
                                   'dateend', '');
     end
@@ -26,7 +27,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     end
 
     methods (TestClassSetup)
-        function setup_spinw_model(testCase)
+        function setup_chain_model(testCase)
             % Just create a very simple FM 1D chain model
             testCase.swobj = spinw;
             testCase.swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
@@ -35,6 +36,17 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
             testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
+        end
+        function setup_tri_model(testCase)
+            % Just create a very simple FM 1D chain model
+            testCase.swobj_tri = spinw;
+            testCase.swobj_tri.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
+            testCase.swobj_tri.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
+            testCase.swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], 'n', [0 0 1], 'k', [1/3 1/3 0]);
+            J1 = 1;
+            testCase.swobj_tri.addmatrix('label','J1','value',J1);
+            testCase.swobj_tri.gencoupling;
+            testCase.swobj_tri.addcoupling('mat','J1','bond',1);
         end
     end
     methods
@@ -119,21 +131,22 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_twin(testCase)
             % Tests that setting twins gives correct outputs
-            testCase.swobj.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 1]);
-            rotc = testCase.swobj.twin.rotc;
+            % Create copy to avoid changing obj for other tests
+            swobj_twin = copy(testCase.swobj);
+            swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
+            rotc = swobj_twin.twin.rotc;
             hkl = [1 2; 3 4; 5 6];
-            sw_out = testCase.swobj.spinwave(hkl);
+            sw_out = swobj_twin.spinwave(hkl);
 
             expected_sw = testCase.default_spinwave;
-            expected_sw.param.notwin = boolean(0);
+            expected_sw.param.notwin = false;
             expected_sw.omega = {};
             expected_sw.Sab = {};
-            expected_sw.obj = copy(testCase.swobj);
+            expected_sw.obj = copy(swobj_twin);
             expected_sw.hkl = hkl;
             expected_sw.hklA = [2/3 4/3; 0.75, 1; 1.25, 1.5]*pi;
             % Recalculate without twins for each set of hkl's and compare
-            [~, rotQ] = testCase.swobj.twinq([0;0;0]);
-            testCase.swobj.twin = struct('vol', 1, 'rotc', eye(3));
+            [~, rotQ] = swobj_twin.twinq([0;0;0]);
             for ii = 1:3
                 sw_single = testCase.swobj.spinwave((hkl' * rotQ(:, :, ii))');
                 expected_sw.omega = [expected_sw.omega sw_single.omega];
@@ -150,17 +163,9 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_cmplxBase_equivalent_with_tri(testCase)
-            swobj = spinw;
-            swobj.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
-            swobj.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
-            swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], 'n', [0 0 1], 'k', [1/3 1/3 0]);
-            J1 = 1;
-            swobj.addmatrix('label','J1','value',J1);
-            swobj.gencoupling;
-            swobj.addcoupling('mat','J1','bond',1);
             qpts = {[0 0 0], [1 0 0], 5};
-            sw_out = swobj.spinwave(qpts);
-            sw_out_cmplx = swobj.spinwave(qpts, 'cmplxBase', true);
+            sw_out = testCase.swobj_tri.spinwave(qpts);
+            sw_out_cmplx = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', true);
             testCase.verify_spinwave(sw_out, sw_out_cmplx);
         end
         function test_cmplxBase_fails_with_chain(testCase)
@@ -179,7 +184,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.swobj.spinwave(qpts, 'formfact', false);
             ff = sw_mff(testCase.swobj.unit_cell.label{1}, sw_ff.hklA);
             expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
-            expected_sw.formfact = boolean(1);
+            expected_sw.formfact = true;
 
             testCase.verify_spinwave(expected_sw, sw_ff);
         end
@@ -196,20 +201,55 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.swobj.spinwave(qpts, 'formfact', false);
             ff = formfactfun(testCase.swobj.unit_cell.label{1}, sw_ff.hklA);
             expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
-            expected_sw.formfact = boolean(1);
+            expected_sw.formfact = true;
 
             testCase.verify_spinwave(expected_sw, sw_ff, 'rel_tol', 1e-15);
         end
+        function test_gtensor(testCase)
+            qpts = {[0 0 0], [1 1 1], 5};
+            gmat = diag([1, 2, 3]);
+            % Create copy to avoid changing obj for other tests
+            swobj_g = copy(testCase.swobj);
+            swobj_g.addmatrix('label','g_1','value', gmat)
+            swobj_g.addg('g_1')
+            sw_g = swobj_g.spinwave(qpts, 'gtensor', true);
+
+            % Also check that it warns that gtensor is not being used
+            expected_sw = testCase.verifyWarning(...
+                @() swobj_g.spinwave(qpts, 'gtensor', false), ...
+                'spinw:spinwave:NonZerogTensor');
+            expected_sw.Sab = expected_sw.Sab.*[1 2 3; 2 4 6; 3 6 9];
+            expected_sw.gtensor = true;
+            testCase.verify_spinwave(expected_sw, sw_g);
+        end
+        function test_gtensor_incomm(testCase)
+            qpts = {[0 0 0], [1 1 1], 5};
+            gmat = diag([1, 2, 3]);
+            % Create copy to avoid changing obj for other tests
+            swobj_g = copy(testCase.swobj_tri);
+            swobj_g.addmatrix('label','g_1','value', gmat)
+            swobj_g.addg('g_1')
+            sw_g = swobj_g.spinwave(qpts, 'gtensor', true);
+
+            expected_sw = swobj_g.spinwave(qpts);
+            expected_sw.Sab = expected_sw.Sab.*[2.25 2.25 4.5; ...
+                                                2.25 2.25 4.5; ...
+                                                4.5  4.5  9];
+            expected_sw.gtensor = true;
+            testCase.verify_spinwave(expected_sw, sw_g);
+        end
         function test_hermit(testCase)
+            % Create copy to avoid changing obj for other tests
+            swobj_h = copy(testCase.swobj);
             % Tests that the 'hermit' option to switch to a non-hermitian calculation works
             % First make the model non-Hermitian by adding a large axial SIA perpendicular to the spins
-            testCase.swobj.addmatrix('label', 'K', 'value', diag([-1 0 0]));
-            testCase.swobj.addaniso('K');
+            swobj_h.addmatrix('label', 'K', 'value', diag([-1 0 0]));
+            swobj_h.addaniso('K');
             hkl = {[0 0 0] [0 1 0] [1 0 0] 50};
             % Check that calling it with 'hermit' on gives an error
-            testCase.assertError(@() testCase.swobj.spinwave(hkl, 'hermit', true), ?MException);
+            testCase.assertError(@() swobj_h.spinwave(hkl, 'hermit', true), ?MException);
             % Now check that there are imaginary eigenvalues/energies in the output with 'hermit' off
-            spec = testCase.swobj.spinwave(hkl, 'hermit', false);
+            spec = swobj_h.spinwave(hkl, 'hermit', false);
             testCase.assertGreaterThan(sum(abs(imag(spec.omega(:)))), 0);
         end
     end
