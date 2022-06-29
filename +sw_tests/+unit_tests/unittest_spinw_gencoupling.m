@@ -9,7 +9,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             'rdip', 0.0, 'nsym',int32(0))
     end
     properties (TestParameter)
-        dist_params = {'maxDistance', 'tol', 'tolDist', 'dMin', 'maxSym'}
+        dist_params = {'maxDistance', 'tolMaxDist', 'tolDist', 'dMin', 'maxSym'}
     end
     
     methods (TestMethodSetup)
@@ -60,7 +60,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             % check bonds are created for atoms separated by latt. param.
             % when tol > delta
             delta = 1e-2;
-            testCase.swobj.gencoupling('tol', 10*delta, 'maxDistance', ...
+            testCase.swobj.gencoupling('tolMaxDist', 10*delta, 'maxDistance', ...
                 testCase.swobj.lattice.lat_const(1) - delta)
             testCase.verify_val(testCase.default_coupling, ...
                 testCase.swobj.coupling)
@@ -149,8 +149,8 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             % bond along a and b are sym. equiv. accroding to P 4
             % but lengths differ by 0.5 Ang
             testCase.verifyError(...
-                @() testCase.swobj.gencoupling('maxDistance', 4, ...
-                    'tol', 0.6), 'spinw:gencoupling:SymProblem')
+                @() testCase.swobj.gencoupling('maxDistance', 3.25, ...
+                    'tolDist', 0.5), 'spinw:gencoupling:SymProblem')
         end
 
      end

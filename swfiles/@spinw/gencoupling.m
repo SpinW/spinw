@@ -58,7 +58,7 @@ function gencoupling(obj, varargin)
 %   equivalent, default value is $10^{-3}$\\ang. Only used, when no
 %   space group is defined.
 %
-% `'tol'`
+% `'tolMaxDist'`
 % : Tolerance added to maxDistance to ensure bonds between same atom in
 %   neighbouring unit cells are included when maxDistance is equal to a
 %   lattice parameter.
@@ -89,7 +89,7 @@ function gencoupling(obj, varargin)
 % is there any symmetry operator?
 isSym = size(obj.lattice.sym,3) > 0;
 
-inpForm.fname  = {'forceNoSym' 'maxDistance' 'tol' 'tolDist' 'dMin' 'maxSym' 'fid'};
+inpForm.fname  = {'forceNoSym' 'maxDistance' 'tolMaxDist' 'tolDist' 'dMin' 'maxSym' 'fid'};
 inpForm.defval = {false         8             1e-5  1e-3      0.5   []       -1   };
 inpForm.size   = {[1 1]        [1 1]         [1 1] [1 1]     [1 1]  [1 1]   [1 1] };
 inpForm.soft   = {false        false          false false    false  true    false };
@@ -98,16 +98,16 @@ inpForm.soft   = {false        false          false false    false  true    fals
 param = sw_readparam(inpForm, varargin{:});
 pref = swpref;
 
-if any([param.maxDistance, param.tol, param.tolDist, param.dMin, param.maxSym] < 0)
+if any([param.maxDistance, param.tolMaxDist, param.tolDist, param.dMin, param.maxSym] < 0)
     error('spinw:gencoupling:NegativeDistances','All distances should be positive.');
 end
 
-tol   = param.tol;
+tolMaxDist   = param.tolMaxDist;
 tolD  = param.tolDist;
 
 % to avoid some problem with symmetry if maxDistance equal to a lattice
 % constant
-param.maxDistance = param.maxDistance + tol;
+param.maxDistance = param.maxDistance + tolMaxDist;
 
 if param.maxDistance < param.dMin
     error('spinw:gencoupling:MaxDLessThanMinD', ...
@@ -144,7 +144,7 @@ end
 
 if fid ~= 0
     fprintf0(fid,['Creating the bond list (maxDistance = %g ' obj.unit.label{1}...
-        ', nCell = %dx%dx%d)...\n'],param.maxDistance-tol,nC);
+        ', nCell = %dx%dx%d)...\n'],param.maxDistance-tolMaxDist,nC);
 end
 
 % save the sym/nosym method into obj
@@ -245,16 +245,16 @@ if isSym
             % select columns from sorM with a certain idx value
             sortMs = cMat(:,cMat(6,:) == ii);
             while size(sortMs,2)>0
-                [genC, unC] = swsym.bond(mAtom.r, obj.basisvector, sortMs(:,1), obj.lattice.sym, tol);
+                [genC, unC] = swsym.bond(mAtom.r, obj.basisvector, sortMs(:,1), obj.lattice.sym, tolD);
                 genCAll = [genC [-genC(1:3,:);genC([5 4],:)]];
                 % remove from sortMs the identical couplings
-                iNew = isnew(genCAll(1:5,:),sortMs(1:5,:),tol);
+                iNew = isnew(genCAll(1:5,:),sortMs(1:5,:), tolD);
                 sortMs(:,~iNew) = [];
                 % remove identical couplings from the symmetry generated
                 % list
                 genC(:,~unC) = [];
                 if sum(~iNew) ~= sum(unC)
-                    error('spinw:gencoupling:SymProblem','Symmetry error! ii=%d, idx=%d. Try to change ''tol'' parameter.',ii,idx);
+                    error('spinw:gencoupling:SymProblem','Symmetry error! ii=%d, idx=%d. Try to change ''tol'' parameter.',ii,idx)
                 end
                 % move the non-unique (not new) couplings (symmetry equivalent ones)
                 nMat = [nMat [genC;ones(1,size(genC,2))*idx]]; %#ok<AGROW>
