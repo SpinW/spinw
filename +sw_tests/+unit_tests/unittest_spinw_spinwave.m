@@ -103,6 +103,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.H = expected_H;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_fitmode(testCase)
+            qpts = [1:0.25:2; ones(2,5)];
+            sw_out = testCase.swobj.spinwave(qpts, 'fitmode', true);
+            % fitmode automatically turns off sortMode
+            expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
+            expected_sw = rmfield(expected_sw, {'obj', 'datestart', 'dateend'});
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
         function test_symbolic(testCase)
             % Test that spinw.spinwavesym() is called if spinw.symbolic==true and spinw.spinwave() is called
             % Mock the spinwavesym and symbolic methods

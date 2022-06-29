@@ -68,14 +68,20 @@ classdef unittest_super < matlab.mock.TestCase
         end
         function verify_spinwave(testCase, expected_spinwave, ...
                                  actual_spinwave, varargin)
-            % List of fields to test separately
-            rmfields = {'datestart', 'dateend', 'obj'};
+            % List of fields to test separately, only remove fields that
+            % exist
+            rmfields = intersect(fields(expected_spinwave), ...
+                                 {'datestart', 'dateend', 'obj'});
             testCase.verify_obj(rmfield(expected_spinwave, rmfields), ...
                                 rmfield(actual_spinwave, rmfields), varargin{:})
             for field = ["datestart", "dateend"]
-                testCase.assertTrue(isa(actual_spinwave.(field), 'char'));
+                if isfield(expected_spinwave, field)
+                    testCase.assertTrue(isa(actual_spinwave.(field), 'char'));
+                end
             end
-            testCase.verify_obj(expected_spinwave.obj, actual_spinwave.obj);
+            if isfield(expected_spinwave, 'obj')
+                testCase.verify_obj(expected_spinwave.obj, actual_spinwave.obj);
+            end
         end
     end
 end
