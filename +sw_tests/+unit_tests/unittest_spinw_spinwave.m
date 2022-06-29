@@ -1,4 +1,4 @@
-classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
+classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     % Runs through unit test for @spinw/spinwave.m
 
     properties
@@ -170,15 +170,35 @@ classdef unittest_spinwave < sw_tests.unit_tests.unittest_super
                 'spinw:spinwave:NonPosDefHamiltonian');
         end
         function test_formfact(testCase)
-            % Tests that the form factor calculation is applied correctly
-            hkl = {[0 0 0] [10 0 0] 100};
-            % Runs calculation with/without formfactor
-            spec_no_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', false));
-            spec_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', true));
-            % The form factor is calculated using sw_mff, and the scaling is F(Q)^2 not F(Q).
-            implied_ff = spec_ff.Sperp ./ spec_no_ff.Sperp;
-            ff = sw_mff(testCase.swobj.unit_cell.label{1}, spec_ff.hklA);
-            testCase.verify_val(implied_ff(1,:), ff.^2, 'rel_tol', 0.01, 'abs_tol', 1e-6);
+            qpts = {[0 0 0] [10 5 1] 19};
+            sw_ff = testCase.swobj.spinwave(qpts, 'formfact', true);
+
+            % Test that Sab with the form factor (ff) is explicitly the
+            % same as Sab with no ff multiplied by ff
+            % ff calculated with sw_mff and the scaling is F(Q)^2.
+            expected_sw = testCase.swobj.spinwave(qpts, 'formfact', false);
+            ff = sw_mff(testCase.swobj.unit_cell.label{1}, sw_ff.hklA);
+            expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
+            expected_sw.formfact = boolean(1);
+
+            testCase.verify_spinwave(expected_sw, sw_ff);
+        end
+        function test_formfactfun(testCase)
+            function F = formfactfun(atom_label, Q)
+                F = sum(Q, 1);
+            end
+            qpts = {[0 0 0] [10 5 1] 19};
+            sw_ff = testCase.swobj.spinwave(qpts, 'formfact', true, ...
+                                            'formfactfun', @formfactfun);
+
+            % Test that Sab with the form factor (ff) is explicitly the
+            % same as Sab with no ff multiplied by ff
+            expected_sw = testCase.swobj.spinwave(qpts, 'formfact', false);
+            ff = formfactfun(testCase.swobj.unit_cell.label{1}, sw_ff.hklA);
+            expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
+            expected_sw.formfact = boolean(1);
+
+            testCase.verify_spinwave(expected_sw, sw_ff, 'rel_tol', 1e-15);
         end
         function test_hermit(testCase)
             % Tests that the 'hermit' option to switch to a non-hermitian calculation works
