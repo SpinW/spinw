@@ -82,15 +82,17 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         end
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
-            testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
-            % test forceNoSym = true doesn't set nsym
+            % set ortho spacegroup even though lattice is tetragonal
+            testCase.swobj.genlattice('spgr', 'P 2')  % not overwrite abc
+            % test forceNoSym = true (just uses bond length for idx)
             testCase.swobj.gencoupling('maxDistance', 4, 'forceNoSym', true)
             testCase.verify_val(testCase.default_coupling, ...
                 testCase.swobj.coupling)
-            % test forceNoSym = false (default) does set nsym
+            % test forceNoSym = false (default) - checks spacegroup
             testCase.swobj.gencoupling('maxDistance', 4)
             expected_coupling = testCase.default_coupling;
-            expected_coupling.nsym = int32(1);
+            expected_coupling.idx = int32([1, 2]); % i.e. not sym sequiv
+            expected_coupling.nsym = int32(2);
             testCase.verify_val(expected_coupling, testCase.swobj.coupling)
         end
         
@@ -146,11 +148,11 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         
         function test_gencoupling_when_tol_violates_symmetry(testCase)
             testCase.swobj.genlattice('lat_const',[3 3.5 5], 'spgr', 'P 4')
-            % bond along a and b are sym. equiv. accroding to P 4
+            % bond along a and b are sym. equiv. according to P 4
             % but lengths differ by 0.5 Ang
             testCase.verifyError(...
                 @() testCase.swobj.gencoupling('maxDistance', 3.25, ...
-                    'tolDist', 0.5), 'spinw:gencoupling:SymProblem')
+                    'tolDist', 0.6), 'spinw:gencoupling:SymProblem')
         end
 
      end
