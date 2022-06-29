@@ -103,8 +103,15 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.H = expected_H;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
-        function test_sw_fitmode(testCase)
-            qpts = [1:0.25:2; ones(2,5)];
+        function test_sw_qh5_optmem(testCase)
+            % At least test that optmem gives the same result
+            qpts = [0:0.25:1; zeros(2,5)];
+            sw_out = testCase.swobj.spinwave(qpts, 'optmem', 2);
+            expected_sw = testCase.get_expected_sw_qh5();
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_qh5_fitmode(testCase)
+            qpts = [0:0.25:1; zeros(2,5)];
             sw_out = testCase.swobj.spinwave(qpts, 'fitmode', true);
             % fitmode automatically turns off sortMode
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
