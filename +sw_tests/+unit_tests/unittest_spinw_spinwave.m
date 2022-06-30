@@ -18,6 +18,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                                   'gtensor', false, ...
                                   'datestart', '', ...
                                   'dateend', '');
+        qh5 = [0:0.25:1; zeros(2,5)];
     end
 
     properties (TestParameter)
@@ -51,7 +52,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     end
     methods
         function sw = get_expected_sw_qh5(testCase)
-            expected_hkl = [0:0.25:1; zeros(2,5)];
+            expected_hkl = testCase.qh5;
             expected_Sab = zeros(3, 3, 2, 5);
             expected_Sab([1 9 10 18 19 27 28 36 37 45 46 ...
                           54 55 63 64 72 73 81 82 90]) = 0.5;
@@ -79,7 +80,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(help_function.arguments, {{'spinw.spinwave'}});
         end
         function test_sw_qh5_optmem(testCase)
-            qpts = [0:0.25:1; zeros(2,5)];
+            qpts = testCase.qh5;
             optmem = 3;
             % Test that calculation is split into optmem chunks - sw_timeit
             % is called on each chunk plus once at beginning and end of
@@ -102,7 +103,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_sw_qh5_periodic(testCase)
             % Test qpts in different BZ give same omega, Sab
-            qpts = [1:0.25:2; ones(2,5)];
+            qpts = testCase.qh5 + 1;
             sw_out = testCase.swobj.spinwave(qpts);
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.hkl = qpts;
@@ -110,7 +111,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_qh5_saveH_saveV(testCase)
-            sw_out = testCase.swobj.spinwave([0:0.25:1; zeros(2,5)], ...
+            sw_out = testCase.swobj.spinwave(testCase.qh5, ...
                                              'saveV', true, 'saveH', true);
             expected_V = repmat(eye(2), 1, 1, 5);
             expected_H = zeros(2, 2, 5);
@@ -123,7 +124,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_qh5_fitmode(testCase)
-            qpts = [0:0.25:1; zeros(2,5)];
+            qpts = testCase.qh5;
             sw_out = testCase.swobj.spinwave(qpts, 'fitmode', true);
             % fitmode automatically turns off sortMode
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
@@ -193,7 +194,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % Create copy to avoid changing obj for other tests
             swobj_twin = copy(testCase.swobj);
             swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
-            qpts = [0:0.25:1; zeros(2,5)];
+            qpts = testCase.qh5;
             sw_out = swobj_twin.spinwave(qpts, 'notwin', true);
             % Test even if twin is added to structure it is not actually
             % calculated if notwin is specified
@@ -296,7 +297,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_sw_qh5_tol(testCase)
             tol = 5e-4;
-            qpts = [0:0.25:1; zeros(2,5)];
+            qpts = testCase.qh5;
             swobj_tol = copy(testCase.swobj);
             % Generate magstr that deviates slightly from commensurate
             swobj_tol.genmagstr('mode', 'helical', 'k', [tol 0 0], ...
@@ -313,7 +314,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_qh5_omega_tol(testCase)
-            qpts = [0:0.25:1; zeros(2,5)];
+            qpts = testCase.qh5;
             % Check that with no added omega Hamiltonian isn't positive
             % definite - causes error
             testCase.verifyError(...
