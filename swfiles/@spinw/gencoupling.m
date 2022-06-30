@@ -105,14 +105,25 @@ end
 tolMaxDist   = param.tolMaxDist;
 tolD  = param.tolDist;
 
+if tolD > param.maxDistance
+    error('spinw:gencoupling:TolDist', ...
+          ['Tolerance on symmetrically equivalent bond lengths ' ...
+           'larger than max distance.']);
+end
+
 % to avoid some problem with symmetry if maxDistance equal to a lattice
 % constant
+if tolMaxDist > param.maxDistance
+    error('spinw:gencoupling:TolMaxDist', ...
+        'Tolerance on max distance larger than max distance.');
+end
 param.maxDistance = param.maxDistance + tolMaxDist;
 
 if param.maxDistance < param.dMin
     error('spinw:gencoupling:MaxDLessThanMinD', ...
         'maxDistance is smaller then dMin parameter');
 end
+
 
 if isempty(param.maxSym)
     param.maxSym = param.maxDistance;
