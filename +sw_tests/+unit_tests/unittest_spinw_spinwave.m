@@ -67,6 +67,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             sw.obj = copy(testCase.swobj);
         end
     end
+    % Put tests with mocks in own block - prevent interference with other
+    % tests
     methods (Test)
         function test_noInput(testCase)
             % Tests that if call spinwave with no input, it calls the help
@@ -76,6 +78,23 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(help_function.n_calls, 1);
             testCase.assertEqual(help_function.arguments, {{'spinw.spinwave'}});
         end
+        function test_sw_qh5_optmem(testCase)
+            qpts = [0:0.25:1; zeros(2,5)];
+            optmem = 3;
+            % Test that calculation is split into optmem chunks - sw_timeit
+            % is called on each chunk plus once at beginning and end of
+            % function. This is a bit fragile, may need to change the
+            % target function, number of calls, or not check at all if
+            % spinwave is refactored
+            sw_timeit_mock = sw_tests.utilities.mock_function('sw_timeit');
+            sw_out = testCase.swobj.spinwave(qpts, 'optmem', optmem);
+            testCase.assertEqual(sw_timeit_mock.n_calls, optmem + 2);
+            % Test that with optmem gives the same result as without
+            expected_sw = testCase.get_expected_sw_qh5();
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+    end
+    methods (Test)
         function test_sw_qh5(testCase, qpts_h5)
             sw_out = testCase.swobj.spinwave(qpts_h5);
             expected_sw = testCase.get_expected_sw_qh5();
@@ -101,13 +120,6 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.V = expected_V;
             expected_sw.H = expected_H;
-            testCase.verify_spinwave(expected_sw, sw_out);
-        end
-        function test_sw_qh5_optmem(testCase)
-            % At least test that optmem gives the same result
-            qpts = [0:0.25:1; zeros(2,5)];
-            sw_out = testCase.swobj.spinwave(qpts, 'optmem', 2);
-            expected_sw = testCase.get_expected_sw_qh5();
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_qh5_fitmode(testCase)
@@ -137,7 +149,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % Tests that incommensurate calculation is ok
             hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
             % Create copy to avoid changing obj for other tests
-            swobj = copy(testCase.swobj)
+            swobj = copy(testCase.swobj);
             commensurate_spec = swobj.spinwave(hkl);
             swobj.genmagstr('mode', 'direct', 'k', [0.123 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
             % Forcing incomm struct means exchange parameters don't agree, so we need 'hermit' false
@@ -183,18 +195,22 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
             qpts = [0:0.25:1; zeros(2,5)];
             sw_out = swobj_twin.spinwave(qpts, 'notwin', true);
-
+            % Test even if twin is added to structure it is not actually
+            % calculated if notwin is specified
             expected_sw = testCase.get_expected_sw_qh5;
             expected_sw.obj.twin = swobj_twin.twin;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_cmplxBase_equivalent_with_tri(testCase)
+            % For this structure, both cmplxBase true and false give the
+            % same e-vectors so should give the same result
             qpts = {[0 0 0], [1 0 0], 5};
             sw_out = testCase.swobj_tri.spinwave(qpts);
             sw_out_cmplx = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', true);
             testCase.verify_spinwave(sw_out, sw_out_cmplx);
         end
         function test_cmplxBase_fails_with_chain(testCase)
+            % Test cmplxBase actually does something
             qpts = {[0 0 0], [1 0 0], 5};
             testCase.verifyError(...
                 @() testCase.swobj.spinwave(qpts, 'cmplxBase', true), ...
