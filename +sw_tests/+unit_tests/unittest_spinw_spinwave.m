@@ -294,6 +294,23 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             spec = swobj_h.spinwave(hkl, 'hermit', false);
             testCase.assertGreaterThan(sum(abs(imag(spec.omega(:)))), 0);
         end
+        function test_sw_qh5_tol(testCase)
+            tol = 5e-4;
+            qpts = [0:0.25:1; zeros(2,5)];
+            swobj_tol = copy(testCase.swobj);
+            % Generate magstr that deviates slightly from commensurate
+            swobj_tol.genmagstr('mode', 'helical', 'k', [tol 0 0], ...
+                                'n', [0 0 1], 'S', [0; 1; 0]);
+            % Check that without tol it is incommensurate - causes error
+            testCase.verifyError(...
+                @() swobj_tol.spinwave(qpts), ...
+                'spinw:spinwave:NonPosDefHamiltonian');
+            % Check that with tol is approximated to commensurate
+            sw_out = swobj_tol.spinwave(qpts, 'tol', tol);
+            expected_sw = testCase.get_expected_sw_qh5;
+            expected_sw.obj = swobj_tol;
+            expected_sw.param.tol = tol;
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
     end
-
 end
