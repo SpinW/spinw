@@ -312,5 +312,21 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.param.tol = tol;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_qh5_omega_tol(testCase)
+            qpts = [0:0.25:1; zeros(2,5)];
+            % Check that with no added omega Hamiltonian isn't positive
+            % definite - causes error
+            testCase.verifyError(...
+                @() testCase.swobj.spinwave(qpts, 'omega_tol', 0), ...
+                'spinw:spinwave:NonPosDefHamiltonian');
+            % Check with omega the energies are changed appropriately
+            omega_tol = 1;
+            sw_out = testCase.swobj.spinwave(qpts, 'omega_tol', omega_tol);
+            expected_sw = testCase.get_expected_sw_qh5;
+            expected_sw.omega(:, 1) = [omega_tol -omega_tol];
+            expected_sw.omega(:, end) = [-omega_tol omega_tol];
+            expected_sw.param.omega_tol = omega_tol;
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
     end
 end
