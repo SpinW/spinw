@@ -89,7 +89,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             % check that when tolDist > delta the bonds are inequiv.
             testCase.swobj.gencoupling('maxDistance', 4, 'tolDist', 0.1*delta)
             expected_coupling = testCase.default_coupling;
-            expected_coupling.idx = int32([1, 2]); % i.e. not sym sequiv
+            expected_coupling.idx = int32([1, 2]); % i.e. not sym equiv
             testCase.verify_val(expected_coupling, testCase.swobj.coupling)
         end
         
@@ -103,7 +103,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             % test forceNoSym = false (default) - checks spacegroup
             testCase.swobj.gencoupling('maxDistance', 4)
             expected_coupling = testCase.default_coupling;
-            expected_coupling.idx = int32([1, 2]); % i.e. not sym sequiv
+            expected_coupling.idx = int32([1, 2]); % i.e. not sym equiv
             expected_coupling.nsym = int32(2);
             testCase.verify_val(expected_coupling, testCase.swobj.coupling)
         end
@@ -128,7 +128,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 testCase.swobj.coupling)
         end
         
-        function test_dencoupling_with_maxSym_multiple_bonds(testCase)
+        function test_gencoupling_with_maxSym_multiple_bonds(testCase)
             testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
             % set maxSym distance to only include bond idx = 1
             testCase.swobj.gencoupling('maxDistance', 4.5 , 'maxSym', 4)
