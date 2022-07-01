@@ -173,7 +173,8 @@ function spectra = spinwave(obj, hkl, varargin)
 %
 % `'saveSabp'`
 % : If true, the dynamical structure factor in the rotating frame
-%   $S'(k,\omega)$ is saved. Default value is `false`.
+%   $S'(k,\omega)$ is saved. For incommensurate structures only. Default
+%   value is `false`.
 %
 % `'title'`
 % : Gives a title string to the simulation that is saved in the output.
@@ -355,6 +356,12 @@ km = magStr.k.*nExt;
 
 % whether the structure is incommensurate
 incomm = any(abs(km-round(km)) > param.tol);
+
+if ~incomm && param.saveSabp
+    warning('spinw:spinwave:CommensurateSabp', ['The dynamical structure '...
+            'factor in the rotating frame has been requested, but the ', ...
+            'structure is commensurate so this will have no effect.']);
+end
 
 % Transform the momentum values to the new lattice coordinate system
 hkl = obj.unit.qmat*hkl;

@@ -36,14 +36,16 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj.gencoupling('maxDistance', 7);
             testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
-            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
+            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], ...
+                                     'n', [1 0 0], 'S', [0; 1; 0]);
         end
         function setup_tri_model(testCase)
-            % Just create a very simple FM 1D chain model
+            % Create a simple triangular lattice model
             testCase.swobj_tri = spinw;
             testCase.swobj_tri.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
             testCase.swobj_tri.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
-            testCase.swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], 'n', [0 0 1], 'k', [1/3 1/3 0]);
+            testCase.swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                                         'n', [0 0 1], 'k', [1/3 1/3 0]);
             J1 = 1;
             testCase.swobj_tri.addmatrix('label','J1','value',J1);
             testCase.swobj_tri.gencoupling;
@@ -136,6 +138,17 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.V = expected_V;
             expected_sw.H = expected_H;
             testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_multiple_mag_atoms(testCase)
+            afm_chain = copy(testCase.swobj);
+            afm_chain.matrix.mat = eye(3);
+            afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
+                               'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
+                               'nExt',[2 1 1]);
+            sw_afm = afm_chain.spinwave(testCase.qh5);
+            omega_vals = [0 2. 0 -2. 0];
+            expected_omega = [omega_vals; omega_vals; -omega_vals; -omega_vals];
+            testCase.verify_val(expected_omega, sw_afm.omega, 'abs_tol', 1e-7);
         end
         function test_sw_saveSabp_commensurate_warns(testCase)
             sw = testCase.verifyWarning(...
