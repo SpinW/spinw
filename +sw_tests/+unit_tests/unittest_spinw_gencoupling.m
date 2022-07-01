@@ -166,6 +166,29 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.gencoupling('maxDistance', 3.25, ...
                     'tolDist', 0.6), 'spinw:gencoupling:SymProblem')
         end
+        
+        function test_gencoupling_with_two_mag_atoms(testCase)
+            testCase.swobj.addatom('r',[0.25 0.25 0.25],'S',2)
+            testCase.swobj.gencoupling('maxDistance', 3);
+            expected_coupling = testCase.default_coupling;
+            expected_coupling.dl = int32([0, 1, 0, 1, 0, 1, 0;
+                                          0, 0, 1, 0, 1, 0, 1;
+                                          0, 0, 0, 0, 0, 0, 0]);
+            expected_coupling.atom1 = int32([1 2 2 1 1 2 2]);
+            expected_coupling.atom2 = int32([2 1 1 1 1 2 2]);
+            expected_coupling.mat_idx = zeros(3, 7, 'int32');
+            expected_coupling.idx = int32([1 2 2 3 3 3 3]);
+            expected_coupling.type = zeros(3, 7, 'int32');
+            expected_coupling.sym = zeros(3, 7, 'int32');
+            testCase.verify_val(expected_coupling, testCase.swobj.coupling)
+        end
+        
+        function test_gencoupling_ignores_non_mag_atoms(testCase)
+            testCase.swobj.addatom('r',[0.25 0.25 0.25],'S',0)
+            testCase.swobj.gencoupling('maxDistance', 4);
+            testCase.verify_val(testCase.default_coupling, ...
+                testCase.swobj.coupling)
+        end
 
      end
 
