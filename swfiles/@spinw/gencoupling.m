@@ -265,7 +265,9 @@ if isSym
                 % list
                 genC(:,~unC) = [];
                 if sum(~iNew) ~= sum(unC)
-                    error('spinw:gencoupling:SymProblem','Symmetry error! ii=%d, idx=%d. Try to change ''tol'' parameter.',ii,idx)
+                    error('spinw:gencoupling:SymProblem', ...
+                        ['Symmetry error! ii=%d, idx=%d. Try to '...
+                        'change ''tol'' parameter.'], ii, idx)
                 end
                 % move the non-unique (not new) couplings (symmetry equivalent ones)
                 nMat = [nMat [genC;ones(1,size(genC,2))*idx]]; %#ok<AGROW>
