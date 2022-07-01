@@ -105,6 +105,15 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_qh5_sortmode(testCase)
+            sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
+            expected_sw = testCase.get_expected_sw_qh5();
+            % Sortmode swaps the last 2 modes
+            expected_sw.omega([1 2], 5) = expected_sw.omega([2 1], 5)
+            expected_sw.Sab(:, :, [1 2], 5) = expected_sw.Sab(:, :, [2 1], 5)
+            expected_sw.param.sortMode = false;
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
         function test_sw_qh5_periodic(testCase)
             % Test qpts in different BZ give same omega, Sab
             qpts = testCase.qh5 + 1;
