@@ -100,6 +100,28 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_qh5_fid(testCase)
+            fprintf_mock = sw_tests.utilities.mock_function('fprintf0');
+            fid = 3;
+            sw_out = testCase.swobj.spinwave(testCase.qh5, 'fid', 3);
+            % check fid used to write file
+            for irow = 1:fprintf_mock.n_calls
+                testCase.assertEqual(fprintf_mock.arguments{irow}{1}, fid)
+            end
+            expected_sw = testCase.get_expected_sw_qh5();
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_qh5_tid(testCase)
+            sw_timeit_mock = sw_tests.utilities.mock_function('sw_timeit');
+            tid = 2;
+            sw_out = testCase.swobj.spinwave(testCase.qh5, 'tid', tid);
+            % check tid used in timing
+            for irow = 1:sw_timeit_mock.n_calls
+                testCase.assertEqual(sw_timeit_mock.arguments{irow}{3}, tid)
+            end
+            expected_sw = testCase.get_expected_sw_qh5();
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
     end
     methods (Test)
         function test_sw_qh5(testCase, qpts_h5)
@@ -148,6 +170,13 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.V = expected_V;
             expected_sw.H = expected_H;
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_sw_qh5_title(testCase)
+            title = 'Example title';
+            sw_out = testCase.swobj.spinwave(testCase.qh5, 'title', title);
+            expected_sw = testCase.get_expected_sw_qh5();
+            expected_sw.title = title;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_multiple_mag_atoms(testCase)
