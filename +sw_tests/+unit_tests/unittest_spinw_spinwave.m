@@ -58,10 +58,12 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % [0 0 0] to [1 0 0]
             expected_hkl = testCase.qh5;
             expected_Sab = zeros(3, 3, 2, 5);
-            expected_Sab([1 9 10 18 19 27 28 36 37 45 46 ...
-                          54 55 63 64 72 73 81 82 90]) = 0.5;
-            expected_Sab([7 12 25 30 43 48 61 66 75 88]) =  0.5i;
-            expected_Sab([3 16 21 34 39 52 57 70 79 84]) = -0.5i;
+            Sab1 = [0.5 0  0.5j; 0 0 0; -0.5j 0 0.5];
+            Sab2 = [0.5 0 -0.5j; 0 0 0;  0.5j 0 0.5];
+            expected_Sab(:, :, 1, 1:4) = repmat(Sab1, 1, 1, 1, 4);
+            expected_Sab(:, :, 2, 5) = Sab1;
+            expected_Sab(:, :, 2, 1:4) = repmat(Sab2, 1, 1, 1, 4);
+            expected_Sab(:, :, 1, 5) = Sab2;
 
             sw = testCase.default_spinwave;
             sw.omega = [ 1e-5  2.  4.  2. -1e-5; ...
@@ -109,8 +111,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
             expected_sw = testCase.get_expected_sw_qh5();
             % Sortmode swaps the last 2 modes
-            expected_sw.omega([1 2], 5) = expected_sw.omega([2 1], 5)
-            expected_sw.Sab(:, :, [1 2], 5) = expected_sw.Sab(:, :, [2 1], 5)
+            expected_sw.omega([1 2], 5) = expected_sw.omega([2 1], 5);
+            expected_sw.Sab(:, :, [1 2], 5) = expected_sw.Sab(:, :, [2 1], 5);
             expected_sw.param.sortMode = false;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
@@ -169,36 +171,6 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
              qpts = testCase.qh5;
              sw_out = testCase.swobj_tri.spinwave(qpts, ...
                                                   'saveSabp', true);
-             expected_hklA = [1.57080*qpts(1, :); 0.90690*qpts(1, :); zeros(1, 5)];
-             omega_vals = [4.49100e-8 3.96863 4.74342 3.96863 0.01162];
-             expected_omega = zeros(6, 5);
-             expected_omega(1, :) = omega_vals;
-             expected_omega(2, :) = [-omega_vals(1:4) -8.21584e-3];
-             expected_omega(3, :) = [omega_vals(5) omega_vals(3) 3. ...
-                                     -omega_vals(3) -1.84429e-7];
-             expected_omega(4, :) = -expected_omega(3, :);
-             expected_omega(5, :) = -expected_omega(2, :);
-             expected_omega(6, :) = -expected_omega(1, :);
-
-             Sab_vals = [1.24750e-9 6.45497e-4; ...
-                         0.14174 0.47434; ...
-                         0.23717 1.5; ...
-                         0.14174 0.47434];
-             Sab_vals = [Sab_vals; flip(Sab_vals(1:2, :))];
-             expected_Sab = zeros(3, 3, 6, 5);
-             for q=1:4
-                 vals = Sab_vals(q, :);
-                 expected_Sab(1:2, 1:2, [1 2], q) = repmat( ...
-                     [vals(1) 1i*vals(1); -1i*vals(1) vals(1)], 1, 1, 2);
-                 expected_Sab(1:2, 1:2, [5 6], q) = repmat( ...
-                     [vals(1) -1i*vals(1); 1i*vals(1) vals(1)], 1, 1, 2);
-                 expected_Sab(3, 3, [3 4], q) = vals(2);
-             end
-             q5_val = 2.28218e-4;
-             expected_Sab(1:2, 1:2, [2 5], 5) = repmat( ...
-                     [q5_val 1i*q5_val; -1i*q5_val q5_val], 1, 1, 2);
-             expected_Sab(3, 3, [1 6], 5) = 6.45497e-4;
-
              expected_Sabp = zeros(3, 3, 2, 5);
              expected_Sabp(:, :, :, [1 5]) = repmat( ...
                  diag([435.71079, 435.71079, 6.45497e-4]), 1, 1, 2, 2);
@@ -210,18 +182,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
              expected_omegap = [ omegap_vals  flip(omegap_vals(1:2)); ...
                                 -omegap_vals -flip(omegap_vals(1:2))];
 
-             expected_sw = testCase.default_spinwave;
-             expected_sw.hkl = qpts;
-             expected_sw.hklA = expected_hklA;
-             expected_sw.omega = expected_omega;
-             expected_sw.Sab = expected_Sab;
-             expected_sw.Sabp = expected_Sabp;
-             expected_sw.omegap = expected_omegap;
-             expected_sw.incomm = true;
-             expected_sw.helical = true;
-             expected_sw.obj = testCase.swobj_tri;
-
-             testCase.verify_spinwave(expected_sw, sw_out, 'rel_tol', 1e-4, 'abs_tol', 1e-8);
+             testCase.verify_val(expected_Sabp, sw_out.Sabp, 'rel_tol', 1e-5);
+             testCase.verify_val(expected_omegap, sw_out.omegap, 'rel_tol', 1e-5);
         end
         function test_sw_qh5_fitmode(testCase)
             qpts = testCase.qh5;
@@ -245,6 +207,17 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             spec = mocksw.spinwave(hkl);
             testCase.assertCalled(withExactInputs(bh.spinwavesym()));
             testCase.assertEqual(spec, out_spec);
+        end
+        function test_incommensurate(testCase)
+            % Tests that incommensurate calculation is ok
+            hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
+            % Create copy to avoid changing obj for other tests
+            swobj = copy(testCase.swobj);
+            commensurate_spec = swobj.spinwave(hkl);
+            swobj.genmagstr('mode', 'direct', 'k', [0.123 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
+            % Forcing incomm struct means exchange parameters don't agree, so we need 'hermit' false
+            incomm_spec = swobj.spinwave(hkl, 'hermit', false);
+            testCase.assertEqual(size(incomm_spec.omega, 1), size(commensurate_spec.omega, 1) * 3);
         end
         function test_twin(testCase)
             % Tests that setting twins gives correct outputs
