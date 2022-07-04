@@ -369,7 +369,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                                                 2.25 2.25 4.5; ...
                                                 4.5  4.5  9];
             expected_sw.gtensor = true;
-            testCase.verify_spinwave(expected_sw, sw_g);
+            testCase.verify_spinwave(expected_sw, sw_g, 'rel_tol', 1e-15);
         end
         function test_hermit(testCase)
             % Create copy to avoid changing obj for other tests
