@@ -495,31 +495,14 @@ end
 % e3 = real(M)
 % e2 = e3 x e1
 if ~param.cmplxBase
-    if obj.symbolic
-        e3 = simplify(M0./[S0; S0; S0]);
-        % e2 = Si x [1,0,0], if Si || [1,0,0] --> e2 = [0,0,1]
-        e2  = [zeros(1,nMagExt); e3(3,:); -e3(2,:)];
-        % select zero vector and make them parallel to [0,0,1]
-        selidx = abs(e2)>0;
-        if isa(selidx,'sym')
-            e2(3,~any(~sw_always(abs(e2)==0))) = 1;
-        else
-            e2(3,~any(abs(e2)>0)) = 1;
-        end
-        E0 = sqrt(sum(e2.^2,1));
-        e2  = simplify(e2./[E0; E0; E0]);
-        % e1 = e2 x e3
-        e1  = simplify(cross(e2,e3));
-    else
-        % e3 || Si
-        e3 = bsxfun(@rdivide,M0,S0);
-        % e2 = Si x [1,0,0], if Si || [1,0,0] --> e2 = [0,0,1]
-        e2  = [zeros(1,nMagExt); e3(3,:); -e3(2,:)];
-        e2(3,~any(abs(e2)>1e-10)) = 1;
-        e2  = bsxfun(@rdivide,e2,sqrt(sum(e2.^2,1)));
-        % e1 = e2 x e3
-        e1  = cross(e2,e3);
-    end
+    % e3 || Si
+    e3 = bsxfun(@rdivide,M0,S0);
+    % e2 = Si x [1,0,0], if Si || [1,0,0] --> e2 = [0,0,1]
+    e2  = [zeros(1,nMagExt); e3(3,:); -e3(2,:)];
+    e2(3,~any(abs(e2)>1e-10)) = 1;
+    e2  = bsxfun(@rdivide,e2,sqrt(sum(e2.^2,1)));
+    % e1 = e2 x e3
+    e1  = cross(e2,e3);
 else
     F0  = obj.mag_str.F;
     RF0 = sqrt(sum(real(F0).^2,1));
@@ -532,13 +515,6 @@ else
     e1  = e1./repmat(sqrt(sum(e1.^2,1)),[3 1]);
     % e2 = cross(e3,e1)
     e2  = cross(e3,e1);
-    
-    if obj.symbolic
-        e1 = simplify(e1);
-        e2 = simplify(e2);
-        e3 = simplify(e3);
-    end
-    
 end
 % assign complex vectors that define the rotating coordinate system on
 % every magnetic atom
