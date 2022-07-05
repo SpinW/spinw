@@ -100,6 +100,22 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_qh5_zero_freemem_warns(testCase)
+            % Mock sw_freemem to return 0 to trigger warning
+            sw_freemem_mock = sw_tests.utilities.mock_function( ...
+                'sw_freemem', '0');
+            sw_out = testCase.verifyWarning(...
+                @() testCase.swobj.spinwave(testCase.qh5), ...
+                'spinw:spinwave:FreeMemSize');
+            testCase.verify_spinwave(testCase.get_expected_sw_qh5, sw_out);
+        end
+        function test_sw_qh5_low_freemem(testCase)
+            % Check with low free memory calculation still attempted
+            sw_freemem_mock = sw_tests.utilities.mock_function( ...
+                'sw_freemem', '100');
+            sw_out = testCase.swobj.spinwave(testCase.qh5);
+            testCase.verify_spinwave(testCase.get_expected_sw_qh5, sw_out);
+        end
         function test_sw_qh5_fid(testCase)
             fprintf_mock = sw_tests.utilities.mock_function('fprintf0');
             fid = 3;
