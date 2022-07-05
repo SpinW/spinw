@@ -237,6 +237,21 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertCalled(withExactInputs(bh.spinwavesym()));
             testCase.assertEqual(spec, out_spec);
         end
+        function test_sw_symbolic_no_qpts(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.symbolic(true);
+            sw_out = swobj.spinwave();
+
+            symstr = '-Ja*exp(-pi*h*2i)*(exp(pi*h*2i) - 1)^2';
+            expected_sw.ham = [str2sym(symstr) sym(0); ...
+                               sym(0) str2sym(symstr)];
+            expected_sw.omega = [str2sym(symstr(2:end)); str2sym(symstr)];
+            expected_sw.obj = swobj;
+            expected_sw.datestart = '';
+            expected_sw.dateend = '';
+            expected_sw.title = 'Symbolic LSWT spectrum';
+            testCase.verify_spinwave(expected_sw, sw_out);
+        end
         function test_incommensurate(testCase)
             % Tests that incommensurate calculation is ok
             hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
@@ -418,6 +433,21 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.omega(:, end) = [-omega_tol omega_tol];
             expected_sw.param.omega_tol = omega_tol;
             testCase.verify_spinwave(expected_sw, sw_out);
+        end
+        function test_biquadratic_with_incomm_causes_error(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            swobj_tri.coupling.type(:) = 1;
+            testCase.verifyError(...
+                @() swobj_tri.spinwave(testCase.qh5), ...
+                'spinw:spinwave:Biquadratic');
+        end
+        function test_no_magstr_causes_error(testCase)
+            swobj = spinw;
+            swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
+            swobj.addatom('r', [0 0 0]);
+            testCase.verifyError(...
+                @() swobj.spinwave(testCase.qh5), ...
+                'spinw:spinwave:NoMagneticStr');
         end
     end
 end
