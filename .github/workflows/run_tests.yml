@@ -2,13 +2,15 @@ name: SpinW Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master, development ]
+    branches: [master, development]
+    types: [opened, reopened, labeled]
   workflow_dispatch:
 
 jobs:
   test:
+    if: github.event.action != 'labeled' || github.event.label.name == 'run_ci'
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
