@@ -7,7 +7,7 @@ function sw_timeit(percent,varargin)
 % 
 % ### Description
 % 
-% `sw_timeit(percent, {mode},{fid},{title})` can display remaining time of
+% `sw_timeit(percent, {mode},{tid},{title})` can display remaining time of
 % a calculation that is run for a fixed number of iterations. It can output
 % the status both in the Command Window and in a pup up window using
 % [waitbar].

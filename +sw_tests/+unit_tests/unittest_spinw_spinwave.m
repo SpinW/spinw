@@ -199,8 +199,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             afm_chain = copy(testCase.swobj);
             afm_chain.matrix.mat = eye(3);
             afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
-                               'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
-                               'nExt',[2 1 1]);
+                                'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
+                                'nExt',[2 1 1]);
             sw_afm = afm_chain.spinwave(testCase.qh5);
             omega_vals = [0 2. 0 -2. 0];
             expected_omega = [omega_vals; omega_vals; -omega_vals; -omega_vals];
