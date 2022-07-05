@@ -5,12 +5,11 @@ on:
     branches: [master]
   pull_request:
     branches: [master, development]
-    types: [opened, reopened, labeled, synchronize]
+    types: [opened, reopened, synchronize]
   workflow_dispatch:
 
 jobs:
   test:
-    if: github.event.action != 'labeled' || github.event.label.name == 'run_ci'
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
