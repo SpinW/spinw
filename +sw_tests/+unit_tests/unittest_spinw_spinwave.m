@@ -253,21 +253,6 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertCalled(withExactInputs(bh.spinwavesym()));
             testCase.assertEqual(spec, out_spec);
         end
-        function test_sw_symbolic_no_qpts(testCase)
-            swobj = copy(testCase.swobj);
-            swobj.symbolic(true);
-            sw_out = swobj.spinwave();
-
-            symstr = '-Ja*exp(-pi*h*2i)*(exp(pi*h*2i) - 1)^2';
-            expected_sw.ham = [str2sym(symstr) sym(0); ...
-                               sym(0) str2sym(symstr)];
-            expected_sw.omega = [str2sym(symstr(2:end)); str2sym(symstr)];
-            expected_sw.obj = swobj;
-            expected_sw.datestart = '';
-            expected_sw.dateend = '';
-            expected_sw.title = 'Symbolic LSWT spectrum';
-            testCase.verify_spinwave(expected_sw, sw_out);
-        end
         function test_incommensurate(testCase)
             % Tests that incommensurate calculation is ok
             hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
@@ -464,6 +449,23 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verifyError(...
                 @() swobj.spinwave(testCase.qh5), ...
                 'spinw:spinwave:NoMagneticStr');
+        end
+    end
+    methods (Test, TestTags = {'Symbolic'})
+        function test_sw_symbolic_no_qpts(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.symbolic(true);
+            sw_out = swobj.spinwave();
+
+            symstr = '-Ja*exp(-pi*h*2i)*(exp(pi*h*2i) - 1)^2';
+            expected_sw.ham = [str2sym(symstr) sym(0); ...
+                               sym(0) str2sym(symstr)];
+            expected_sw.omega = [str2sym(symstr(2:end)); str2sym(symstr)];
+            expected_sw.obj = swobj;
+            expected_sw.datestart = '';
+            expected_sw.dateend = '';
+            expected_sw.title = 'Symbolic LSWT spectrum';
+            testCase.verify_spinwave(expected_sw, sw_out);
         end
     end
 end
