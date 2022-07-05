@@ -31,3 +31,5 @@ Bug Fixes
 - Added validation to ``gencoupling`` to ensure ``maxDistance > dMin``.
 - Fixed uncaught error in ``gencoupling`` by checking if any bonds have
   length < ``maxSym``
+- A warning will now be emitted if ``saveSabp`` is requested in ``spinwave``
+  for a commensurate structure
