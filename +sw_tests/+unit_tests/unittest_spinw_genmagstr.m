@@ -39,6 +39,11 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 @() swobj.genmagstr(), ...
                 'spinw:genmagstr:NoMagAtom')
         end
+        function test_zero_nExt_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('nExt', [0 1 1]), ...
+                'spinw:genmagstr:WrongInput')
+        end
         function test_chain(testCase)
             swobj = copy(testCase.swobj);
             swobj.genmagstr('mode','direct', 'k',[0 0 0],'n',[1 0 0],'S',[0; 1; 0]);
