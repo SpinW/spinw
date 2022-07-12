@@ -79,6 +79,8 @@ classdef unittest_super < matlab.mock.TestCase
                     testCase.assertTrue(isa(actual_spinwave.(field), 'char'));
                 end
             end
+            % obj is not always in spinwave output (e.g. if fitmode ==
+            % true)
             if isfield(expected_spinwave, 'obj')
                 testCase.verify_obj(expected_spinwave.obj, actual_spinwave.obj);
             end

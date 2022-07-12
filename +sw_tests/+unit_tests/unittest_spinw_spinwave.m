@@ -119,7 +119,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_sw_qh5_fid(testCase)
             fprintf_mock = sw_tests.utilities.mock_function('fprintf0');
             fid = 3;
-            sw_out = testCase.swobj.spinwave(testCase.qh5, 'fid', 3);
+            sw_out = testCase.swobj.spinwave(testCase.qh5, 'fid', fid);
             % check fid used to write file
             for irow = 1:fprintf_mock.n_calls
                 testCase.assertEqual(fprintf_mock.arguments{irow}{1}, fid)
@@ -195,7 +195,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.title = title;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
-        function test_sw_multiple_mag_atoms(testCase)
+        function test_sw_with_nExt(testCase)
             afm_chain = copy(testCase.swobj);
             afm_chain.matrix.mat = eye(3);
             afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
@@ -224,8 +224,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
              expected_Sabp(:, :, :, 3) = repmat( ...
                  diag([0.1875, 0.1875, 1.5]), 1, 1, 2, 1);
              omegap_vals =  [1.16190e-2 4.74342 3];
-             expected_omegap = [ omegap_vals  flip(omegap_vals(1:2)); ...
-                                -omegap_vals -flip(omegap_vals(1:2))];
+             expected_omegap = [ omegap_vals  omegap_vals(2:-1:1); ...
+                                -omegap_vals -omegap_vals(2:-1:1)];
 
              testCase.verify_val(expected_Sabp, sw_out.Sabp, 'rel_tol', 1e-5);
              testCase.verify_val(expected_omegap, sw_out.omegap, 'rel_tol', 1e-5);
@@ -237,21 +237,6 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
             expected_sw = rmfield(expected_sw, {'obj', 'datestart', 'dateend'});
             testCase.verify_spinwave(expected_sw, sw_out);
-        end
-        function test_symbolic(testCase)
-            % Test that spinw.spinwavesym() is called if spinw.symbolic==true and spinw.spinwave() is called
-            % Mock the spinwavesym and symbolic methods
-            [mocksw, bh] = testCase.createMock(?spinw, 'MockedMethods', {'symbolic', 'spinwavesym'});
-            % Make sure that spinw thinks it is symbolic
-            testCase.assignOutputsWhen(withAnyInputs(bh.symbolic), true);
-            % Make sure that spinwavesym outputs a sample spectra struct
-            hkl = [1 2; 3 4; 5 6];
-            out_spec = struct('hkl', hkl, 'swConv', [1; 2]);
-            testCase.assignOutputsWhen(withAnyInputs(bh.spinwavesym), out_spec);
-            % Call spinwave
-            spec = mocksw.spinwave(hkl);
-            testCase.assertCalled(withExactInputs(bh.spinwavesym()));
-            testCase.assertEqual(spec, out_spec);
         end
         function test_incommensurate(testCase)
             % Tests that incommensurate calculation is ok
@@ -281,16 +266,16 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.hkl = hkl;
             expected_sw.hklA = [2/3 4/3; 0.75, 1; 1.25, 1.5]*pi;
             % Recalculate without twins for each set of hkl's and compare
-            [~, rotQ] = swobj_twin.twinq([0;0;0]);
-            for ii = 1:3
-                sw_single = testCase.swobj.spinwave((hkl' * rotQ(:, :, ii))');
+            [qTwin, rotQ] = swobj_twin.twinq(hkl);
+            for itwin = 1:3
+                sw_single = testCase.swobj.spinwave(qTwin{itwin});
                 expected_sw.omega = [expected_sw.omega sw_single.omega];
-                rot = rotc(:, :, ii);
+                rot = rotc(:, :, itwin);
                 rot_Sab = zeros(3, 3, 2, 2);
                 % Twin Sab is a rotation of single Sab
-                for jj = 1:2
-                    for kk = 1:2
-                        rot_Sab(:, :, jj, kk) = rot*sw_single.Sab(:, :, jj, kk)*rot';
+                for imode = 1:2
+                    for iq = 1:2
+                        rot_Sab(:, :, imode, iq) = rot*sw_single.Sab(:, :, imode, iq)*rot';
                     end
                 end
                 expected_sw.Sab = [expected_sw.Sab rot_Sab];
