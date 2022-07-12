@@ -16,19 +16,12 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             testCase.swobj = spinw();
             testCase.swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
             testCase.swobj.addatom('r', [0 0 0],'S', 1, 'label', 'MNi2');
-            testCase.swobj.gencoupling('maxDistance', 7);
-            testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
-            testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
         end
         function setup_tri_model(testCase)
             % Create a simple triangular lattice model
             testCase.swobj_tri = spinw;
             testCase.swobj_tri.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
             testCase.swobj_tri.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
-            J1 = 1;
-            testCase.swobj_tri.addmatrix('label','J1','value',J1);
-            testCase.swobj_tri.gencoupling;
-            testCase.swobj_tri.addcoupling('mat','J1','bond',1);
         end
     end
 
@@ -63,6 +56,17 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_magstr.S = [1.5; 0; 0];
             expected_magstr.k = [1/3 1/3 0];
             testCase.verify_obj(expected_magstr, swobj_tri.magstr);
+
+        end
+        function test_afm_chain(testCase)
+            afm_chain = copy(testCase.swobj);
+            afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
+                                'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
+                                'nExt',[2 1 1]);
+            expected_magstr = testCase.default_magstr;
+            expected_magstr.S = [0 0; 1 -1; 0 0];
+            expected_magstr.N_ext = [2 1 1];
+            testCase.verify_obj(expected_magstr, afm_chain.magstr);
 
         end
     end
