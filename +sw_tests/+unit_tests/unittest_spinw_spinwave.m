@@ -206,6 +206,30 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_omega = [omega_vals; omega_vals; -omega_vals; -omega_vals];
             testCase.verify_val(expected_omega, sw_afm.omega, 'abs_tol', 1e-7);
         end
+        function test_sw_with_multiple_matom(testCase)
+            fe_cu_chain = spinw;
+            fe_cu_chain.genlattice('lat_const', [3 8 4], 'spgr', 'P 1');
+            fe_cu_chain.addatom('label', 'MCu2', 'r', [0 0 0]);
+            fe_cu_chain.addatom('label', 'MFe2', 'r', [0 1/2 0]);
+            fe_cu_chain.gencoupling;
+            fe_cu_chain.addmatrix('label', 'J_{Cu-Cu}', 'value', 1);
+            fe_cu_chain.addmatrix('label','J_{Fe-Fe}', 'value', 1);
+            fe_cu_chain.addmatrix('label', 'J_{Cu-Fe}', 'value', -0.1)
+            fe_cu_chain.addcoupling('mat','J_{Cu-Cu}','bond',1);
+            fe_cu_chain.addcoupling('mat','J_{Fe-Fe}','bond',2);
+            fe_cu_chain.addcoupling('mat','J_{Cu-Fe}','bond',[4 5]);
+            fe_cu_chain.genmagstr('mode','helical','S',[0 0;1 1;0 0],'k',[1/2 0 0])
+
+            sw_out = fe_cu_chain.spinwave(testCase.qh5, 'sortMode', false);
+            om1 = 4.11473;
+            om2 = 1.36015;
+            om3 = 1.38527;
+            expected_omega = zeros(12, 5);
+            expected_omega(1:6, [1 3 5])= repmat([om2 0 0 -om2 om2 0]', 1, 3);
+            expected_omega(1:6, [2 4])= repmat([om1 om3 -om3 -om1 om1 om3]', 1, 2);
+            expected_omega(7:end, :) = -expected_omega(6:-1:1, :);
+            testCase.verify_val(expected_omega, sw_out.omega, 'abs_tol', 5e-6);
+        end
         function test_sw_saveSabp_commensurate_warns(testCase)
             sw = testCase.verifyWarning(...
                 @() testCase.swobj.spinwave(testCase.qh5, 'saveSabp', true), ...
