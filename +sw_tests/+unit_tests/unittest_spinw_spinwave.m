@@ -268,10 +268,21 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % Create copy to avoid changing obj for other tests
             swobj = copy(testCase.swobj);
             commensurate_spec = swobj.spinwave(hkl);
-            swobj.genmagstr('mode', 'direct', 'k', [0.123 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
-            % Forcing incomm struct means exchange parameters don't agree, so we need 'hermit' false
-            incomm_spec = swobj.spinwave(hkl, 'hermit', false);
-            testCase.assertEqual(size(incomm_spec.omega, 1), size(commensurate_spec.omega, 1) * 3);
+
+            % Test incomm 2nd neighbour afm chain fails with only nearest
+            % neighbour interactions
+            swobj.genmagstr('mode', 'helical', 'k', [0.25 0 0], ...
+                            'n', [0 0 1], 'S', [1; 0; 0]);
+            testCase.verifyError(...
+                @() swobj.spinwave(hkl),...
+                'spinw:spinwave:NonPosDefHamiltonian');
+            % Add 2nd neighbour interactions and test this incommensurate
+            % structure produces 3x number of modes as commensurate
+            swobj.addmatrix('value', 2, 'label', 'Jb');
+            swobj.addcoupling('mat', 'Jb', 'bond', 2);
+            incomm_spec = swobj.spinwave(hkl);
+            testCase.assertEqual(size(incomm_spec.omega, 1), ...
+                                 size(commensurate_spec.omega, 1) * 3);
         end
         function test_twin(testCase)
             % Tests that setting twins gives correct outputs
@@ -322,7 +333,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % For this structure, both cmplxBase true and false give the
             % same e-vectors so should give the same result
             qpts = {[0 0 0], [1 0 0], 5};
-            sw_out = testCase.swobj_tri.spinwave(qpts);
+            sw_out = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', false);
             sw_out_cmplx = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', true);
             testCase.verify_spinwave(sw_out, sw_out_cmplx);
         end
@@ -446,6 +457,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_biquadratic_with_incomm_causes_error(testCase)
             swobj_tri = copy(testCase.swobj_tri);
+            % Set coupling to biquadratic
             swobj_tri.coupling.type(:) = 1;
             testCase.verifyError(...
                 @() swobj_tri.spinwave(testCase.qh5), ...
