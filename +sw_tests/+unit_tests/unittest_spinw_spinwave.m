@@ -154,6 +154,18 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.param.sortMode = false;
             testCase.verify_spinwave(expected_sw, sw_out);
         end
+        function test_sw_qh5_nformula(testCase)
+            % Create copy to avoid changing obj for other tests
+            swobj = copy(testCase.swobj);
+            nformula = int32(2);
+            swobj.unit.nformula = nformula;
+            sw_out_nformula = swobj.spinwave(testCase.qh5);
+            expected_sw = testCase.swobj.spinwave(testCase.qh5);
+            expected_sw.Sab = expected_sw.Sab/2;
+            expected_sw.obj.unit.nformula = nformula;
+            expected_sw.nformula = nformula;
+            testCase.verify_spinwave(expected_sw, sw_out_nformula);
+        end
         function test_sw_qh5_periodic(testCase)
             % Test qpts in different BZ give same omega, Sab
             qpts = testCase.qh5 + 1;
@@ -196,6 +208,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(expected_sw, sw_out);
         end
         function test_sw_with_nExt(testCase)
+            % Create copy to avoid changing obj for other tests
             afm_chain = copy(testCase.swobj);
             afm_chain.matrix.mat = eye(3);
             afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...

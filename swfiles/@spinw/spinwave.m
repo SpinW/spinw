@@ -1034,7 +1034,7 @@ spectra.hklA     = hklA;
 spectra.incomm   = incomm;
 spectra.helical  = helical;
 spectra.norm     = false;
-spectra.nformula = double(obj.unit.nformula);
+spectra.nformula = int32(obj.unit.nformula);
 
 % Save different intermediate results.
 if param.saveV
