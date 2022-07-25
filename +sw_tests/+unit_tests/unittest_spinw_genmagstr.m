@@ -51,6 +51,18 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj_tri = copy(testCase.swobj_tri);
             swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
                                 'n', [0 0 1], 'k', [1/3 1/3 0]);
+            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                                'n', [0 0 1], 'k', [1/3 1/3 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = [1/3; 1/3; 0];
+            expected_mag_str.F = [1.5; 1.5j; 0];
+            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+
+        end
+        function test_helical_tri_existing_k(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                                'n', [0 0 1], 'k', [1/3 1/3 0]);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [1/3; 1/3; 0];
             expected_mag_str.F = [1.5; 1.5j; 0];
