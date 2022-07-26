@@ -315,7 +315,7 @@ if obj.symb
     n       = sym(n);
 end
 
-if ~cmplxS && ~strcmpi(param.mode,'fourier') && ~strcmpi(param.mode,'direct') && any(k)
+if ~cmplxS && ~strcmpi(param.mode,'fourier') && ~strcmpi(param.mode,'direct') && any(k(:))
     param.S = param.S + 1i*cross(repmat(permute(n,[2 3 1]),[1 size(param.S,2) 1]),param.S);
 end
 

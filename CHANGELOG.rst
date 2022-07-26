@@ -33,3 +33,5 @@ Bug Fixes
   length < ``maxSym``
 - A warning will now be emitted if ``saveSabp`` is requested in ``spinwave``
   for a commensurate structure
+- Fix ``MATLAB:nonLogicalConditional`` error raised when using multiple
+  k in ``genmagstr``  with ``helical`` mode

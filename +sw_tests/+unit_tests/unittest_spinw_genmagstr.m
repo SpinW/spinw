@@ -13,13 +13,13 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Create a simple FM 1D chain model
             testCase.swobj = spinw();
             testCase.swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
-            testCase.swobj.addatom('r', [0 0 0],'S', 1, 'label', 'MNi2');
+            testCase.swobj.addatom('r', [0 0 0],'S', 1);
         end
         function setup_tri_model(testCase)
             % Create a simple triangular lattice model
             testCase.swobj_tri = spinw;
             testCase.swobj_tri.genlattice('lat_const', [4 4 6], 'angled', [90 90 120]);
-            testCase.swobj_tri.addatom('r', [0 0 0], 'S', 3/2, 'label', 'MCr3');
+            testCase.swobj_tri.addatom('r', [0 0 0], 'S', 3/2);
         end
     end
 
@@ -37,19 +37,28 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
         end
         function test_direct_wrong_spin_size_raises_error(testCase)
             testCase.verifyError(...
-                @() testCase.swobj.genmagstr('mode', 'direct', 'S', [0; 1; 0], 'nExt', [2 1 1]), ...
+                @() testCase.swobj.genmagstr( ...
+                    'mode', 'direct', 'S', [0; 1; 0], 'nExt', [2 1 1]), ...
                 'spinw:genmagstr:WrongSpinSize')
+        end
+        function test_helical_wrong_spin_size_warns(testCase)
+            testCase.verifyWarning(...
+                @() testCase.swobj.genmagstr('mode', 'helical', ...
+                                             'S', [1 0; 0 1; 0 0], ...
+                                             'k', [1/3 0 0], ...
+                                             'nExt', [2 1 1]), ...
+                'spinw:genmagstr:UCExtNonSuff')
         end
         function test_direct_fm_chain(testCase)
             swobj = copy(testCase.swobj);
             swobj.genmagstr('mode', 'direct', 'k', [0 0 0], ...
-                            'n', [1 0 0], 'S', [0; 1; 0]);
+                            'S', [0; 1; 0]);
             testCase.verify_obj(testCase.default_mag_str, swobj.mag_str);
 
         end
         function test_direct_fm_chain_nok(testCase)
             swobj = copy(testCase.swobj);
-            swobj.genmagstr('mode', 'direct', 'n', [1 0 0], 'S', [0; 1; 0]);
+            swobj.genmagstr('mode', 'direct', 'S', [0; 1; 0]);
             testCase.verify_obj(testCase.default_mag_str, swobj.mag_str);
         end
         function test_direct_multiatom_nExt(testCase)
@@ -86,36 +95,58 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
         function test_helical_tri(testCase)
             swobj_tri = copy(testCase.swobj_tri);
             swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
-                                'n', [0 0 1], 'k', [1/3 1/3 0]);
-            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
-                                'n', [0 0 1], 'k', [1/3 1/3 0]);
+                                'k', [1/3 1/3 0]);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [1/3; 1/3; 0];
             expected_mag_str.F = [1.5; 1.5j; 0];
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
-
         end
-        function test_helical_tri_existing_k(testCase)
-            swobj_tri = copy(testCase.swobj_tri);
-            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
-                                'n', [0 0 1], 'k', [1/3 1/3 0]);
-            expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.k = [1/3; 1/3; 0];
-            expected_mag_str.F = [1.5; 1.5j; 0];
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
-
+        function test_helical_multiatom_nExt_1spin(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
+            k = [0 0 1/2];
+            nExt = [int32(1) int32(1) int32(2)];
+            swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                            'nExt', nExt, 'k', k);
+            expected_mag_str = struct(...
+                'k', k', ...
+                'nExt', nExt, ...
+                'F', [1 2 -1 -2; 1i 2i -1i -2i; 0 0 0 0]);
+             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
-        function test_direct_afm_chain(testCase)
-            afm_chain = copy(testCase.swobj);
-            afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
-                                'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
-                                'nExt',[2 1 1]);
+        function test_helical_multiatom_nExt_1spin_r0(testCase)
+            swobj = spinw();
+            swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
+            % Need to have nonzero r for first atom for r0 to have an effect
+            swobj.addatom('r', [0.5 0.5 0.5],'S', 1);
+            swobj.addatom('r', [0 0 0], 'S', 2);
+            k = [0 0 1/2];
+            nExt = [int32(1) int32(1) int32(2)];
+            swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                            'nExt', nExt, 'k', k, 'r0', false);
+            expected_mag_str = struct(...
+                'k', k', ...
+                'nExt', nExt, ...
+                'F', [1 2i -1 -2i; 1i -2 -1i 2; 0 0 0 0]);
+             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_helical_multiatom_multik(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0.5], 'S', 2);
+            S_k = [1; 0; 0];
+            S = cat(3, S_k, S_k);
+            k = [0 1/3 0; 1/2 0 0];
+            swobj.genmagstr('mode', 'helical', 'S', S, 'k', k);
+            F_k = [sqrt(2)/2        0; ...
+                   sqrt(2)/2  sqrt(2); ...
+                           0 -sqrt(2)];
             expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.nExt(1) = int32(2);
-            expected_mag_str.k = [0.5; 0; 0];
-            expected_mag_str.F = [0 0; 1 -1; 0 0];
-            testCase.verify_obj(expected_mag_str, afm_chain.mag_str);
+            expected_mag_str.k = k';
+            expected_mag_str.F = cat(3, ...
+                                     [1 1-sqrt(3)*i; 1i sqrt(3)+1i; 0 0], ...
+                                     [1         -2i; 1i          2; 0 0]);
 
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
         function test_random_structure(testCase)
             swobj = copy(testCase.swobj);
