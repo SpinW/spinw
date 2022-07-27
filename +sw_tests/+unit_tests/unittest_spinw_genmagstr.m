@@ -98,7 +98,16 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                                 'k', [1/3 1/3 0]);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [1/3; 1/3; 0];
-            expected_mag_str.F = [1.5; 1.5j; 0];
+            expected_mag_str.F = [1.5; 1.5i; 0];
+            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+        end
+        function test_fourier_tri(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            swobj_tri.genmagstr('mode', 'fourier', 'S', [1; 0; 0], ...
+                                'k', [1/3 1/3 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = [1/3; 1/3; 0];
+            expected_mag_str.F = [1.5; 0; 0];
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
         function test_helical_multiatom_nExt_1spin(testCase)
@@ -129,6 +138,22 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [1 2i -1 -2i; 1i -2 -1i 2; 0 0 0 0]);
+             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_fourier_multiatom_nExt_nMagAtom_spins(testCase)
+            % Test where there are the same number of spins provided as in
+            % the unit cell. Note result is the same as helical with
+            % complex spins or S=[0 1; 1 0; 0 0]
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
+            k = [0 1/2 0];
+            nExt = [int32(1) int32(2) int32(1)];
+            swobj.genmagstr('mode', 'fourier', 'S', [-1i 1; 1 1i; 0 0], ...
+                            'nExt', nExt, 'k', k);
+            expected_mag_str = struct( ...
+                'k', k', ...
+                'nExt', nExt, ...
+                'F', [-1i 2 1i -2; 1 2i -1 -2i; 0 0 0 0]);
              testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
         function test_helical_multiatom_nExt_nMagAtom_spins(testCase)
@@ -176,8 +201,8 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = cat(3, ...
-                                     [1 1-sqrt(3)*i; 1i sqrt(3)+1i;   0  0], ...
-                                     [1         -2i;  0          0; -1i -2]);
+                                     [1 1-sqrt(3)*1i; 1i sqrt(3)+1i;   0  0], ...
+                                     [1         -2i;  0           0; -1i -2]);
 
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
