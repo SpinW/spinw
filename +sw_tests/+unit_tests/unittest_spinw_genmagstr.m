@@ -267,8 +267,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Need to use clean obj or the stored structure is used
             swobj2 = copy(swobj1);
             nExt = [int32(2) int32(1) int32(1)];
-            % Also test if we input 'k' it is set to 0 in final struct
-            swobj1.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0], 'k', [1/2 0 0]);
+            swobj1.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0]);
             mag_str1 = swobj1.mag_str;
             swobj2.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0]);
             mag_str2 = swobj2.mag_str;
@@ -289,7 +288,8 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0], 'S', 1);
             nExt = [int32(1) int32(2) int32(1)];
-            swobj.genmagstr('mode', 'direct', 'S', [1 0; 0 1; 0 0]);
+            % Also test if we input 'k' it is set to 0 in final struct
+            swobj.genmagstr('mode', 'direct', 'S', [1 0; 0 1; 0 0], 'k', [1/2 0 0]);
             swobj.genmagstr('mode', 'tile', 'nExt', nExt);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
@@ -334,6 +334,67 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_phi(testCase)
+            swobj = copy(testCase.swobj);
+            k = [1/2 0 0];
+            % Need to initialise structure before rotating it
+            swobj.genmagstr('mode', 'direct', 'S', [1; 0; 0], 'k', k);
+            swobj.genmagstr('mode', 'rotate', 'phi', pi/4);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_phid(testCase)
+            swobj = copy(testCase.swobj);
+            k = [1/2 0 0];
+            swobj.genmagstr('mode', 'direct', 'S', [1; 0; 0], 'k', k);
+            swobj.genmagstr('mode', 'rotate', 'phid', 45);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_multiatom_n(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            k = [1/2 0 0];
+            swobj.genmagstr('mode', 'direct', 'S', [1 0; 0 1; 0 0], 'k', k);
+            swobj.genmagstr('mode', 'rotate', 'phi', pi/2, 'n', [1 1 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [0.5 0.5; 0.5 0.5; -sqrt(2)/2 sqrt(2)/2];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_no_phi_collinear(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            swobj.genmagstr('mode', 'direct', 'S', [1 -1; 0 0; 0 0]);
+            swobj.genmagstr('mode', 'rotate', 'n', [0 1 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [0 0; 1 -1; 0 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_no_phi_coplanar(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            swobj.genmagstr('mode', 'direct', 'S', [1 0; 0 1; 0 0]);
+            swobj.genmagstr('mode', 'rotate', 'n', [0 1 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [1 0; 0 0; 0 -1];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_rotate_no_phi_incomm(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            k = [1/3 1/3 0];
+            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                                'k', k);
+            swobj_tri.genmagstr('mode', 'rotate', 'n', [1 0 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [0; 1.5i; -1.5];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
     end
 
