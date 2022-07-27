@@ -176,7 +176,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % the supercell
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
-            k = [0 1/5 0];
+            k = [0 1/2 0];
             nExt = [int32(1) int32(2) int32(1)];
             swobj.genmagstr('mode', 'helical', ...
                             'S', [0 1 0 -1; 1 0 0 0; 0 0 1 0], ...
@@ -258,6 +258,82 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.nExt = nExt;
             testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
                                 rmfield(mag_str1, 'F'));
+        end
+        function test_tile_no_init_creates_random(testCase)
+            % Test tile without initialised structure
+            % (i.e. size(S,2) < nMagAtom) creates a random structure
+            swobj1 = copy(testCase.swobj);
+            swobj1.addatom('r', [0.5 0.5 0], 'S', 1);
+            % Need to use clean obj or the stored structure is used
+            swobj2 = copy(swobj1);
+            nExt = [int32(2) int32(1) int32(1)];
+            % Also test if we input 'k' it is set to 0 in final struct
+            swobj1.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0], 'k', [1/2 0 0]);
+            mag_str1 = swobj1.mag_str;
+            swobj2.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0]);
+            mag_str2 = swobj2.mag_str;
+            % Check structure is random each time - F is different
+            testCase.verifyNotEqual(mag_str1.F, mag_str2.F);
+            testCase.verifySize(mag_str1.F, [3 4]);
+            % Check S has correct magnitudes
+            testCase.verify_val(vecnorm(swobj1.magstr.S, 2), ones(1, 4));
+            % Check other fields
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.nExt = nExt;
+            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
+                                rmfield(mag_str1, 'F'));
+        end
+        function test_tile_existing_struct_extend_cell(testCase)
+            % Test that tile and increasing nExt will correctly tile
+            % initialised structure
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            nExt = [int32(1) int32(2) int32(1)];
+            swobj.genmagstr('mode', 'direct', 'S', [1 0; 0 1; 0 0]);
+            swobj.genmagstr('mode', 'tile', 'nExt', nExt);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.nExt = nExt;
+            expected_mag_str.F = [1 0 1 0; 0 1 0 1; 0 0 0 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_tile_existing_struct_same_size(testCase)
+            % Test that tile with nExt same as initialised structure
+            % does nothing
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            nExt = [int32(1) int32(2) int32(1)];
+            S = [1 0 0 -1; 0 1 0 0; 0 0 1 0];
+            swobj.genmagstr('mode', 'direct', 'S', S, 'nExt', nExt);
+            swobj.genmagstr('mode', 'tile', 'nExt', nExt);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.nExt = nExt;
+            expected_mag_str.F = S;
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_tile_input_S_extend_cell(testCase)
+            % Test that tile and input S less than nExt will correctly tile
+            % input S
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            nExt = [int32(3) int32(1) int32(1)];
+            swobj.genmagstr('mode', 'tile', 'nExt', nExt, ...
+                            'S', [1 0; 0 1; 0 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.nExt = nExt;
+            expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_tile_multik(testCase)
+            % Test that S is summed over third dimension with tile, and k
+            % is not needed (is this the behaviour we want?)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            S = cat(3, [1 0; 0 1; 0 0], [0 1; 0 0; 1 0]);
+            swobj.genmagstr('mode', 'tile', ...
+                            'S', S);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
     end
 
