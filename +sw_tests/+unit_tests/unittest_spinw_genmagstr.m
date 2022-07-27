@@ -102,6 +102,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
         function test_helical_multiatom_nExt_1spin(testCase)
+            % Test where only 1 spin is provided
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
             k = [0 0 1/2];
@@ -130,21 +131,53 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'F', [1 2i -1 -2i; 1i -2 -1i 2; 0 0 0 0]);
              testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
-        function test_helical_multiatom_multik(testCase)
+        function test_helical_multiatom_nExt_nMagAtom_spins(testCase)
+            % Test where there are the same number of spins provided as in
+            % the unit cell
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
+            k = [0 1/2 0];
+            nExt = [int32(1) int32(2) int32(1)];
+            swobj.genmagstr('mode', 'helical', 'S', [0 1; 1 0; 0 0], ...
+                            'nExt', nExt, 'k', k);
+            expected_mag_str = struct( ...
+                'k', k', ...
+                'nExt', nExt, ...
+                'F', [-1i 2 1i -2; 1 2i -1 -2i; 0 0 0 0]);
+             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_helical_multiatom_nExt_nMagExt_spins(testCase)
+            % Test where there are the same number of spins provided as in
+            % the supercell
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0.0], 'S', 2);
+            k = [0 1/5 0];
+            nExt = [int32(1) int32(2) int32(1)];
+            swobj.genmagstr('mode', 'helical', ...
+                            'S', [0 1 0 -1; 1 0 0 0; 0 0 1 0], ...
+                            'nExt', nExt, 'k', k);
+            expected_mag_str = struct(...
+                'k', k', ...
+                'nExt', nExt, ...
+                'F', [-1i 2 0 -2; 1 2i 0 -2i; 0 0 1 0]);
+             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_helical_multiatom_multik_multin(testCase)
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0.5], 'S', 2);
             S_k = [1; 0; 0];
             S = cat(3, S_k, S_k);
             k = [0 1/3 0; 1/2 0 0];
-            swobj.genmagstr('mode', 'helical', 'S', S, 'k', k);
+            n = [0 0 1; 0 1 0];
+            swobj.genmagstr('mode', 'helical', 'S', S, 'k', k, 'n', n);
             F_k = [sqrt(2)/2        0; ...
                    sqrt(2)/2  sqrt(2); ...
                            0 -sqrt(2)];
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = cat(3, ...
-                                     [1 1-sqrt(3)*i; 1i sqrt(3)+1i; 0 0], ...
-                                     [1         -2i; 1i          2; 0 0]);
+                                     [1 1-sqrt(3)*i; 1i sqrt(3)+1i;   0  0], ...
+                                     [1         -2i;  0          0; -1i -2]);
 
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
