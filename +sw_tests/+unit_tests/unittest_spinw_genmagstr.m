@@ -30,6 +30,11 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 @() swobj.genmagstr(), ...
                 'spinw:genmagstr:NoMagAtom')
         end
+        function test_invalid_mode_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'something'), ...
+                'spinw:genmagstr:WrongMode')
+        end
         function test_zero_nExt_raises_error(testCase)
             testCase.verifyError(...
                 @() testCase.swobj.genmagstr('nExt', [0 1 1]), ...
@@ -395,6 +400,20 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = [0; 1.5i; -1.5];
             expected_mag_str.k = k';
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+        end
+        function test_func_custom(testCase)
+             function [S, k, n] = func(S0, x0)
+                 S = [-S0; 0; 0];
+                 k = x0;
+                 n = x0;
+             end
+            swobj = copy(testCase.swobj);
+            x0 = [1/3 0 0];
+            swobj.genmagstr('mode', 'func', 'func', @func, 'x0', x0);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [-1; 0; 0];
+            expected_mag_str.k = x0';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
     end
 
