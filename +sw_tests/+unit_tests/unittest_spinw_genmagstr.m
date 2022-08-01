@@ -421,6 +421,18 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.k = k';
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
+        function test_rotate_complex_phi(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            k = [1/2 0 0];
+            % Need to initialise structure before rotating it
+            swobj.genmagstr('mode', 'direct', 'S', [0 1; 1 0; 0 0], 'k', k);
+            swobj.genmagstr('mode', 'rotate', 'phi', i);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [1 0; 0 -1; 0 0];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
         function test_rotate_multiatom_n(testCase)
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0], 'S', 1);
@@ -487,5 +499,21 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
     end
-
+    methods (Test, TestTags = {'Symbolic'})
+        function test_func_custom_symbolic(testCase)
+            function [S, k, n] = func(S0, x0)
+                S = [-S0; 0; 0];
+                k = x0;
+                n = x0;
+            end
+            swobj = copy(testCase.swobj);
+            swobj.symbolic(true);
+            x0 = [1/3 0 0];
+            swobj.genmagstr('mode', 'func', 'func', @func, 'x0', x0);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = sym([-1; 0; 0]);
+            expected_mag_str.k = sym(x0');
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+    end
 end
