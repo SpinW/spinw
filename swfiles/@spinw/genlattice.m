@@ -149,7 +149,12 @@ if ~isempty(param.bv)
     % rotate a-axis along x
     phi = atan2(norm(cross(BV1(:,1),a)),dot(BV1(:,1),a));
     % rotate the basis vectors
-    [BV2, R2] = sw_rot(c,phi,BV1);
+    if dot(cross(BV1(:,1), BV1(:,2)), BV1(:,3)) > 1e-10
+        [BV2, R2] = sw_rot(c, phi, BV1);
+    else
+        [BV2, R2] = sw_rot(c, -phi, BV1); % ensure BV2 right-handed
+    end
+    
     
     % check the sign of cross(x,y)
     if c*cross(BV2(:,1),BV2(:,2))<0

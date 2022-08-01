@@ -13,6 +13,8 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         param_name = {'angle', 'lat_const'};
         spgr = {'P 2', 3};  % spacegroup and index in symmetry.dat
         sym_param_name = {'sym', 'spgr'};
+        basis_vecs =  {[1/2 1/2 0; 0 1/2 1/2; 1/2 0 1/2], ... % RH
+            [1/2 1/2 0; 1/2 0 1/2; 0 1/2 1/2]}; % LH
     end
     
     methods (TestMethodSetup)
@@ -109,6 +111,18 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             nformula = int32(2);
             testCase.swobj.genlattice('nformula', nformula);
             testCase.verify_val(testCase.swobj.unit.nformula, nformula);
+        end
+        
+        function test_basis_vector_and_rotation_matrix(testCase, basis_vecs)
+            args = {'lat_const',[4.5 4.5 4.5], 'spgr','F 2 3'};
+            % if no basis vectors are supplied then rot matrix always I
+            R = testCase.swobj.genlattice(args{:});
+            testCase.verify_val(eye(3), R);
+            % add basis vectors for primitive cell
+            R = testCase.swobj.genlattice(args{:}, 'bv', basis_vecs); 
+            sw_basis_vecs = R*basis_vecs;
+            % check first spinwave basis vec is along x
+            testCase.verify_val([sqrt(2)/2; 0; 0], sw_basis_vecs(:,1));
         end
         
      end
