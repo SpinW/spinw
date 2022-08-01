@@ -35,6 +35,11 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.genmagstr('mode', 'something'), ...
                 'spinw:genmagstr:WrongMode')
         end
+        function test_invalid_unit_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('unit', 'something'), ...
+                'spinw:genmagstr:WrongInput')
+        end
         function test_zero_nExt_raises_error(testCase)
             testCase.verifyError(...
                 @() testCase.swobj.genmagstr('nExt', [0 1 1]), ...
@@ -104,6 +109,17 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [1/3; 1/3; 0];
             expected_mag_str.F = [1.5; 1.5i; 0];
+            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+        end
+        function test_helical_tri_lu_unit(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            swobj_tri.genmagstr('mode', 'helical', 'S', [0; 1; 0], ...
+                                'k', [1/3 1/3 0], 'unit', 'lu');
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = [1/3; 1/3; 0];
+            expected_mag_str.F = [-0.75-1.299038105676658i; ...
+                                  1.299038105676658-0.75i; ...
+                                  0];
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
         function test_fourier_tri(testCase)
@@ -338,6 +354,20 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                             'S', S);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_extend_input_S_extend_cell(testCase)
+            % Test undocumented 'extend' mode does same as tile
+            % Test that tile and input S less than nExt will correctly tile
+            % input S
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            nExt = [int32(3) int32(1) int32(1)];
+            swobj.genmagstr('mode', 'extend', 'nExt', nExt, ...
+                            'S', [1 0; 0 1; 0 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.nExt = nExt;
+            expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
         function test_rotate_phi(testCase)
