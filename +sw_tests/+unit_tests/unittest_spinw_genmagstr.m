@@ -102,6 +102,23 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = cat(3, F_k, F_k);
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
+        function test_direct_multik_scalar_nExt(testCase)
+            % Test if a scalar is used for nExt it is treated as a
+            % tolerance to automatically determine nExt
+            swobj = copy(testCase.swobj);
+            S_k = [1 0 1 0 1 0; 0 0 1 1 0 0; 0 0 0 1 1 1];
+            S = cat(3, S_k, S_k);
+            nExt = 0.01;
+            k = [0 1/3+0.5*nExt 0; 1/2+0.5*nExt 0 0];
+            swobj.genmagstr('mode', 'direct', 'S', S, 'k', k, 'nExt', nExt);
+            F_k = [1 0 sqrt(2)/2         0 sqrt(2)/2 0; ...
+                   0 0 sqrt(2)/2 sqrt(2)/2         0 0; ...
+                   0 0         0 sqrt(2)/2 sqrt(2)/2 1];
+            expected_mag_str = struct('nExt', [int32(2) int32(3) int32(1)], ...
+                                      'k', k', ...
+                                      'F', cat(3, F_k, F_k));
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
         function test_helical_tri(testCase)
             swobj_tri = copy(testCase.swobj_tri);
             swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
