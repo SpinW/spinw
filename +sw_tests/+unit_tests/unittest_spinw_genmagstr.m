@@ -401,6 +401,17 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.k = k';
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
+        function test_func_multiatom_default(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            k = [1/3 0 0];
+            x0 = [pi/2 -pi/4 0 0 k pi pi/2];
+            swobj.genmagstr('mode', 'func', 'x0', x0);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = [sqrt(2)/2*(1-i) 0; -sqrt(2)/2*(1+i) 0; 0 1];
+            expected_mag_str.k = k';
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
         function test_func_custom(testCase)
              function [S, k, n] = func(S0, x0)
                  S = [-S0; 0; 0];
