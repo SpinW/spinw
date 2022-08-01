@@ -72,6 +72,7 @@ function R = genlattice(obj, varargin)
 % `label`
 % : Optional label for the space group if the generators are given in the
 %   `spgr` option.
+%
 % `bv`
 % : Basis vectors given in a matrix with dimensions of $[3\times 3]$, where
 %   each column defines a basis vector.
