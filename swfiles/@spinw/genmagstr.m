@@ -284,10 +284,6 @@ nMagAtom = size(mAtom.r,2);
 % number of magnetic atoms in the supercell
 nMagExt  = nMagAtom*prod(nExt);
 
-if nMagAtom==0
-    error('spinw:genmagstr:NoMagAtom','There is no magnetic atom in the unit cell with S>0!');
-end
-
 % Create mAtom.Sext matrix.
 mAtom    = sw_extendlattice(nExt, mAtom);
 
