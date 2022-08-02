@@ -12,6 +12,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
     properties (TestParameter)
         param_name = {'angle', 'lat_const'};
         spgr = {'P 2', 3};  % spacegroup and index in symmetry.dat
+        invalid_spgr = {'P2', 'P 7', '-x,y,-x', '-x,y', eye(2)};
         sym_param_name = {'sym', 'spgr'};
         basis_vecs =  {[1/2 1/2 0; 0 1/2 1/2; 1/2 0 1/2], ... % RH
             [1/2 1/2 0; 1/2 0 1/2; 0 1/2 1/2]}; % LH
@@ -19,6 +20,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         invalid_perm = {[1,4,2],[0,1,2], [1,1,1], 'bad', 'zzz', 'aaa', ...
             {1,2,3}}
         invalid_origin = {[-0.5,0,0], [0,2,0]};
+        invalid_label = {1, [1,2], {'a'}};
     end
     
     methods (TestMethodSetup)
@@ -138,7 +140,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_spacegroup_with_cell_input(testCase, sym_param_name)
-            spgr_str = 'P 2';
+            spgr_str = '-x,y,-z';
             label = 'label';
             testCase.swobj.genlattice(sym_param_name, {spgr_str, label});
             expected_latt = testCase.default_latt;
@@ -173,6 +175,21 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.genlattice('spgr', 'P 2', ...
                     'perm', invalid_perm), ...
                 'spinw:genlattice:WrongInput');
+        end
+        
+        function test_invalid_spgr(testCase, invalid_spgr)
+            testCase.verifyError(...
+                @() testCase.swobj.genlattice('spgr', invalid_spgr), ...
+                'generator:WrongInput');
+        end
+        
+        function test_non_default_spacegroup_overwritten(testCase)
+            testCase.swobj.genlattice('spgr','F 2 3');
+            testCase.swobj.genlattice('spgr', 'P 2');
+            expected_latt = testCase.default_latt;
+            expected_latt.sym = testCase.P2_sym;
+            expected_latt.label = 'P 2';
+            testCase.verify_val(expected_latt, testCase.swobj.lattice);
         end
         
      end

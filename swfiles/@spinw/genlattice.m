@@ -153,7 +153,7 @@ else
     if ~any(ismember(perms([1,2,3]), param.perm, 'rows'))
         error('spinw:genlattice:WrongInput', invalid_perm_msg);
     end
-    % check valid origin]
+    % check valid origin
     if any(param.origin > 1) || any(param.origin < 0)
         error('spinw:genlattice:WrongInput', ...
             'Invalid origin supplied, it must be fractional coordinates.');
