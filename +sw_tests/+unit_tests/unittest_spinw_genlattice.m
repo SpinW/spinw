@@ -20,7 +20,6 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         invalid_perm = {[1,4,2],[0,1,2], [1,1,1], 'bad', 'zzz', 'aaa', ...
             {1,2,3}}
         invalid_origin = {[-0.5,0,0], [0,2,0]};
-        invalid_label = {1, [1,2], {'a'}};
     end
     
     methods (TestMethodSetup)
@@ -189,6 +188,15 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P 2';
+            testCase.verify_val(expected_latt, testCase.swobj.lattice);
+        end
+        
+        function test_zero_spacegroup(testCase)
+            testCase.swobj.genlattice('spgr','P 2');
+            testCase.swobj.genlattice('spgr', 0);
+            expected_latt = testCase.default_latt;
+            expected_latt.label = 'No sym';
+            expected_latt.sym = [eye(3) zeros(3,1)];% actually equiv. to P 1
             testCase.verify_val(expected_latt, testCase.swobj.lattice);
         end
         
