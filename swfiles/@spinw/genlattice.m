@@ -127,7 +127,7 @@ if ~isempty(param.spgr)
     param.sym = param.spgr;
 end
 
-% warn for parameters applied only if symmetry provided in same func call
+% input validation
 if isempty(param.sym)
    if norm(param.origin) > 1e-10
       warning('spinw:genlattice:WrongInput', ...
@@ -139,6 +139,25 @@ if isempty(param.sym)
         ['Perm provided without symmetry/spacegroup (both requried in ',...
          'same function call) - it will be ignored.']); 
    end
+else
+    % check valid perm
+    invalid_perm_msg = ['Invalid permutation supplied - it must be a ', ...
+        'string or numeric array that is a permutation of [1,2,3] or ',...
+        'abc respectively.'];
+    if ischar(param.perm)
+        param.perm = param.perm-'a'+1; % casts to int array e.g. [1,2,3]
+    elseif ~isnumeric(param.perm)
+        error('spinw:genlattice:WrongInput', invalid_perm_msg);
+    end
+    % check param.perm is a permutation of [1,2,3]
+    if ~any(ismember(perms([1,2,3]), param.perm, 'rows'))
+        error('spinw:genlattice:WrongInput', invalid_perm_msg);
+    end
+    % check valid origin]
+    if any(param.origin > 1) || any(param.origin < 0)
+        error('spinw:genlattice:WrongInput', ...
+            'Invalid origin supplied, it must be fractional coordinates.');
+    end
 end
 if iscell(param.sym)
     if numel(param.sym) ~= 2
@@ -151,6 +170,7 @@ if iscell(param.sym)
          'the label will be taken from the label argument']);
     end
 end
+
 if ~isempty(param.bv)
     % define basis vector of the new coordinate system
     a = [1 0 0];
@@ -243,11 +263,7 @@ if ~isempty(param.sym)
         param.sym = {param.sym};
     end
     [symOp, symInfo] = swsym.operator(param.sym{1});
-    
     % permute the symmetry operators if necessary
-    if ischar(param.perm)
-        param.perm = param.perm-'a'+1;
-    end
     obj.lattice.sym = symOp(param.perm,[param.perm 4],:);
     % assign the origin for space group operators
     obj.lattice.origin = param.origin;

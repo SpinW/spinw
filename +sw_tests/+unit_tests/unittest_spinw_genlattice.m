@@ -16,6 +16,9 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         basis_vecs =  {[1/2 1/2 0; 0 1/2 1/2; 1/2 0 1/2], ... % RH
             [1/2 1/2 0; 1/2 0 1/2; 0 1/2 1/2]}; % LH
         nelem = {1,3}; % length of cell input for spgr
+        invalid_perm = {[1,4,2],[0,1,2], [1,1,1], 'bad', 'zzz', 'aaa', ...
+            {1,2,3}}
+        invalid_origin = {[-0.5,0,0], [0,2,0]};
     end
     
     methods (TestMethodSetup)
@@ -155,6 +158,20 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         function test_spacegroup_cell_input_invalid_numel(testCase, nelem)
             testCase.verifyError(...
                 @() testCase.swobj.genlattice('spgr', cell(1, nelem)), ...
+                'spinw:genlattice:WrongInput');
+        end
+        
+        function test_invalid_permutation(testCase, invalid_origin)
+            testCase.verifyError(...
+                @() testCase.swobj.genlattice('spgr', 'P 2', ...
+                    'origin', invalid_origin), ...
+                'spinw:genlattice:WrongInput');
+        end
+        
+        function test_invalid_origin(testCase, invalid_perm)
+            testCase.verifyError(...
+                @() testCase.swobj.genlattice('spgr', 'P 2', ...
+                    'perm', invalid_perm), ...
                 'spinw:genlattice:WrongInput');
         end
         
