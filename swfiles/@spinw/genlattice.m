@@ -127,6 +127,30 @@ if ~isempty(param.spgr)
     param.sym = param.spgr;
 end
 
+% warn for parameters applied only if symmetry provided in same func call
+if isempty(param.sym)
+   if norm(param.origin) > 1e-10
+      warning('spinw:genlattice:WrongInput', ...
+        ['Origin provided without symmetry/spacegroup (both requried in ',...
+         'same function call) - it will be ignored.']); 
+   end
+   if ~strcmp(param.perm, 'abc')
+     warning('spinw:genlattice:WrongInput', ...
+        ['Perm provided without symmetry/spacegroup (both requried in ',...
+         'same function call) - it will be ignored.']); 
+   end
+end
+if iscell(param.sym)
+    if numel(param.sym) ~= 2
+        error('spinw:genlattice:WrongInput', ...
+            ['Cell input for spgr/sym must have two elements {spgr, label}', ...
+             ' e.g. {"-x,y,-z", "P 2"}'])
+    elseif ~isempty(param.label)
+     warning('spinw:genlattice:WrongInput', ...
+        ['Label provided in spgr/sym argument and in label argument - ', ...
+         'the label will be taken from the label argument']);
+    end
+end
 if ~isempty(param.bv)
     % define basis vector of the new coordinate system
     a = [1 0 0];

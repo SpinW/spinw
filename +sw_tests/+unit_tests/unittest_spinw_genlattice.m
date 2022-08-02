@@ -15,6 +15,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         sym_param_name = {'sym', 'spgr'};
         basis_vecs =  {[1/2 1/2 0; 0 1/2 1/2; 1/2 0 1/2], ... % RH
             [1/2 1/2 0; 1/2 0 1/2; 0 1/2 1/2]}; % LH
+        nelem = {1,3}; % length of cell input for spgr
     end
     
     methods (TestMethodSetup)
@@ -34,8 +35,6 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_angled_degree_conversion(testCase)
-            % check bonds are created for atoms separated by latt. param.
-            % when tol > delta
             testCase.swobj.genlattice('angled', [90, 90, 90]);
             testCase.verify_val(testCase.default_latt, ...
                 testCase.swobj.lattice)
@@ -66,6 +65,14 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_spacegroup_with_sym_operation_string(testCase)
+            % test perm supplied without symmetry throws warning
+            perm = 'bac';
+            testCase.verifyWarning(...
+                @() testCase.swobj.genlattice('perm', perm), ...
+                'spinw:genlattice:WrongInput');
+            testCase.verify_val(testCase.default_latt, ...
+                testCase.swobj.lattice) % object unchanged
+            % supply spacegroup and check a and b swapped
             spgr_str = 'P 2';
             testCase.swobj.genlattice('spgr', spgr_str, 'perm', 'bac');
             expected_latt = testCase.default_latt;
@@ -94,10 +101,12 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                 
         function test_origin_set_only_when_spgr_provided(testCase)
             origin = [0.5, 0, 0];
-            testCase.swobj.genlattice('origin', origin);
+            testCase.verifyWarning(...
+                @() testCase.swobj.genlattice('origin', origin), ...
+                'spinw:genlattice:WrongInput');
             testCase.verify_val(testCase.default_latt, ...
                 testCase.swobj.lattice); % origin unchanged without spgr
-            % dewfine spacegroup
+            % define spacegroup
             testCase.swobj.genlattice('spgr', testCase.P2_sym, ...
                 'origin', origin);
             expected_latt = testCase.default_latt;
@@ -119,7 +128,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             R = testCase.swobj.genlattice(args{:});
             testCase.verify_val(eye(3), R);
             % add basis vectors for primitive cell
-            R = testCase.swobj.genlattice(args{:}, 'bv', basis_vecs); 
+            R = testCase.swobj.genlattice(args{:}, 'bv', basis_vecs);
             sw_basis_vecs = R*basis_vecs;
             % check first spinwave basis vec is along x
             testCase.verify_val([sqrt(2)/2; 0; 0], sw_basis_vecs(:,1));
@@ -135,10 +144,18 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.verify_val(expected_latt, testCase.swobj.lattice)
             % provide label in cell and as separate argument
             new_label = 'new label';
-            testCase.swobj.genlattice(sym_param_name, {spgr_str, label},...
-                'label', new_label);
+            testCase.verifyWarning(...
+                @() testCase.swobj.genlattice(sym_param_name, ...
+                    {spgr_str, label},'label', new_label), ...
+                'spinw:genlattice:WrongInput');
             expected_latt.label = new_label;
             testCase.verify_val(expected_latt, testCase.swobj.lattice);
+        end
+        
+        function test_spacegroup_cell_input_invalid_numel(testCase, nelem)
+            testCase.verifyError(...
+                @() testCase.swobj.genlattice('spgr', cell(1, nelem)), ...
+                'spinw:genlattice:WrongInput');
         end
         
      end
