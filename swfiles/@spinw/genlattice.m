@@ -51,7 +51,7 @@ function R = genlattice(obj, varargin)
 % : `[a, b, c]` lattice parameters in units defined in [spinw.unit] (with \\ang
 %   being the default), dimensions are $[1\times 3]$.
 % 
-% `spgr`
+% `spgr` or 'sym'
 % : Defines the space group. Can have the following values:
 %
 %   * **space group label** string, name of the space group, can be any
@@ -68,6 +68,9 @@ function R = genlattice(obj, varargin)
 %   If the `spgr` option is 0, no symmetry will be used. The
 %   [spinw.gencoupling] function will determine the equivalent bonds based on
 %   bond length.
+%   
+%   Can also provide spacegroup and label (see below) in a cell e.g.
+%   {'-x,y,-z', 'P 2'}
 % 
 % `label`
 % : Optional label for the space group if the generators are given in the

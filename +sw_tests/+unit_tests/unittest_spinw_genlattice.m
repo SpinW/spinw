@@ -125,6 +125,22 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.verify_val([sqrt(2)/2; 0; 0], sw_basis_vecs(:,1));
         end
         
+        function test_spacegroup_with_cell_input(testCase, sym_param_name)
+            spgr_str = 'P 2';
+            label = 'label';
+            testCase.swobj.genlattice(sym_param_name, {spgr_str, label});
+            expected_latt = testCase.default_latt;
+            expected_latt.sym = testCase.P2_sym;
+            expected_latt.label = label;
+            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            % provide label in cell and as separate argument
+            new_label = 'new label';
+            testCase.swobj.genlattice(sym_param_name, {spgr_str, label},...
+                'label', new_label);
+            expected_latt.label = new_label;
+            testCase.verify_val(expected_latt, testCase.swobj.lattice);
+        end
+        
      end
 
 end
