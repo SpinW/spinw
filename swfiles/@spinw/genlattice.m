@@ -266,12 +266,12 @@ if ~isempty(param.sym)
     
     if isnumeric(param.sym{1}) && numel(param.sym{1})==1
         obj.lattice.label = symInfo.name;
-    else
+    elseif ischar(param.label)
         obj.lattice.label = strtrim(param.label);
     end
 
 else
-    if ~isempty(param.label)
+    if ~isempty(param.label) && ischar(param.label)
         obj.lattice.label = strtrim(param.label);
     end
 end   
