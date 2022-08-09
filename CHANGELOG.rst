@@ -37,3 +37,6 @@ Bug Fixes
   k in ``genmagstr``  with ``helical`` mode
 - Raise error if invalid shape ``S`` or ``k`` is provided to ``genmagstr``,
   previously they would be silently set to zero
+- Raise error if wrong number of spins ``S`` is provided to ``genmagstr`` in
+  ``helical`` mode. Previously the structure would be silently initialised
+  to a random structure.

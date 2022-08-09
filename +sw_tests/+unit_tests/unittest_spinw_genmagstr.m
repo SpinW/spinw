@@ -81,6 +81,18 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                                              'k', [1/2; 0; 0]), ...
                 'spinw:genmagstr:WrongInput')
         end
+        function test_tile_too_few_S_raises_error(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            testCase.verifyError(...
+                @() swobj.genmagstr('mode', 'tile', 'S', [0; 1; 1]), ...
+                'spinw:genmagstr:WrongInput')
+        end
+        function test_tile_too_many_S_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'tile', 'S', [0 0; 1 1; 1 1]), ...
+                'spinw:genmagstr:WrongInput')
+        end
         function test_helical_spin_size_incomm_with_nExt_warns(testCase)
             testCase.verifyWarning(...
                 @() testCase.swobj.genmagstr('mode', 'helical', ...
@@ -344,29 +356,6 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Check imaginary component of F is perpendicular to default n
             testCase.verifyEqual( ...
                 dot(imag(swobj.mag_str.F), repmat([0; 0; 1], 1, 16)), zeros(1, 16));
-            % Check other fields
-            expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.nExt = nExt;
-            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
-                                rmfield(mag_str1, 'F'));
-        end
-        function test_tile_no_init_creates_random(testCase)
-            % Test tile without initialised structure
-            % (i.e. size(S,2) < nMagAtom) creates a random structure
-            swobj1 = copy(testCase.swobj);
-            swobj1.addatom('r', [0.5 0.5 0], 'S', 1);
-            % Need to use clean obj or the stored structure is used
-            swobj2 = copy(swobj1);
-            nExt = [int32(2) int32(1) int32(1)];
-            swobj1.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0]);
-            mag_str1 = swobj1.mag_str;
-            swobj2.genmagstr('mode', 'tile', 'nExt', nExt, 'S', [1; 0; 0]);
-            mag_str2 = swobj2.mag_str;
-            % Check structure is random each time - F is different
-            testCase.verifyNotEqual(mag_str1.F, mag_str2.F);
-            % Check F size and magnitude
-            testCase.verifySize(mag_str1.F, [3 4]);
-            testCase.verify_val(vecnorm(real(swobj1.mag_str.F), 2), ones(1, 4));
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;

@@ -52,7 +52,7 @@ function genmagstr(obj, varargin)
 % : Mode that determines how the magnetic structure is generated:
 %   * `'random'` (reads `k`, `n`)
 %           generates random zero-k magnetic structure.
-%   * `'direct'` (reads `S`, `n`, `k`)
+%   * `'direct'` (reads `S`, `k`)
 %           direct input of the magnetic structure using the 
 %           parameters of the single-k magnetic structure.
 %   * `'tile'` (reads `S`, `n`, `k`) 
@@ -313,11 +313,6 @@ if size(param.n,1) ~= nK
         ' to be equal to the number of k-vectors!'])
 end
 
-% if the magnetic structure is not initialized start with a random real one
-if strcmp(param.mode,'tile') && (nMagAtom > size(param.S,2))
-    param.mode = 'random';
-end
-
 % convert input into symbolic variables
 if obj.symb
     k       = sym(k);
@@ -337,9 +332,11 @@ switch param.mode
         %  cells defined in obj
         % -the number of spins stored in obj is not equal to the number
         %  of spins in the final structure
-        if any(double(obj.mag_str.nExt) - double(param.nExt)) || (size(param.S,2) ~= nMagExt)
-            S = param.S(:,1:nMagAtom,:);
-            S = repmat(S,[1 prod(nExt) 1]);
+        if nMagAtom ~= size(param.S,2) && nMagExt ~= size(param.S,2)
+            error('spinw:genmagstr:WrongInput', ['Incorrect input size for S, ' ...
+                  'S must be provided for each magnetic atom']);
+        elseif any(double(obj.mag_str.nExt) - double(param.nExt)) || (size(param.S,2) ~= nMagExt)
+            S = repmat(param.S,[1 prod(nExt) 1]);
         else
             S = param.S;
         end
