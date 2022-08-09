@@ -50,8 +50,8 @@ function genmagstr(obj, varargin)
 % 
 % `'mode'`
 % : Mode that determines how the magnetic structure is generated:
-%   * `'random'` (reads -)
-%      generates random zero-k magnetic structure.
+%   * `'random'` (reads `k`, `n`)
+%           generates random zero-k magnetic structure.
 %   * `'direct'` (reads `S`, `n`, `k`)
 %           direct input of the magnetic structure using the 
 %           parameters of the single-k magnetic structure.
@@ -219,6 +219,20 @@ inpForm.size   = [inpForm.size   {[3 -7 -6] [1 1] [1 1]  [1 1]     [1 -5]}];
 inpForm.soft   = [inpForm.soft   {true      true  false  false     false }];
 
 param = sw_readparam(inpForm, varargin{:});
+
+% Error if S or k is provided but is empty. This means it has failed the
+% input validation, but hasn't caused an error because soft=True
+err_str = [];
+if any(strcmp(varargin, 'S')) && isempty(param.S)
+    err_str = ["S"];
+end
+if any(strcmp(varargin, 'k')) && isempty(param.k)
+    err_str = [err_str "k"];
+end
+if length(err_str) > 0
+    error('spinw:genmagstr:WrongInput', 'Incorrect input size for ' + ...
+                                        join(err_str, ', '));
+end
 
 if isempty(param.k)
     noK = true;

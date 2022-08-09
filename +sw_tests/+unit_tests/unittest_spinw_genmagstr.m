@@ -64,6 +64,23 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                     'mode', 'helical', 'S', [0 1; 1 0; 0 0]), ...
                 'spinw:genmagstr:WrongNumberSpin')
         end
+        function test_invalid_S_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'direct', 'S', [1 0 0]), ...
+                'spinw:genmagstr:WrongInput')
+        end
+        function test_invalid_k_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'direct', 'k', [1/2; 0; 0]), ...
+                'spinw:genmagstr:WrongInput')
+        end
+        function test_invalid_S_and_k_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'helical', ...
+                                             'S', [1 0 0], ...
+                                             'k', [1/2; 0; 0]), ...
+                'spinw:genmagstr:WrongInput')
+        end
         function test_helical_spin_size_incomm_with_nExt_warns(testCase)
             testCase.verifyWarning(...
                 @() testCase.swobj.genmagstr('mode', 'helical', ...
@@ -266,22 +283,42 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Check structure is random each time - F is different
             testCase.verifyNotEqual(mag_str1.F, mag_str2.F);
             testCase.verifyEqual(size(mag_str1.F), size(mag_str2.F));
-            % Check S has correct size and magnitude
-            testCase.verify_val(norm(swobj.magstr.S, 2), 1);
+            % Check F size and magnitude
+            testCase.verifySize(mag_str1.F, [3 1]);
+            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
+            % Check imaginary component of F is perpendicular to default n
+            testCase.verify_val(dot(imag(swobj.mag_str.F), [0 0 1]), 0);
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
                                 rmfield(mag_str1, 'F'));
         end
-        function test_random_structure_k(testCase)
+        function test_random_structure_no_k_with_n(testCase)
+            swobj = copy(testCase.swobj);
+            n = [1 1 1];
+            swobj.genmagstr('mode','random', 'n', n);
+            mag_str1 = swobj.mag_str;
+            % Check F size and magnitude
+            testCase.verifySize(mag_str1.F, [3 1]);
+            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
+            % Check imaginary component of F is perpendicular to n
+            testCase.verify_val(dot(imag(swobj.mag_str.F), n), 0);
+            % Check other fields
+            expected_mag_str = testCase.default_mag_str;
+            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
+                                rmfield(mag_str1, 'F'));
+        end
+        function test_random_structure_k_and_n(testCase)
             swobj = copy(testCase.swobj);
             k = [0; 0; 1/4];
-            swobj.genmagstr('mode','random', 'k', k');
+            n = [1 1 0];
+            swobj.genmagstr('mode','random', 'k', k', 'n', n);
             mag_str1 = swobj.mag_str;
-            % Check F size
+            % Check F size and magnitude
             testCase.verifySize(mag_str1.F, [3 1]);
-            % Check S has correct size and magnitude
-            testCase.verify_val(vecnorm(swobj.magstr.S, 2), 1);
+            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
+            % Check imaginary component of F is perpendicular to n
+            testCase.verify_val(dot(imag(swobj.mag_str.F), n), 0);
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k;
@@ -298,12 +335,15 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             mag_str2 = swobj.mag_str;
             % Check structure is random each time - F is different
             testCase.verifyNotEqual(mag_str1.F, mag_str2.F);
+            % Check F size and magnitude
             testCase.verifySize(mag_str1.F, [3 16]);
-            % Check S has correct magnitudes
-            testCase.verify_val(vecnorm(swobj.magstr.S(:, 1:2:end), 2), ...
-                                ones(1, 8));
-            testCase.verify_val(vecnorm(swobj.magstr.S(:, 2:2:end), 2), ...
-                                2*ones(1, 8));
+            testCase.verify_val( ...
+                vecnorm(real(swobj.mag_str.F(:, 1:2:end)), 2), ones(1, 8));
+            testCase.verify_val( ...
+                vecnorm(real(swobj.mag_str.F(:, 2:2:end)), 2), 2*ones(1, 8));
+            % Check imaginary component of F is perpendicular to default n
+            testCase.verifyEqual( ...
+                dot(imag(swobj.mag_str.F), repmat([0; 0; 1], 1, 16)), zeros(1, 16));
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
@@ -324,9 +364,9 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             mag_str2 = swobj2.mag_str;
             % Check structure is random each time - F is different
             testCase.verifyNotEqual(mag_str1.F, mag_str2.F);
+            % Check F size and magnitude
             testCase.verifySize(mag_str1.F, [3 4]);
-            % Check S has correct magnitudes
-            testCase.verify_val(vecnorm(swobj1.magstr.S, 2), ones(1, 4));
+            testCase.verify_val(vecnorm(real(swobj1.mag_str.F), 2), ones(1, 4));
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;

@@ -35,3 +35,5 @@ Bug Fixes
   for a commensurate structure
 - Fix ``MATLAB:nonLogicalConditional`` error raised when using multiple
   k in ``genmagstr``  with ``helical`` mode
+- Raise error if invalid shape ``S`` or ``k`` is provided to ``genmagstr``,
+  previously they would be silently set to zero
