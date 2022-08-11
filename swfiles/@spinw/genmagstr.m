@@ -239,6 +239,11 @@ if length(err_str) > 0
                                         join(err_str, ', '));
 end
 
+if strcmpi(param.mode, 'rotate') && isempty(obj.mag_str.F)
+    error('spinw:genmagstr:WrongInput', ['rotate mode requires a magnetic ' ...
+                                         'structure to be defined with another mode first'])
+end
+
 if isempty(param.k)
     noK = true;
     param.k = k0;
