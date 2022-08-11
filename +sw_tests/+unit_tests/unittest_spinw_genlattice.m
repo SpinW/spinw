@@ -231,6 +231,29 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                 testCase.swobj.lattice); % label not overwritten
         end
         
+        function test_lookup_new_lines_in_symmetry_dat_file(testCase)
+            % copy file as backup (would need to do this anyway)
+            spinw_dir = sw_rootdir();
+            filesep = spinw_dir(end);
+            dat_dir = [spinw_dir 'dat_files' filesep];
+            dat_path = [dat_dir 'symmetry.dat'];
+            backup_path = [dat_dir 'symmetry_backup.dat'];
+            copyfile(dat_path, backup_path);
+            % add line to file (same P2 sym op but new numebr and label)
+            extra_line = ' 231  P P        : -x,y,-z\n';
+            fid = fopen(dat_path, 'a');
+            fprintf(fid, extra_line);
+            fclose(fid);
+            % run test
+            testCase.swobj.genlattice('sym', 231);
+            expected_latt = testCase.default_latt;
+            expected_latt.sym = testCase.P2_sym;
+            expected_latt.label = 'P P';
+            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            % restore backup
+            movefile(backup_path, dat_path);
+        end
+        
      end
 
 end
