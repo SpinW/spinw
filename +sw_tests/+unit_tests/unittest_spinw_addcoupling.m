@@ -82,7 +82,7 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
         end
         
         function test_add_ccoupling_lower_symm_with_subIdx(testCase)
-            testCase.swobj.genlattice('spgr', 'I 4')
+            testCase.swobj.genlattice('sym', 'I 4')
             testCase.swobj.gencoupling('maxDistance',5) % generate bond list
             testCase.verifyWarning(...
                 @() testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'subIdx', 1), ...

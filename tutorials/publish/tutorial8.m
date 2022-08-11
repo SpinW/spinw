@@ -3,7 +3,7 @@
 % bonds are symmetry equivalent and add a magnetic Cr+ with S=1 spin.
 
 AF33kagome = spinw;
-AF33kagome.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'spgr','P -3')
+AF33kagome.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'sym','P -3')
 AF33kagome.addatom('r',[1/2 0 0],'S', 1,'label','MCu1','color','r')
 plot(AF33kagome,'range',[2 2 1/2],'cellMode','inside')
 

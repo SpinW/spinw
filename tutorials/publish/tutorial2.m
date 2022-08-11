@@ -3,7 +3,7 @@
 % Cu+ atoms with S=1 spin.
 
 AFMchain = spinw; 
-AFMchain.genlattice('lat_const',[3 8 8],'angled',[90 90 90],'spgr',0);
+AFMchain.genlattice('lat_const',[3 8 8],'angled',[90 90 90],'sym',0);
 AFMchain.addatom('r',[0 0 0],'S',1,'label','MCu1','color','blue');
 disp('Magnetic lattice:')
 AFMchain.table('matom')

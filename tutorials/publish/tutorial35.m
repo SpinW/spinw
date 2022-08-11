@@ -4,7 +4,7 @@
 
 luvo = spinw;
 luvo.genlattice('lat_const',[5.2821 5.6144 7.5283],...
-    'spgr','x+1/2,-y+1/2,-z; -x,-y,z+1/2; -x,-y,-z','label','P n m a')
+    'sym','x+1/2,-y+1/2,-z; -x,-y,z+1/2; -x,-y,-z','label','P n m a')
 
 % Lu atom
 luvo.addatom('r',[0.003 0.031 1/4],'label','Lu1 Lu3+','color',[0 171 36])

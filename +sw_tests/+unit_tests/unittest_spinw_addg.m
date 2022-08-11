@@ -48,7 +48,7 @@ classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
         end
         
         function test_addg_all_symm_equiv_atoms(testCase)
-            testCase.swobj.genlattice('spgr','I 4'); % body-centred
+            testCase.swobj.genlattice('sym','I 4'); % body-centred
             testCase.swobj.addg('g1')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.g = int32([1, 1]);
@@ -57,7 +57,7 @@ classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
         end
         
         function test_addg_with_atomIdx_error_when_high_symm(testCase)
-            testCase.swobj.genlattice('spgr','I 4'); % body-centred
+            testCase.swobj.genlattice('sym','I 4'); % body-centred
             testCase.verifyError(...
                 @() testCase.swobj.addg('g1', 'atom_1', 1), ...
                 'spinw:addg:SymmetryProblem')

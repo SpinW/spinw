@@ -16,7 +16,7 @@ classdef systemtest_spinwave_yb2ti2o7 < sw_tests.system_tests.systemtest_spinwav
             symStr = '-z, y+3/4, x+3/4; z+3/4, -y, x+3/4; z+3/4, y+3/4, -x; y+3/4, x+3/4, -z; x+3/4, -z, y+3/4; -z, x+3/4, y+3/4';
             yto = spinw;
             a = 10.0307;
-            yto.genlattice('lat_const',[a a a],'angled',[90 90 90],'spgr',symStr,'label','F d -3 m Z')
+            yto.genlattice('lat_const',[a a a],'angled',[90 90 90],'sym',symStr,'label','F d -3 m Z')
             yto.addatom('label','Yb3+','r',[1/2 1/2 1/2],'S',1/2)
             % We generate the list of bonds.
             yto.gencoupling

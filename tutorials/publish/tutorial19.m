@@ -14,7 +14,7 @@
 
 
 FeCuChain = spinw;
-FeCuChain.genlattice('lat_const',[3 8 4],'spgr','P 1')
+FeCuChain.genlattice('lat_const',[3 8 4],'sym','P 1')
 FeCuChain.addatom('label','MCu2','r',[0 0 0])
 FeCuChain.addatom('label','MFe2','r',[0 1/2 0])
 

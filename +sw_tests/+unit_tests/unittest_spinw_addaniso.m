@@ -43,7 +43,7 @@ classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
         end
         
         function test_addaniso_all_symm_equiv_atoms(testCase)
-            testCase.swobj.genlattice('spgr','I 4'); % body-centred
+            testCase.swobj.genlattice('sym','I 4'); % body-centred
             testCase.swobj.addaniso('A1')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.aniso = int32([1, 1]);
@@ -58,7 +58,7 @@ classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
         end
         
         function test_addaniso_with_atomIdx_error_when_high_symm(testCase)
-            testCase.swobj.genlattice('spgr','I 4'); % body-centred
+            testCase.swobj.genlattice('sym','I 4'); % body-centred
             testCase.verifyError(...
                 @() testCase.swobj.addaniso('A1', 'atom_1', 1), ...
                 'spinw:addaniso:SymmetryProblem')

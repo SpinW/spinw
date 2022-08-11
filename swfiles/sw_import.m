@@ -98,7 +98,7 @@ switch fExt
         end
         
         % create the SpinW model
-        obj0.genlattice('lat_const',dat.cell(1:3),'angled',dat.cell(4:6),'spgr',dat.spgr);
+        obj0.genlattice('lat_const',dat.cell(1:3),'angled',dat.cell(4:6),'sym',dat.spgr);
         if ~isempty(dat.atom)
             obj0.addatom('r',[dat.atom(:).r],'label',{dat.atom(:).label});
         elseif ~isempty(dat.matom)

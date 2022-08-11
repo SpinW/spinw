@@ -7,7 +7,7 @@
 % are Cu+ with S=1 spin.
 
 FMkagome = spinw; 
-FMkagome.genlattice('lat_const',[6 6 5],'angled',[90 90 120],'spgr','P -3')
+FMkagome.genlattice('lat_const',[6 6 5],'angled',[90 90 120],'sym','P -3')
 FMkagome.addatom('r', [1/2 0 0], 'S', 1, 'label','MCu1','color','r')
 disp('Magnetic atom positions:') 
 FMkagome.table('matom')
