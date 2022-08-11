@@ -45,3 +45,5 @@ Bug Fixes
   ``n`` option, and behave exactly like ``fourier`` mode.
 - Raise error if ``rotate`` mode is used without first initialising
   a magnetic structure
+- Emit deprecation warning if the undocumented ``extend`` mode is used
+  in ``genmagstr``

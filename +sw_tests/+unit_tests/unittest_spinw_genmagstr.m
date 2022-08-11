@@ -434,15 +434,17 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
-        function test_extend_input_S_extend_cell(testCase)
+        function test_extend_mode_input_S_extend_cell_and_warns(testCase)
             % Test undocumented 'extend' mode does same as tile
             % Test that tile and input S less than nExt will correctly tile
             % input S
             swobj = copy(testCase.swobj);
             swobj.addatom('r', [0.5 0.5 0], 'S', 1);
             nExt = [int32(3) int32(1) int32(1)];
-            swobj.genmagstr('mode', 'extend', 'nExt', nExt, ...
-                            'S', [1 0; 0 1; 0 0]);
+            testCase.verifyWarning(...
+                @() swobj.genmagstr('mode', 'extend', 'nExt', nExt, ...
+                                    'S', [1 0; 0 1; 0 0]), ...
+                'spinw:genmagstr:DeprecationWarning');
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
             expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];

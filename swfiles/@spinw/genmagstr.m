@@ -256,6 +256,8 @@ if prod(double(param.nExt)) == 0
 end
 
 if strcmp(param.mode,'extend')
+    warning('spinw:genmagstr:DeprecationWarning',...
+            'extend mode is deprecated, please use tile mode instead');
     param.mode = 'tile';
 end
 
