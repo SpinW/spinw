@@ -297,24 +297,9 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             testCase.verifyEqual(size(mag_str1.F), size(mag_str2.F));
             % Check F size and magnitude
             testCase.verifySize(mag_str1.F, [3 1]);
-            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
+            testCase.verify_val(vecnorm(real(swobj.mag_str.F), 2), 1);
             % Check imaginary component of F is perpendicular to default n
             testCase.verify_val(dot(imag(swobj.mag_str.F), [0 0 1]), 0);
-            % Check other fields
-            expected_mag_str = testCase.default_mag_str;
-            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
-                                rmfield(mag_str1, 'F'));
-        end
-        function test_random_structure_no_k_with_n(testCase)
-            swobj = copy(testCase.swobj);
-            n = [1 1 1];
-            swobj.genmagstr('mode','random', 'n', n);
-            mag_str1 = swobj.mag_str;
-            % Check F size and magnitude
-            testCase.verifySize(mag_str1.F, [3 1]);
-            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
-            % Check imaginary component of F is perpendicular to n
-            testCase.verify_val(dot(imag(swobj.mag_str.F), n), 0);
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
@@ -328,7 +313,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             mag_str1 = swobj.mag_str;
             % Check F size and magnitude
             testCase.verifySize(mag_str1.F, [3 1]);
-            testCase.verifyEqual(vecnorm(real(swobj.mag_str.F), 2), 1);
+            testCase.verify_val(vecnorm(real(swobj.mag_str.F), 2), 1);
             % Check imaginary component of F is perpendicular to n
             testCase.verify_val(dot(imag(swobj.mag_str.F), n), 0);
             % Check other fields
@@ -411,6 +396,19 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             S = cat(3, [1 0; 0 1; 0 0], [0 1; 0 0; 1 0]);
             swobj.genmagstr('mode', 'tile', ...
                             'S', S);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+        end
+        function test_tile_multik_provided_k_set_to_zero(testCase)
+            % Test that S is summed over third dimension with tile, and if
+            % k is provided, it is set to zero anyway
+            swobj = copy(testCase.swobj);
+            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
+            S = cat(3, [1 0; 0 1; 0 0], [0 1; 0 0; 1 0]);
+            k = 0.5*ones(size(S, 3), 3);
+            swobj.genmagstr('mode', 'tile', ...
+                              'S', S, 'k', k);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
