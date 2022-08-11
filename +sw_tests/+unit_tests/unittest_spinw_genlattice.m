@@ -47,7 +47,10 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         
         function test_angle_and_angled_provided(testCase)
             value = [1,1,1];
-            testCase.swobj.genlattice('angled',[1,1,1], 'angle', [1,1,1]);
+            testCase.verifyWarning(...
+                @() testCase.swobj.genlattice('angled', value, ...
+                    'angle', value), ...
+                'spinw:genlattice:WrongInput');
             expected_latt = testCase.default_latt;
             expected_latt.angle = deg2rad(value);  % 'angled' used
             testCase.verify_val(expected_latt, testCase.swobj.lattice)
