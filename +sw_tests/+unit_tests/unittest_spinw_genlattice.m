@@ -239,7 +239,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             dat_path = [dat_dir 'symmetry.dat'];
             backup_path = [dat_dir 'symmetry_backup.dat'];
             copyfile(dat_path, backup_path);
-            % add line to file (same P2 sym op but new numebr and label)
+            % add line to file (same P2 sym op but new number and label)
             extra_line = ' 231  P P        : -x,y,-z\n';
             fid = fopen(dat_path, 'a');
             fprintf(fid, extra_line);
@@ -250,8 +250,9 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P P';
             testCase.verify_val(expected_latt, testCase.swobj.lattice)
-            % restore backup
-            movefile(backup_path, dat_path);
+            % restore backup - note movefile errored on windows server
+            copyfile(backup_path, dat_path);
+            delete(backup_path);
         end
         
      end
