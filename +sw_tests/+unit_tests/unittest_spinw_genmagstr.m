@@ -110,6 +110,13 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 @() swobj.genmagstr('mode', 'rotate'), ...
                 'spinw:genmagstr:InvalidRotation')
         end
+        function test_rotate_complex_phi_raises_error(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.genmagstr('mode', 'direct', 'S', [0; 0; 1]);
+            testCase.verifyError(...
+                @() swobj.genmagstr('mode', 'rotate', 'phi', i), ...
+                'spinw:genmagstr:ComplexPhi')
+        end
         function test_helical_spin_size_incomm_with_nExt_warns(testCase)
             testCase.verifyWarning(...
                 @() testCase.swobj.genmagstr('mode', 'helical', ...
@@ -475,18 +482,6 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj.genmagstr('mode', 'rotate', 'phid', 45);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
-            expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
-        end
-        function test_rotate_complex_phi(testCase)
-            swobj = copy(testCase.swobj);
-            swobj.addatom('r', [0.5 0.5 0], 'S', 1);
-            k = [1/2 0 0];
-            % Need to initialise structure before rotating it
-            swobj.genmagstr('mode', 'direct', 'S', [0 1; 1 0; 0 0], 'k', k);
-            swobj.genmagstr('mode', 'rotate', 'phi', i);
-            expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.F = [1 0; 0 -1; 0 0];
             expected_mag_str.k = k';
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end

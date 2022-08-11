@@ -441,10 +441,10 @@ switch param.mode
         S   = param.S;
         
         if ~isreal(param.phi)
-            % rotate the first spin along [100]
-            S1 = S(:,1)-sum(n*S(:,1))*n';
-            S1 = S1/norm(S1);
-            param.phi = -atan2(cross(n,[1 0 0])*S1,[1 0 0]*S1);
+            error('spinw:genmagstr:ComplexPhi', ...
+                  ['Phi should be real! If you really intended phi to have ' ...
+                   'a complex component, this undocumented feature has been ' ...
+                   'removed. Please contact the spinw developers.'])
         end
 
         if param.phi == 0

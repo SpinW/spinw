@@ -50,3 +50,5 @@ Bug Fixes
 - Raise error if the first spin is parallel to ``n`` and no rotation
   angle is provided in ``rotate`` mode in ``genmagstr``. Previously
   this would silently result in ``NaN``
+- Raise error if ``phi`` or ``phid`` is not real in ``rotate`` mode in
+  ``genmagstr``. This was an undocumented feature which has been removed.
