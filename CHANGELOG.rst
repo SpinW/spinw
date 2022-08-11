@@ -40,3 +40,6 @@ Bug Fixes
 - Raise error if wrong number of spins ``S`` is provided to ``genmagstr`` in
   ``helical`` mode. Previously the structure would be silently initialised
   to a random structure.
+- Raise error if a complex spin ``S`` is provided to ``genmagstr`` in
+  ``helical`` mode. Previously this meant it would silently ignore the
+  ``n`` option, and behave exactly like ``fourier`` mode.

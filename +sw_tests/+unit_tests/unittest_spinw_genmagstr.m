@@ -93,6 +93,11 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.genmagstr('mode', 'tile', 'S', [0 0; 1 1; 1 1]), ...
                 'spinw:genmagstr:WrongInput')
         end
+        function test_helical_with_complex_S_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genmagstr('mode', 'helical', 'S', [1.5; 0; 1.5i]), ...
+                'spinw:genmagstr:WrongInput')
+        end
         function test_helical_spin_size_incomm_with_nExt_warns(testCase)
             testCase.verifyWarning(...
                 @() testCase.swobj.genmagstr('mode', 'helical', ...
@@ -163,11 +168,22 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
         end
         function test_helical_tri(testCase)
             swobj_tri = copy(testCase.swobj_tri);
+            k = [1/3 1/3 0];
             swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
-                                'k', [1/3 1/3 0]);
+                                'k', k);
             expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.k = [1/3; 1/3; 0];
+            expected_mag_str.k = k';
             expected_mag_str.F = [1.5; 1.5i; 0];
+            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+        end
+        function test_helical_tri_n(testCase)
+            swobj_tri = copy(testCase.swobj_tri);
+            k = [1/3 1/3 0];
+            swobj_tri.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
+                                'k', k, 'n', [0 1 0]);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = k';
+            expected_mag_str.F = [1.5; 0; -1.5i];
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
         end
         function test_helical_tri_lu_unit(testCase)

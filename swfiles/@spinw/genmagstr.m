@@ -256,6 +256,11 @@ end
 
 % input type for S, check whether it is complex type
 cmplxS = ~isreal(param.S);
+if strcmpi(param.mode, 'helical') && cmplxS
+    error('spinw:genmagstr:WrongInput', ...
+          ['S must be real for helical mode. To specify complex basis ' ...
+           'vectors directly use fourier mode.'])
+end
 
 switch lower(param.unit)
     case 'lu'
