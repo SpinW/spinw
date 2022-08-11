@@ -21,6 +21,8 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             {1,2,3}}
         invalid_origin = {[-0.5,0,0], [0,2,0]};
         invalid_label = {1, {'label'}}
+        % test user provided label always used for all types of sym input
+        spgr_type = {'P 2', 3, '-x,y,-z', [eye(3), zeros(3,1)]};
     end
     
     methods (TestMethodSetup)
@@ -62,6 +64,13 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P 2';
             testCase.verify_val(expected_latt, testCase.swobj.lattice)
+        end
+        
+        function test_label_always_used(testCase, sym_param_name, spgr_type)
+            label = 'label';
+            testCase.swobj.genlattice(sym_param_name, spgr_type, ...
+                'label', label);
+            testCase.verify_val(label, testCase.swobj.lattice.label)
         end
         
         function test_spacegroup_with_sym_operation_matrix(testCase, sym_param_name)

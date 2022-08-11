@@ -268,11 +268,14 @@ if ~isempty(param.sym)
     obj.lattice.sym = symOp(param.perm,[param.perm 4],:);
     % assign the origin for space group operators
     obj.lattice.origin = param.origin;
-    
-    if isnumeric(param.sym{1}) && numel(param.sym{1})==1
-        obj.lattice.label = symInfo.name;
-    elseif ischar(param.label)
+    % set spacegroup label if known from param.sym if the user has not
+    % provided a label in the function call
+    if  ~isempty(param.label) && ischar(param.label)
         obj.lattice.label = strtrim(param.label);
+    elseif isnumeric(param.sym{1}) && numel(param.sym{1})==1
+        obj.lattice.label = symInfo.name;
+    else
+        obj.lattice.label = ''; % can't infer label from matrix of sym ops
     end
 
 else
