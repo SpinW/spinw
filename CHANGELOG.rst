@@ -33,3 +33,8 @@ Bug Fixes
   length < ``maxSym``
 - A warning will now be emitted if ``saveSabp`` is requested in ``spinwave``
   for a commensurate structure
+- Fix bug in definition of rotation matrix transforming to spinw coordinate system when left-handed set of
+  basis vectors supplied to ``genlattice``, see issue `#57 <https://github.com/SpinW/spinw/issues/57>`_
+- Validation added for ``perm` and ``origin`` arguments supplied to ``genlattice`` (and warn users that these will be
+  ignored if no symmetry/spacegroup is supplied in the same function call).
+- Deprecated ``spgr`` argument to ``genlattice`` (users should use ``sym`` instead).
