@@ -122,12 +122,18 @@ inpForm.soft   = [inpForm.soft   {false    true  true       false              t
 
 param = sw_readparam(inpForm, varargin{:});
 
-% new option, but keep the old one as well
-if ~isempty(param.spgr)
-    param.sym = param.spgr;
-end
-
 % input validation
+if ~isempty(param.spgr)
+    warning('spinw:genlattice:DeprecationWarning',...
+            ['spgr parameter name is being deprecated, pelase use sym',...
+            ' instead']);
+    if ~isempty(param.sym)
+        error('spinw:genlattice:WrongInput', ...
+            'Both sym and spgr provided - note sym will be used.');
+    else
+        param.sym = param.spgr;
+    end
+end
 if any(strcmp('angled', varargin(1:2:end))) && ...
         any(strcmp('angle', varargin(1:2:end)))
 	warning('spinw:genlattice:WrongInput', ...

@@ -58,6 +58,18 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.verify_val(expected_latt, testCase.swobj.lattice)
         end
         
+        function test_spgr_throws_deprecation_warning(testCase)
+            testCase.verifyWarning(...
+                @() testCase.swobj.genlattice('spgr', 'P 2'), ...
+                'spinw:genlattice:DeprecationWarning');
+        end
+        
+        function test_spgr_and_sym_throws_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.genlattice('spgr', 3, 'sym', 3), ...
+                'spinw:genlattice:WrongInput');
+        end
+        
         function test_spacegroup_property(testCase, sym_param_name, spgr)
             testCase.swobj.genlattice(sym_param_name, spgr);
             expected_latt = testCase.default_latt;
@@ -91,7 +103,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                 testCase.swobj.lattice) % object unchanged
             % supply spacegroup and check a and b swapped
             spgr_str = 'P 2';
-            testCase.swobj.genlattice('spgr', spgr_str, 'perm', 'bac');
+            testCase.swobj.genlattice('sym', spgr_str, 'perm', 'bac');
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.sym(:, :, end) = [1 0 0 0; 0 -1 0 0; 0 0 -1 0];
@@ -101,7 +113,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         
         function test_spacegroup_with_axes_permutation(testCase)
             sym_str = '-x,y,-z';
-            testCase.swobj.genlattice('spgr', sym_str);
+            testCase.swobj.genlattice('sym', sym_str);
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = sym_str;
@@ -124,7 +136,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.default_latt, ...
                 testCase.swobj.lattice); % origin unchanged without spgr
             % define spacegroup
-            testCase.swobj.genlattice('spgr', testCase.P2_sym, ...
+            testCase.swobj.genlattice('sym', testCase.P2_sym, ...
                 'origin', origin);
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
@@ -140,7 +152,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_basis_vector_and_rotation_matrix(testCase, basis_vecs)
-            args = {'lat_const',[4.5 4.5 4.5], 'spgr','F 2 3'};
+            args = {'lat_const',[4.5 4.5 4.5], 'sym','F 2 3'};
             % if no basis vectors are supplied then rot matrix always I
             R = testCase.swobj.genlattice(args{:});
             testCase.verify_val(eye(3), R);
@@ -171,33 +183,33 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         
         function test_spacegroup_cell_input_invalid_numel(testCase, nelem)
             testCase.verifyError(...
-                @() testCase.swobj.genlattice('spgr', cell(1, nelem)), ...
+                @() testCase.swobj.genlattice('sym', cell(1, nelem)), ...
                 'spinw:genlattice:WrongInput');
         end
         
         function test_invalid_permutation(testCase, invalid_origin)
             testCase.verifyError(...
-                @() testCase.swobj.genlattice('spgr', 'P 2', ...
+                @() testCase.swobj.genlattice('sym', 'P 2', ...
                     'origin', invalid_origin), ...
                 'spinw:genlattice:WrongInput');
         end
         
         function test_invalid_origin(testCase, invalid_perm)
             testCase.verifyError(...
-                @() testCase.swobj.genlattice('spgr', 'P 2', ...
+                @() testCase.swobj.genlattice('sym', 'P 2', ...
                     'perm', invalid_perm), ...
                 'spinw:genlattice:WrongInput');
         end
         
         function test_invalid_spgr(testCase, invalid_spgr)
             testCase.verifyError(...
-                @() testCase.swobj.genlattice('spgr', invalid_spgr), ...
+                @() testCase.swobj.genlattice('sym', invalid_spgr), ...
                 'generator:WrongInput');
         end
         
         function test_non_default_spacegroup_overwritten(testCase)
-            testCase.swobj.genlattice('spgr','F 2 3');
-            testCase.swobj.genlattice('spgr', 'P 2');
+            testCase.swobj.genlattice('sym','F 2 3');
+            testCase.swobj.genlattice('sym', 'P 2');
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P 2';
@@ -205,8 +217,8 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_zero_spacegroup(testCase)
-            testCase.swobj.genlattice('spgr','P 2');
-            testCase.swobj.genlattice('spgr', 0);
+            testCase.swobj.genlattice('sym','P 2');
+            testCase.swobj.genlattice('sym', 0);
             expected_latt = testCase.default_latt;
             expected_latt.label = 'No sym';
             expected_latt.sym = [eye(3) zeros(3,1)];% actually equiv. to P 1
