@@ -47,3 +47,6 @@ Bug Fixes
   a magnetic structure
 - Emit deprecation warning if the undocumented ``extend`` mode is used
   in ``genmagstr``
+- Raise error if the first spin is parallel to ``n`` and no rotation
+  angle is provided in ``rotate`` mode in ``genmagstr``. Previously
+  this would silently result in ``NaN``

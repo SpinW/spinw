@@ -459,6 +459,11 @@ switch param.mode
             
             % Axis of rotation defined by the spin direction
             nRot  = cross(n,S1);
+            if all(nRot == 0)
+                error('spinw:genmagstr:InvalidRotation', ...
+                      ['Cannot automatically determine rotation as the ' ...
+                       'first spin is parallel to n']);
+            end
             % Angle of rotation.
             phi = -atan2(norm(cross(S1,n)),dot(S1,n));
         else
