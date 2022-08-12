@@ -51,12 +51,13 @@ function genmagstr(obj, varargin)
 % `'mode'`
 % : Mode that determines how the magnetic structure is generated:
 %   * `'random'` (optionally reads `k`, `n`, `nExt`)
-%           generates a random structure in the structural cell if no
-%           other arguments are specified here or previously in this spinw
+%           generates a random structure in the structural cell if no other
+%           arguments are specified here or previously in this spinw
 %           object. If `nExt` is specified all spins in the supercell are
-%           randomised. If `k` (and optionally `n`) is specified the
-%           structure is then treated as incommensurate (similarly to the
-%           `'helical'` mode but with randomized spins in the first cell).
+%           randomised. If `k` is specified a random helical structure with
+%           moments perpendicular to `n` (default value: `[0 0 1]`) with
+%           the specified `k` propagation vector is generated. (`n` is not
+%           otherwise used).
 %   * `'direct'` (reads `S`, optionally reads `k`, `nExt`)
 %           direct input of the magnetic structure using the 
 %           parameters of the single-k magnetic structure.
