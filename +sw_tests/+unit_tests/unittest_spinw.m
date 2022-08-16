@@ -25,21 +25,21 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             % object is created
             expected_spinw = testCase.load_spinw('spinw_default.mat');
             actual_spinw = spinw;
-            testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.verify_obj(actual_spinw, expected_spinw);
         end
         function test_spinw_from_struct_input(testCase, spinw_struct_input)
             % Tests that if spinw is called with struct input, the relevant
             % fields are set
             expected_spinw = testCase.load_spinw(spinw_struct_input{2});
             actual_spinw = spinw(spinw_struct_input{1});
-            testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.verify_obj(actual_spinw, expected_spinw);
         end
         function test_spinw_from_spinw_obj(testCase)
             expected_spinw = testCase.load_spinw('spinw_from_struct_lat224.mat');
             actual_spinw = spinw(expected_spinw);
             % Ensure creating from a spinw obj creates a copy
             assert(actual_spinw ~= expected_spinw);
-            testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.verify_obj(actual_spinw, expected_spinw);
         end
         function test_spinw_from_figure(testCase, spinw_figure_input)
             expected_spinw = testCase.load_spinw(spinw_figure_input{2});
@@ -47,7 +47,7 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             actual_spinw = spinw(figure);
             % Ensure creating from a figure creates a copy
             assert(actual_spinw ~= expected_spinw);
-            testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.verify_obj(actual_spinw, expected_spinw);
             close(figure);
         end
         function test_spinw_from_incorrect_figure(testCase)
@@ -59,7 +59,7 @@ classdef unittest_spinw < sw_tests.unit_tests.unittest_super
             fname = fullfile(testCase.get_unit_test_dir(), 'cifs', spinw_file_input{1});
             expected_spinw = testCase.load_spinw(spinw_file_input{2});
             actual_spinw = spinw(fname);
-            testCase.verify_obj(expected_spinw, actual_spinw);
+            testCase.verify_obj(actual_spinw, expected_spinw);
         end
         function test_spinw_from_file_wrong_sym(testCase)
             % Test use of a symmetry not available in symmetry.dat gives
