@@ -91,7 +91,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
             expected_coupling = testCase.default_coupling;
             expected_coupling.idx = int32([1, 2]); % i.e. not sym equiv
             testCase.verify_val(testCase.swobj.coupling, ...
-                                testCase.default_coupling)
+                                expected_coupling)
         end
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
