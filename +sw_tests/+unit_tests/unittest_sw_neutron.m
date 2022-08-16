@@ -27,7 +27,8 @@ classdef unittest_sw_neutron < sw_tests.unit_tests.unittest_super
             % The form factor is calculated using sw_mff, and the scaling is F(Q)^2 not F(Q).
             implied_ff = spec_ff.Sperp ./ spec_no_ff.Sperp;
             ff = sw_mff(testCase.swobj.unit_cell.label{1}, spec_ff.hklA);
-            testCase.verify_val(implied_ff(1,:), ff.^2, 'rel_tol', 0.01, 'abs_tol', 1e-6);
+            testCase.verify_val(ff.^2, implied_ff(1,:), ...
+                                'rel_tol', 0.01, 'abs_tol', 1e-6);
         end
     end
 
