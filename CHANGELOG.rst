@@ -54,3 +54,5 @@ Bug Fixes
   ``genmagstr``. This was an undocumented feature which has been removed.
 - Emit warning that the spin amplitude will be moderated if components
   of ``S`` are parallel to ``n`` in ``helical`` mode
+- Emit warning if  ``nExt`` is unnecessarily large compared to ``k`` in
+  ``helical`` and ``fourier`` modes

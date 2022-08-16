@@ -384,11 +384,18 @@ switch param.mode
         S0 = param.S;
         % Magnetic ordering wavevector in the extended unit cell.
         kExt = k.*nExt;
-        % Warns about the non sufficient extension of the unit cell.
-        % we substitute random values for symbolic km
+        % Substitute random values for symbolic km
         skExt = sw_sub1(kExt,'rand');
         if any(abs(skExt(:)-round(skExt(:)))>param.epsilon) && prod(nExt) > 1
+             % Warns about the non sufficient extension of the unit cell.
             warning('spinw:genmagstr:UCExtNonSuff','In the extended unit cell k is still larger than epsilon!');
+        else
+            idx = find(sum(k, 1) == 0);
+            if any(round(skExt(:)) > 1) || any(nExt(idx) > 1)
+                % Warns about overextension of the unit cell.
+                warning('spinw:genmagstr:UCExtOver', ...
+                        'Unit cell has been extended beyond what is required for the given k')
+            end
         end
         % number of spins in the input
         nSpin = size(param.S,2);
