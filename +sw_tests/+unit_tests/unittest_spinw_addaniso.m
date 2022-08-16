@@ -47,8 +47,8 @@ classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
             testCase.swobj.addaniso('A1')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.aniso = int32([1, 1]);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                expected_single_ion)
         end
         
         function test_addaniso_specific_atoms_wrong_atomIdx(testCase)
@@ -70,8 +70,8 @@ classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
             testCase.swobj.addaniso('A1', 'atom_2')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.aniso = int32([0, 1]);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                expected_single_ion)
         end
         
         function test_addaniso_overwrites_previous_aniso(testCase)
@@ -80,8 +80,8 @@ classdef unittest_spinw_addaniso < sw_tests.unit_tests.unittest_super
             testCase.swobj.addaniso('A2')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.aniso = int32(2);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                            expected_single_ion)
         end
         
      end
