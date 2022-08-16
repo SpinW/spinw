@@ -38,7 +38,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.swobj.genlattice(param_name, value);
             expected_latt = testCase.default_latt;
             expected_latt.(param_name) = value;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_angled_degree_conversion(testCase)
@@ -55,7 +55,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                 'spinw:genlattice:WrongInput');
             expected_latt = testCase.default_latt;
             expected_latt.angle = deg2rad(value);  % 'angled' used
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_spgr_throws_deprecation_warning(testCase)
@@ -75,14 +75,14 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P 2';
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_label_always_used(testCase, sym_param_name, spgr_type)
             label = 'label';
             testCase.swobj.genlattice(sym_param_name, spgr_type, ...
                 'label', label);
-            testCase.verify_val(label, testCase.swobj.lattice.label)
+            testCase.verify_val(testCase.swobj.lattice.label, label)
         end
         
         function test_spacegroup_with_sym_operation_matrix(testCase, sym_param_name)
@@ -90,7 +90,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = '';
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_spacegroup_with_sym_operation_string(testCase)
@@ -108,7 +108,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt.sym = testCase.P2_sym;
             expected_latt.sym(:, :, end) = [1 0 0 0; 0 -1 0 0; 0 0 -1 0];
             expected_latt.label = spgr_str;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_spacegroup_with_axes_permutation(testCase)
@@ -117,7 +117,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = sym_str;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_valid_label(testCase)
@@ -125,7 +125,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             testCase.swobj.genlattice('label', label);
             expected_latt = testCase.default_latt;
             expected_latt.label = label;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
                 
         function test_origin_set_only_when_spgr_provided(testCase)
@@ -142,7 +142,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = '';
             expected_latt.origin = origin;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
         end
         
         function test_nformula_unit(testCase)
@@ -155,12 +155,12 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             args = {'lat_const',[4.5 4.5 4.5], 'sym','F 2 3'};
             % if no basis vectors are supplied then rot matrix always I
             R = testCase.swobj.genlattice(args{:});
-            testCase.verify_val(eye(3), R);
+            testCase.verify_val(R, eye(3));
             % add basis vectors for primitive cell
             R = testCase.swobj.genlattice(args{:}, 'bv', basis_vecs);
             sw_basis_vecs = R*basis_vecs;
             % check first spinwave basis vec is along x
-            testCase.verify_val([sqrt(2)/2; 0; 0], sw_basis_vecs(:,1));
+            testCase.verify_val(sw_basis_vecs(:,1), [sqrt(2)/2; 0; 0]);
         end
         
         function test_spacegroup_with_cell_input(testCase, sym_param_name)
@@ -170,7 +170,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = label;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
             % provide label in cell and as separate argument
             new_label = 'new label';
             testCase.verifyWarning(...
@@ -178,7 +178,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
                     {spgr_str, label},'label', new_label), ...
                 'spinw:genlattice:WrongInput');
             expected_latt.label = new_label;
-            testCase.verify_val(expected_latt, testCase.swobj.lattice);
+            testCase.verify_val(testCase.swobj.lattice, expected_latt);
         end
         
         function test_spacegroup_cell_input_invalid_numel(testCase, nelem)
@@ -213,7 +213,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P 2';
-            testCase.verify_val(expected_latt, testCase.swobj.lattice);
+            testCase.verify_val(testCase.swobj.lattice, expected_latt);
         end
         
         function test_zero_spacegroup(testCase)
@@ -222,13 +222,13 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.label = 'No sym';
             expected_latt.sym = [eye(3) zeros(3,1)];% actually equiv. to P 1
-            testCase.verify_val(expected_latt, testCase.swobj.lattice);
+            testCase.verify_val(testCase.swobj.lattice, expected_latt);
         end
         
         function test_invalid_label(testCase, invalid_label)
             testCase.swobj.genlattice('label', invalid_label)
-            testCase.verify_val(testCase.default_latt, ...
-                testCase.swobj.lattice); % label not overwritten
+            testCase.verify_val(testCase.swobj.lattice, ...
+                                testCase.default_latt); % not overwritten
         end
         
         function test_lookup_new_lines_in_symmetry_dat_file(testCase)
@@ -249,7 +249,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
             expected_latt.label = 'P P';
-            testCase.verify_val(expected_latt, testCase.swobj.lattice)
+            testCase.verify_val(testCase.swobj.lattice, expected_latt)
             % restore backup - note movefile errored on windows server
             copyfile(backup_path, dat_path);
             delete(backup_path);
