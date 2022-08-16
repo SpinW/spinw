@@ -44,7 +44,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', J);
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = J*eye(3);
-            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
         
         function test_matrix_value_added_no_modification(testCase)
@@ -52,8 +53,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', mat);
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = mat;
-            testCase.verify_spinw_matrix(expected_matrix, ...
-                                         testCase.swobj.matrix);
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
         
         function test_vector_value_adds_DM_matrix(testCase)
@@ -61,7 +62,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', [m1, m2, m3]);
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = [0 m3 -m2; -m3 0 m1; m2 -m1 0];
-            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
         
         function test_add_multiple_matrices_separate_calls(testCase)
@@ -73,8 +75,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = cat(3, diag([1,1,1]), diag([2,2,2]));
             expected_matrix.label = {'mat1', 'mat2'};
-            testCase.verify_spinw_matrix(expected_matrix, ...
-                                         testCase.swobj.matrix);
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                expected_matrix)
         end
         
         function test_add_multiple_matrices_single_call(testCase)
@@ -83,8 +85,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = mat;
             expected_matrix.label = {'mat1', 'mat2'};
-            testCase.verify_spinw_matrix(expected_matrix, ...
-                                         testCase.swobj.matrix);
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
         
         function test_add_matrix_with_same_name_overwritten(testCase)
@@ -92,7 +94,8 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', 2.0, 'label', 'mat1');
             expected_matrix = testCase.default_matrix;
             expected_matrix.mat = 2*eye(3);
-            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
         
         function test_add_multiple_matrices_same_label(testCase)
@@ -110,14 +113,17 @@ classdef unittest_spinw_addmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', 1.0, 'label', label);
             expected_matrix = testCase.default_matrix;
             expected_matrix.label = {label};
-            testCase.verify_spinw_matrix(expected_matrix, testCase.swobj.matrix)
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         expected_matrix)
         end
 
         function test_user_supplied_color_string(testCase)
             testCase.swobj.addmatrix('value', 1.0, 'color', 'blue');
-            testCase.verify_spinw_matrix(testCase.default_matrix, testCase.swobj.matrix)
+            testCase.verify_spinw_matrix(testCase.swobj.matrix, ...
+                                         testCase.default_matrix)
             % test color explicitly (only size and data type checked above)
-            testCase.assertEqual(testCase.swobj.matrix.color', [0,0,int32(255)])
+            testCase.assertEqual(testCase.swobj.matrix.color', ...
+                                 [0,0,int32(255)])
         end
         
     end
