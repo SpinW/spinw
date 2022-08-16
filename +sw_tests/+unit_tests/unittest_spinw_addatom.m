@@ -86,7 +86,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         
         function test_add_single_default_atom_with_only_position(testCase, pos_vector)
             testCase.swobj.addatom('r', pos_vector)
-            testCase.assertEqual(testCase.swobj.unit_cell, ...
+            testCase.verify_val(testCase.swobj.unit_cell, ...
                 testCase.default_unit_cell);
         end
         
@@ -95,7 +95,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             testCase.swobj.addatom('r', [0; 0; 0], prop, val)
             expected_unit_cell = testCase.default_unit_cell;
             expected_unit_cell.(prop) = val;
-            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell)
             
         end
         
@@ -104,7 +105,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             testCase.swobj.addatom('r', [0;0;0], b_name, b)
             expected_unit_cell = testCase.default_unit_cell;
             expected_unit_cell.b = [b; 1];
-            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell)
         end
         
         function test_add_multiple_atom_with_single_call(testCase)
@@ -126,7 +128,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             expected_unit_cell = testCase.default_unit_cell;
             expected_unit_cell.S = 1;
             expected_unit_cell.label = {label};
-            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell)
         end
         
         function test_add_atom_update_false_different_spin(testCase)
@@ -161,8 +164,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             expected_unit_cell.ff = testCase.ff;
             expected_unit_cell.label = {label};
             expected_unit_cell.color = int32([156; 122; 199]);
-            testCase.verify_val(expected_unit_cell, ...
-                testCase.swobj.unit_cell, 'abs_tol', 1e-4)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell, 'abs_tol', 1e-4)
         end
         
         function test_add_atom_lookup_by_Z_with_custom_ox(testCase, oxidation_label)
@@ -174,7 +177,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             expected_unit_cell.Z = Z;
             expected_unit_cell.label = {label};
             expected_unit_cell.color = int32([224; 102; 51]);
-            testCase.verify_val(expected_unit_cell, testCase.swobj.unit_cell)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell, 'abs_tol', 1e-4)
         end
         
         function test_add_atom_with_custom_form_factor(testCase)
@@ -188,8 +192,8 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             expected_unit_cell.ff = [1:8 0 0 9; testCase.ff(2,:)];
             expected_unit_cell.label = {label};
             expected_unit_cell.color = int32([156; 122; 199]);
-            testCase.verify_val(expected_unit_cell, ...
-                testCase.swobj.unit_cell, 'abs_tol', 1e-4)
+            testCase.verify_val(testCase.swobj.unit_cell, ...
+                expected_unit_cell, 'abs_tol', 1e-4)
         end
         
         function test_add_atom_with_custom_form_factor_wrong_size(testCase)
