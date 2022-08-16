@@ -52,8 +52,8 @@ classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
             testCase.swobj.addg('g1')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.g = int32([1, 1]);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                expected_single_ion)
         end
         
         function test_addg_with_atomIdx_error_when_high_symm(testCase)
@@ -75,8 +75,8 @@ classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
             testCase.swobj.addg('g1', 'atom_2')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.g = int32([0, 1]);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                expected_single_ion)
         end
         
         function test_addg_overwrites_previous_gtensor(testCase)
@@ -85,8 +85,8 @@ classdef unittest_spinw_addg < sw_tests.unit_tests.unittest_super
             testCase.swobj.addg('g2')
             expected_single_ion = testCase.default_single_ion;
             expected_single_ion.g = int32(2);
-            testCase.verify_val(expected_single_ion, ...
-                testCase.swobj.single_ion)
+            testCase.verify_val(testCase.swobj.single_ion, ...
+                expected_single_ion)
         end
         
      end
