@@ -42,6 +42,8 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
         function test_addtwin_with_axis_custom_vol_ratio(testCase)
             testCase.swobj.addtwin('axis', [0 0 1], 'vol', 0.5)
             testCase.assertEqual(testCase.swobj.twin.vol, [1, 0.5])
+            testCase.assertEqual(testCase.swobj.twin.rotc, ...
+                cat(3, eye(3), eye(3)))
         end
         
         function test_addtwin_overwrite(testCase)
@@ -81,6 +83,7 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
             testCase.swobj.addtwin('axis', [0,0,1], 'vol', 0.5, ...
                 'overwrite', true)
             testCase.assertEqual(testCase.swobj.twin.vol, 0.5)
+            testCase.assertEqual(testCase.swobj.twin.rotc, eye(3))
         end
         
     end
