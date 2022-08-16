@@ -138,8 +138,9 @@ function genmagstr(obj, varargin)
 % 
 % `'n'`
 % : Normal vector to the spin rotation plane for single-k magnetic
-%   structures, stored in a 3-element row vector. Default value `[0 0 1]`. The
-%   coordinate system of the vector is determined by `unit`.
+%   structures, stored in a 3-element row vector, is automatically
+%   normalised to a unit vector. Default value `[0 0 1]`. The coordinate
+%   system of the vector is determined by `unit`.
 % 
 % `'S'`
 % : Vector values of the spins (expectation value), dimensions are $[3\times n_{spin} n_K]$.
@@ -325,11 +326,6 @@ if isnan(param.n(1))
     param.n = repmat([0 0 1],[nK 1]);
 end
 n = bsxfunsym(@rdivide,param.n,sqrt(sum(param.n.^2,2)));
-
-if size(param.n,1) ~= nK
-    error('spinw:genmagstr:WrongInput',['The number of normal vectors has'...
-        ' to be equal to the number of k-vectors!'])
-end
 
 % convert input into symbolic variables
 if obj.symb
