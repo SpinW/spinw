@@ -52,3 +52,5 @@ Bug Fixes
   this would silently result in ``NaN``
 - Raise error if ``phi`` or ``phid`` is not real in ``rotate`` mode in
   ``genmagstr``. This was an undocumented feature which has been removed.
+- Emit warning that the spin amplitude will be moderated if components
+  of ``S`` are parallel to ``n`` in ``helical`` mode

@@ -374,6 +374,17 @@ switch param.mode
         S = S + 1i*cross(repmat(permute(n,[2 3 1]),[1 size(S,2) 1]),S);
         
     case {'helical' 'fourier'}
+        if strcmpi(param.mode, 'helical')
+            for ik=1:size(k, 1)
+                Sk = real(param.S(:, :, ik));
+                if any(dot(repmat(n(ik, :), size(Sk, 2), 1)', Sk))
+                    warning('spinw:genmagstr:SnParallel', ...
+                            ['There are spin components parallel to n, the ' ...
+                             'amplitude of these components will be modulated']);
+                    break;
+                end
+            end
+        end
         S0 = param.S;
         % Magnetic ordering wavevector in the extended unit cell.
         kExt = k.*nExt;
