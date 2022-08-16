@@ -68,8 +68,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,1:3) = 1;
             expected_coupling.sym(1,1:3) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_to_individual_bond(testCase)
@@ -77,8 +77,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             % check matrix added to only first bond with subIdx = 1
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,1) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_ccoupling_lower_symm_with_subIdx(testCase)
@@ -96,8 +96,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
                 'spinw:addcoupling:CouplingSize')
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,1) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_to_multiple_bonds(testCase)
@@ -105,8 +105,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,:) = 1;
             expected_coupling.sym(1,:) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_to_bonds_using_atom_label(testCase, bond_atoms)
@@ -160,8 +160,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             expected_coupling.mat_idx(1,1:3) = 1;
             expected_coupling.sym(1,1:3) = 1;
             expected_coupling.type(1,1:3) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_invalid_exchange_type(testCase)
@@ -180,8 +180,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             expected_coupling.mat_idx(1,1:3) = 1;
             expected_coupling.mat_idx(2,1:3) = 2;
             expected_coupling.sym(1:2,1:3) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_max_num_matrices_added(testCase)
@@ -205,8 +205,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1, 'sym', false)
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,1:3) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
         function test_add_coupling_duplicate_matrix_on_same_bond(testCase)
@@ -218,8 +218,8 @@ classdef unittest_spinw_addcoupling < sw_tests.unit_tests.unittest_super
             expected_coupling = testCase.default_coupling;
             expected_coupling.mat_idx(1,1:3) = 1;
             expected_coupling.sym(1,1:3) = 1;
-            testCase.verify_val(expected_coupling, ...
-                testCase.swobj.coupling)
+            testCase.verify_val(testCase.swobj.coupling, ...
+                expected_coupling)
         end
         
      end
