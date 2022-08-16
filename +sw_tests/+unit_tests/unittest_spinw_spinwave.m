@@ -98,7 +98,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(sw_timeit_mock.n_calls, optmem + 2);
             % Test that with optmem gives the same result as without
             expected_sw = testCase.get_expected_sw_qh5();
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_zero_freemem_warns(testCase)
             % Mock sw_freemem to return 0 to trigger warning
@@ -107,14 +107,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             sw_out = testCase.verifyWarning(...
                 @() testCase.swobj.spinwave(testCase.qh5), ...
                 'spinw:spinwave:FreeMemSize');
-            testCase.verify_spinwave(testCase.get_expected_sw_qh5, sw_out);
+            testCase.verify_spinwave(sw_out, testCase.get_expected_sw_qh5);
         end
         function test_sw_qh5_low_freemem(testCase)
             % Check with low free memory calculation still attempted
             sw_freemem_mock = sw_tests.utilities.mock_function( ...
                 'sw_freemem', '100');
             sw_out = testCase.swobj.spinwave(testCase.qh5);
-            testCase.verify_spinwave(testCase.get_expected_sw_qh5, sw_out);
+            testCase.verify_spinwave(sw_out, testCase.get_expected_sw_qh5);
         end
         function test_sw_qh5_fid(testCase)
             fprintf_mock = sw_tests.utilities.mock_function('fprintf0');
@@ -125,7 +125,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 testCase.assertEqual(fprintf_mock.arguments{irow}{1}, fid)
             end
             expected_sw = testCase.get_expected_sw_qh5();
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_tid(testCase)
             sw_timeit_mock = sw_tests.utilities.mock_function('sw_timeit');
@@ -136,14 +136,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 testCase.assertEqual(sw_timeit_mock.arguments{irow}{3}, tid)
             end
             expected_sw = testCase.get_expected_sw_qh5();
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
     end
     methods (Test)
         function test_sw_qh5(testCase, qpts_h5)
             sw_out = testCase.swobj.spinwave(qpts_h5);
             expected_sw = testCase.get_expected_sw_qh5();
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_sortmode(testCase)
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
@@ -152,7 +152,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.omega([1 2], 5) = expected_sw.omega([2 1], 5);
             expected_sw.Sab(:, :, [1 2], 5) = expected_sw.Sab(:, :, [2 1], 5);
             expected_sw.param.sortMode = false;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_nformula(testCase)
             % Create copy to avoid changing obj for other tests
@@ -164,7 +164,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.Sab = expected_sw.Sab/2;
             expected_sw.obj.unit.nformula = nformula;
             expected_sw.nformula = nformula;
-            testCase.verify_spinwave(expected_sw, sw_out_nformula);
+            testCase.verify_spinwave(sw_out_nformula, expected_sw);
         end
         function test_sw_qh5_periodic(testCase)
             % Test qpts in different BZ give same omega, Sab
@@ -173,7 +173,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.hkl = qpts;
             expected_sw.hklA =  [qpts(1, :)*2/3; qpts(2:end, :)*0.25 ]*pi;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_perpendicular(testCase)
             % Test qpts in perpendicular direction give flat modes
@@ -185,7 +185,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.omega = 1e-5*[ones(1, 5); -ones(1, 5)];
             expected_sw.Sab(1, 3, :, 5) = -expected_sw.Sab(1, 3, :, 5);
             expected_sw.Sab(3, 1, :, 5) = -expected_sw.Sab(3, 1, :, 5);
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_saveH_saveV(testCase)
             sw_out = testCase.swobj.spinwave(testCase.qh5, ...
@@ -198,14 +198,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.V = expected_V;
             expected_sw.H = expected_H;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_title(testCase)
             title = 'Example title';
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'title', title);
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.title = title;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_with_nExt(testCase)
             % Create copy to avoid changing obj for other tests
@@ -217,7 +217,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             sw_afm = afm_chain.spinwave(testCase.qh5);
             omega_vals = [0 2. 0 -2. 0];
             expected_omega = [omega_vals; omega_vals; -omega_vals; -omega_vals];
-            testCase.verify_val(expected_omega, sw_afm.omega, 'abs_tol', 1e-7);
+            testCase.verify_val(sw_afm.omega, expected_omega, 'abs_tol', 1e-7);
         end
         function test_sw_with_multiple_matom(testCase)
             fe_cu_chain = spinw;
@@ -241,13 +241,13 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_omega(1:6, [1 3 5])= repmat([om2 0 0 -om2 om2 0]', 1, 3);
             expected_omega(1:6, [2 4])= repmat([om1 om3 -om3 -om1 om1 om3]', 1, 2);
             expected_omega(7:end, :) = -expected_omega(6:-1:1, :);
-            testCase.verify_val(expected_omega, sw_out.omega, 'abs_tol', 5e-6);
+            testCase.verify_val(sw_out.omega, expected_omega, 'abs_tol', 5e-6);
         end
         function test_sw_saveSabp_commensurate_warns(testCase)
             sw = testCase.verifyWarning(...
                 @() testCase.swobj.spinwave(testCase.qh5, 'saveSabp', true), ...
                 'spinw:spinwave:CommensurateSabp');
-            testCase.verify_spinwave(testCase.get_expected_sw_qh5, sw);
+            testCase.verify_spinwave(sw, testCase.get_expected_sw_qh5);
         end
          function test_sw_qh5_saveSabp_incommensurate(testCase)
              qpts = testCase.qh5;
@@ -264,8 +264,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
              expected_omegap = [ omegap_vals  omegap_vals(2:-1:1); ...
                                 -omegap_vals -omegap_vals(2:-1:1)];
 
-             testCase.verify_val(expected_Sabp, sw_out.Sabp, 'rel_tol', 1e-5);
-             testCase.verify_val(expected_omegap, sw_out.omegap, 'rel_tol', 1e-5);
+             testCase.verify_val(sw_out.Sabp, expected_Sabp, 'rel_tol', 1e-5);
+             testCase.verify_val(sw_out.omegap, expected_omegap, 'rel_tol', 1e-5);
         end
         function test_sw_qh5_fitmode(testCase)
             qpts = testCase.qh5;
@@ -273,7 +273,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % fitmode automatically turns off sortMode
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
             expected_sw = rmfield(expected_sw, {'obj', 'datestart', 'dateend'});
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_incommensurate(testCase)
             % Tests that incommensurate calculation is ok
@@ -328,7 +328,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 end
                 expected_sw.Sab = [expected_sw.Sab rot_Sab];
             end
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_notwin(testCase)
             % Create copy to avoid changing obj for other tests
@@ -340,7 +340,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % calculated if notwin is specified
             expected_sw = testCase.get_expected_sw_qh5;
             expected_sw.obj.twin = swobj_twin.twin;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_cmplxBase_equivalent_with_tri(testCase)
             % For this structure, both cmplxBase true and false give the
@@ -348,7 +348,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             qpts = {[0 0 0], [1 0 0], 5};
             sw_out = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', false);
             sw_out_cmplx = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', true);
-            testCase.verify_spinwave(sw_out, sw_out_cmplx);
+            testCase.verify_spinwave(sw_out_cmplx, sw_out);
         end
         function test_cmplxBase_fails_with_chain(testCase)
             % Test cmplxBase actually does something - it should fail with
@@ -369,7 +369,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
             expected_sw.formfact = true;
 
-            testCase.verify_spinwave(expected_sw, sw_ff);
+            testCase.verify_spinwave(sw_ff, expected_sw);
         end
         function test_formfactfun(testCase)
             function F = formfactfun(atom_label, Q)
@@ -385,7 +385,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.Sab = expected_sw.Sab.*permute(ff.^2, [1 3 4 2]);
             expected_sw.formfact = true;
 
-            testCase.verify_spinwave(expected_sw, sw_ff, 'rel_tol', 1e-15);
+            testCase.verify_spinwave(sw_ff, expected_sw, 'rel_tol', 1e-15);
         end
         function test_gtensor(testCase)
             qpts = {[0 0 0], [1 1 1], 5};
@@ -401,7 +401,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 'spinw:spinwave:NonZerogTensor');
             expected_sw.Sab = expected_sw.Sab.*[1 2 3; 2 4 6; 3 6 9];
             expected_sw.gtensor = true;
-            testCase.verify_spinwave(expected_sw, sw_g);
+            testCase.verify_spinwave(sw_g, expected_sw);
         end
         function test_gtensor_incomm(testCase)
             qpts = {[0 0 0], [1 1 1], 5};
@@ -418,7 +418,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                                                 2.25 2.25 4.5; ...
                                                 4.5  4.5  9];
             expected_sw.gtensor = true;
-            testCase.verify_spinwave(expected_sw, sw_g, 'rel_tol', 1e-15);
+            testCase.verify_spinwave(sw_g, expected_sw, 'rel_tol', 1e-15);
         end
         function test_hermit(testCase)
             % Create copy to avoid changing obj for other tests
@@ -450,7 +450,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw = testCase.get_expected_sw_qh5;
             expected_sw.obj = swobj_tol;
             expected_sw.param.tol = tol;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_omega_tol(testCase)
             qpts = testCase.qh5;
@@ -466,7 +466,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.omega(:, 1) = [omega_tol -omega_tol];
             expected_sw.omega(:, end) = [-omega_tol omega_tol];
             expected_sw.param.omega_tol = omega_tol;
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_biquadratic_with_incomm_causes_error(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -499,7 +499,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             expected_sw.datestart = '';
             expected_sw.dateend = '';
             expected_sw.title = 'Symbolic LSWT spectrum';
-            testCase.verify_spinwave(expected_sw, sw_out);
+            testCase.verify_spinwave(sw_out, expected_sw);
         end
     end
 end
