@@ -13,7 +13,7 @@ classdef unittest_super < matlab.mock.TestCase
             path = fullfile(testCase.get_unit_test_dir(), 'Figure', filename);
             obj = openfig(path, 'invisible');
         end
-        function verify_obj(testCase, expected_obj, actual_obj, varargin)
+        function verify_obj(testCase, actual_obj, expected_obj, varargin)
             testCase.assertClass(actual_obj, class(expected_obj));
             all_fieldnames = fieldnames(expected_obj);
             if isa(expected_obj, 'struct')
@@ -27,14 +27,14 @@ classdef unittest_super < matlab.mock.TestCase
                 expected_value = expected_obj.(field{:});
                 actual_value = actual_obj.(field{:});
                 if isstruct(expected_value)
-                    testCase.verify_obj(expected_value, actual_value, varargin{:});
+                    testCase.verify_obj(actual_value, expected_value, varargin{:});
                 else
-                    testCase.verify_val(expected_value, actual_value, ...
+                    testCase.verify_val(actual_value, expected_value, ...
                         'field', field{:}, varargin{:});
                 end
             end
         end
-        function verify_val(testCase, expected_val, actual_val, varargin)
+        function verify_val(testCase, actual_val, expected_val, varargin)
             import matlab.unittest.constraints.IsEqualTo
             import matlab.unittest.constraints.RelativeTolerance
             import matlab.unittest.constraints.AbsoluteTolerance
@@ -56,24 +56,24 @@ classdef unittest_super < matlab.mock.TestCase
             testCase.verifyThat(actual_val, ...
                 IsEqualTo(expected_val, 'Within', bounds), field);
         end
-        function verify_spinw_matrix(testCase, expected_matrix, actual_matrix, varargin)
+        function verify_spinw_matrix(testCase, actual_matrix, expected_matrix, varargin)
             % compare excl. color (which is randomly generated)
-            testCase.verify_val(rmfield(expected_matrix, 'color'), ...
-                rmfield(actual_matrix, 'color'), varargin{:})
+            testCase.verify_val(rmfield(actual_matrix, 'color'), ...
+                rmfield(expected_matrix, 'color'), varargin{:})
             % check size and data type of color
             testCase.assertEqual(size(actual_matrix.color), ...
              [3, size(expected_matrix.mat, 3)]);
             testCase.assertTrue(isa(actual_matrix.color, ...
                 class(expected_matrix.color)));
         end
-        function verify_spinwave(testCase, expected_spinwave, ...
-                                 actual_spinwave, varargin)
+        function verify_spinwave(testCase, actual_spinwave, ...
+                                 expected_spinwave, varargin)
             % List of fields to test separately, only remove fields that
             % exist
             rmfields = intersect(fields(expected_spinwave), ...
                                  {'datestart', 'dateend', 'obj'});
-            testCase.verify_obj(rmfield(expected_spinwave, rmfields), ...
-                                rmfield(actual_spinwave, rmfields), varargin{:})
+            testCase.verify_obj(rmfield(actual_spinwave, rmfields), ...
+                                rmfield(expected_spinwave, rmfields), varargin{:})
             for field = ["datestart", "dateend"]
                 if isfield(expected_spinwave, field)
                     testCase.assertTrue(isa(actual_spinwave.(field), 'char'));
@@ -82,7 +82,7 @@ classdef unittest_super < matlab.mock.TestCase
             % obj is not always in spinwave output (e.g. if fitmode ==
             % true)
             if isfield(expected_spinwave, 'obj')
-                testCase.verify_obj(expected_spinwave.obj, actual_spinwave.obj);
+                testCase.verify_obj(actual_spinwave.obj, expected_spinwave.obj);
             end
         end
     end
