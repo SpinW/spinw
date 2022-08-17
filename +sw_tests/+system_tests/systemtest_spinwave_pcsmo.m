@@ -16,7 +16,7 @@ classdef systemtest_spinwave_pcsmo < sw_tests.system_tests.systemtest_spinwave
             SM4 = 7/4;   % Spin length for Mn4+
             SM3 = 7/4;   % Spin length for Mn3+
             pcsmo = spinw;
-            pcsmo.genlattice('lat_const', lat.*[2 2 1], 'angled', alf, 'spgr', 'x,y+1/2,-z'); 
+            pcsmo.genlattice('lat_const', lat.*[2 2 1], 'angled', alf, 'sym', 'x,y+1/2,-z');
             [~,ffn3] = sw_mff('MMn3');
             [~,ffn4] = sw_mff('MMn4');
             myaddatom3 = @(x,y,z) pcsmo.addatom('label', x, 'r', y, 'S', SM3, 'color', z, ...

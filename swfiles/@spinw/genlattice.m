@@ -26,9 +26,9 @@ function R = genlattice(obj, varargin)
 % ### Example
 %
 % ```
-% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'spgr','P 6')
-% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'spgr',168)
-% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'spgr','-y,x-y,z; -x,-y,z','label','R -3 m')
+% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'sym','P 6')
+% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'sym',168)
+% crystal.genlattice('lat_const',[3 3 4],'angled',[90 90 120],'sym','-y,x-y,z; -x,-y,z','label','R -3 m')
 % ```
 %
 % The three lines are equivalent, both will create hexagonal lattice, with
@@ -51,7 +51,7 @@ function R = genlattice(obj, varargin)
 % : `[a, b, c]` lattice parameters in units defined in [spinw.unit] (with \\ang
 %   being the default), dimensions are $[1\times 3]$.
 % 
-% `spgr`
+% `spgr` or 'sym'
 % : Defines the space group. Can have the following values:
 %
 %   * **space group label** string, name of the space group, can be any
@@ -68,10 +68,14 @@ function R = genlattice(obj, varargin)
 %   If the `spgr` option is 0, no symmetry will be used. The
 %   [spinw.gencoupling] function will determine the equivalent bonds based on
 %   bond length.
+%   
+%   Can also provide spacegroup and label (see below) in a cell e.g.
+%   {'-x,y,-z', 'P 2'}
 % 
 % `label`
 % : Optional label for the space group if the generators are given in the
 %   `spgr` option.
+%
 % `bv`
 % : Basis vectors given in a matrix with dimensions of $[3\times 3]$, where
 %   each column defines a basis vector.
@@ -118,9 +122,64 @@ inpForm.soft   = [inpForm.soft   {false    true  true       false              t
 
 param = sw_readparam(inpForm, varargin{:});
 
-% new option, but keep the old one as well
+% input validation
 if ~isempty(param.spgr)
-    param.sym = param.spgr;
+    warning('spinw:genlattice:DeprecationWarning',...
+            ['spgr parameter name is being deprecated, please use sym',...
+            ' instead']);
+    if ~isempty(param.sym)
+        error('spinw:genlattice:WrongInput', ...
+            'Both sym and spgr provided - note sym will be used.');
+    else
+        param.sym = param.spgr;
+    end
+end
+if any(strcmp('angled', varargin(1:2:end))) && ...
+        any(strcmp('angle', varargin(1:2:end)))
+	warning('spinw:genlattice:WrongInput', ...
+        'Both angle and angled provided - angled will be used.');
+end
+if isempty(param.sym)
+   if norm(param.origin) > 1e-10
+      warning('spinw:genlattice:WrongInput', ...
+        ['Origin provided without symmetry/spacegroup (both required in ',...
+         'same function call) - it will be ignored.']); 
+   end
+   if ~strcmp(param.perm, 'abc')
+     warning('spinw:genlattice:WrongInput', ...
+        ['Perm provided without symmetry/spacegroup (both required in ',...
+         'same function call) - it will be ignored.']); 
+   end
+else
+    % check valid perm
+    invalid_perm_msg = ['Invalid permutation supplied - it must be a ', ...
+        'string or numeric array that is a permutation of [1,2,3] or ',...
+        'abc respectively.'];
+    if ischar(param.perm)
+        param.perm = param.perm-'a'+1; % casts to int array e.g. [1,2,3]
+    elseif ~isnumeric(param.perm)
+        error('spinw:genlattice:WrongInput', invalid_perm_msg);
+    end
+    % check param.perm is a permutation of [1,2,3]
+    if ~any(ismember(perms([1,2,3]), param.perm, 'rows'))
+        error('spinw:genlattice:WrongInput', invalid_perm_msg);
+    end
+    % check valid origin
+    if any(param.origin > 1) || any(param.origin < 0)
+        error('spinw:genlattice:WrongInput', ...
+            'Invalid origin supplied, it must be fractional coordinates.');
+    end
+end
+if iscell(param.sym)
+    if numel(param.sym) ~= 2
+        error('spinw:genlattice:WrongInput', ...
+            ['Cell input for spgr/sym must have two elements {spgr, label}', ...
+             ' e.g. {"-x,y,-z", "P 2"}'])
+    elseif ~isempty(param.label)
+     warning('spinw:genlattice:WrongInput', ...
+        ['Label provided in spgr/sym argument and in label argument - ', ...
+         'the label will be taken from the label argument']);
+    end
 end
 
 if ~isempty(param.bv)
@@ -148,7 +207,12 @@ if ~isempty(param.bv)
     % rotate a-axis along x
     phi = atan2(norm(cross(BV1(:,1),a)),dot(BV1(:,1),a));
     % rotate the basis vectors
-    [BV2, R2] = sw_rot(c,phi,BV1);
+    if dot(cross(BV1(:,1), BV1(:,2)), BV1(:,3)) > 1e-10
+        [BV2, R2] = sw_rot(c, phi, BV1);
+    else
+        [BV2, R2] = sw_rot(c, -phi, BV1); % ensure BV2 right-handed
+    end
+    
     
     % check the sign of cross(x,y)
     if c*cross(BV2(:,1),BV2(:,2))<0
@@ -191,10 +255,6 @@ else
     
 end
 
-if numel(param.sym) == 1 && param.sym==0
-    param.sym = [];
-end
-
 % copy the apporiate label string
 if ~isempty(param.sym) && isempty(param.label)
     if ischar(param.sym)
@@ -210,23 +270,22 @@ if ~isempty(param.sym)
         param.sym = {param.sym};
     end
     [symOp, symInfo] = swsym.operator(param.sym{1});
-    
     % permute the symmetry operators if necessary
-    if ischar(param.perm)
-        param.perm = param.perm-'a'+1;
-    end
     obj.lattice.sym = symOp(param.perm,[param.perm 4],:);
     % assign the origin for space group operators
     obj.lattice.origin = param.origin;
-    
-    if isnumeric(param.sym{1}) && numel(param.sym{1})==1
+    % set spacegroup label if known from param.sym if the user has not
+    % provided a label in the function call
+    if  ~isempty(param.label) && ischar(param.label)
+        obj.lattice.label = strtrim(param.label);
+    elseif isnumeric(param.sym{1}) && numel(param.sym{1})==1
         obj.lattice.label = symInfo.name;
     else
-        obj.lattice.label = strtrim(param.label);
+        obj.lattice.label = ''; % can't infer label from matrix of sym ops
     end
 
 else
-    if ~isempty(param.label)
+    if ~isempty(param.label) && ischar(param.label)
         obj.lattice.label = strtrim(param.label);
     end
 end   

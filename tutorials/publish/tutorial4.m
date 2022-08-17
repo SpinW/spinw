@@ -2,7 +2,7 @@
 % We define a square lattice in the ab plane, with Cu+ ions with S=1 spin.
 
 AFsq = spinw;
-AFsq.genlattice('lat_const',[3 3 6],'angled',[90 90 90],'spgr',0)
+AFsq.genlattice('lat_const',[3 3 6],'angled',[90 90 90],'sym',0)
 AFsq.addatom('r',[0 0 0],'S', 1,'label','Cu1','color','b')
 AFsq.table('atom')
 plot(AFsq)

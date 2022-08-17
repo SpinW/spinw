@@ -95,7 +95,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         
         function test_gencoupling_with_non_P0_spacegroup(testCase)
             % set ortho spacegroup even though lattice is tetragonal
-            testCase.swobj.genlattice('spgr', 'P 2')  % not overwrite abc
+            testCase.swobj.genlattice('sym', 'P 2')  % not overwrite abc
             % test forceNoSym = true (just uses bond length for idx)
             testCase.swobj.gencoupling('maxDistance', 4, 'forceNoSym', true)
             testCase.verify_val(testCase.default_coupling, ...
@@ -129,7 +129,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         end
         
         function test_gencoupling_with_maxSym_multiple_bonds(testCase)
-            testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
+            testCase.swobj.genlattice('sym', 'P 4')  % not overwrite abc
             % set maxSym distance to only include bond idx = 1
             testCase.swobj.gencoupling('maxDistance', 4.5 , 'maxSym', 4)
             expected_coupling = testCase.default_coupling;
@@ -149,7 +149,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         end
         
         function test_gencoupling_maxSym_less_than_any_bond_length(testCase)
-            testCase.swobj.genlattice('spgr', 'P 4')  % not overwrite abc
+            testCase.swobj.genlattice('sym', 'P 4')  % not overwrite abc
             testCase.verifyWarning(...
                 @() testCase.swobj.gencoupling('maxDistance', 4, ...
                 'maxSym', 2), 'spinw:gencoupling:maxSym')
@@ -159,7 +159,7 @@ classdef unittest_spinw_gencoupling < sw_tests.unit_tests.unittest_super
         end
         
         function test_gencoupling_when_tol_violates_symmetry(testCase)
-            testCase.swobj.genlattice('lat_const',[3 3.5 5], 'spgr', 'P 4')
+            testCase.swobj.genlattice('lat_const',[3 3.5 5], 'sym', 'P 4')
             % bond along a and b are sym. equiv. according to P 4
             % but lengths differ by 0.5 Ang
             testCase.verifyError(...

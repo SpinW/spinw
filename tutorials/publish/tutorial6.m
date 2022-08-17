@@ -5,7 +5,7 @@
 % positions of the i-th independent position.
 
 kagome4 = spinw;
-kagome4.genlattice('lat_const',[6 6 8],'angled',[90 90 120],'spgr','P -3');
+kagome4.genlattice('lat_const',[6 6 8],'angled',[90 90 120],'sym','P -3');
 kagome4.addatom('r', [1/2 0 0],'S', 1,'label','MCu1','color','r');
 disp('Atomic positions:')
 kagome4.table('atom')

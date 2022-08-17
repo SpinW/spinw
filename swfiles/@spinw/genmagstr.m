@@ -32,7 +32,7 @@ function genmagstr(obj, varargin)
 % 
 % ```
 % >>USb = spinw
-% >>USb.genlattice('lat_const',[6.203 6.203 6.203],'spgr','F m -3 m')
+% >>USb.genlattice('lat_const',[6.203 6.203 6.203],'sym','F m -3 m')
 % >>USb.addatom('r',[0 0 0],'S',1)
 % >>FQ = cat(3,[0;0;1+1i],[0;1+1i;0],[1+1i;0;0])>>
 % >>k  = [0 0 1;0 1 0;1 0 0];

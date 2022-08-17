@@ -5,7 +5,7 @@
 symStr = '-z, y+3/4, x+3/4; z+3/4, -y, x+3/4; z+3/4, y+3/4, -x; y+3/4, x+3/4, -z; x+3/4, -z, y+3/4; -z, x+3/4, y+3/4';
 model = spinw;
 a = 10.0307;
-model.genlattice('lat_const',[a a a],'angled',[90 90 90],'spgr',symStr,'label','F d -3 m Z')
+model.genlattice('lat_const',[a a a],'angled',[90 90 90],'sym',symStr,'label','F d -3 m Z')
 model.addatom('label','Yb3+','r',[1/2 1/2 1/2],'S',1/2)
 model.addatom('label','Ti4+','r',[0 0 0])
 model.addatom('label','O2-','r',[0.3318 1/8 1/8])

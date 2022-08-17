@@ -3,7 +3,7 @@
 % spin.
 
 DMkag = spinw;
-DMkag.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'spgr','P -3')
+DMkag.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'sym','P -3')
 DMkag.addatom('r', [1/2 0 0],'S',1,'label', 'Cu1', 'color','r')
 plot(DMkag,'range',[2 2 1])
 swplot.zoom(4)

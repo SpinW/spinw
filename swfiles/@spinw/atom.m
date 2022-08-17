@@ -23,7 +23,7 @@ function atomList = atom(obj)
 % ```
 % >>cryst = spinw
 % >>opStr = 'x+1/2,y+1/2,z;x+1/2,y,z+1/2;x,y+1/2,z+1/2';
-% >>cryst.genlattice('lat_const',[8 8 8],'spgr',opStr,'label','FCC')
+% >>cryst.genlattice('lat_const',[8 8 8],'sym',opStr,'label','FCC')
 % >>cryst.addatom('r',[0 0 0],'label','Atom1')
 % >>atomList = cryst.atom
 % >>atomList.r>>

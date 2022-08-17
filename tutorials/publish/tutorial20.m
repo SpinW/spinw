@@ -18,7 +18,7 @@ symStr = '-z, y+3/4, x+3/4; z+3/4, -y, x+3/4; z+3/4, y+3/4, -x; y+3/4, x+3/4, -z
 
 ybti = spinw;
 a = 10.0307;
-ybti.genlattice('lat_const',[a a a],'angled',[90 90 90],'spgr',symStr,'label','F d -3 m Z')
+ybti.genlattice('lat_const',[a a a],'angled',[90 90 90],'sym',symStr,'label','F d -3 m Z')
 ybti.addatom('label','Yb3+','r',[1/2 1/2 1/2],'S',1/2)
 ybti.addatom('label','Ti4+','r',[0 0 0])
 ybti.addatom('label','O2-','r',[0.3318 1/8 1/8])

@@ -10,7 +10,7 @@ classdef systemtest_spinwave_KCu3As2O7 < sw_tests.system_tests.systemtest_spinwa
             % To test incommensurate spin wave calculations and also the structure optimisation routine
             J   = -2; Jp  = -1; Jab = 0.75; Ja  = -J/.66 - Jab; Jip = 0.01;
             hK = spinw;
-            hK.genlattice('lat_const',[10.2 5.94 7.81],'angled',[90 117.7 90],'spgr','C 2/m');
+            hK.genlattice('lat_const',[10.2 5.94 7.81],'angled',[90 117.7 90],'sym','C 2/m');
             hK.addatom('r',[0   0   0],'S',1/2,'label','MCu2','color','b');
             hK.addatom('r',[1/4 1/4 0],'S',1/2,'label','MCu2','color','k');
             hK.gencoupling();

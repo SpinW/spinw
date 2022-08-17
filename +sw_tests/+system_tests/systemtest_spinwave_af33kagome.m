@@ -8,7 +8,7 @@ classdef systemtest_spinwave_af33kagome < sw_tests.system_tests.systemtest_spinw
         function prepareForRun(testCase)
             % From Tutorial 8, a sqrt(3) x sqrt(3) kagome AFM to test incommensurate calculations
             AF33kagome = spinw;
-            AF33kagome.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'spgr','P -3');
+            AF33kagome.genlattice('lat_const',[6 6 40],'angled',[90 90 120],'sym','P -3');
             AF33kagome.addatom('r',[1/2 0 0],'S', 1,'label','MCu1','color','r');
             AF33kagome.gencoupling('maxDistance',7);
             AF33kagome.addmatrix('label','J1','value',1.00,'color','g');

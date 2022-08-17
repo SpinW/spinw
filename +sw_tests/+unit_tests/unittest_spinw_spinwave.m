@@ -221,7 +221,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_sw_with_multiple_matom(testCase)
             fe_cu_chain = spinw;
-            fe_cu_chain.genlattice('lat_const', [3 8 4], 'spgr', 'P 1');
+            fe_cu_chain.genlattice('lat_const', [3 8 4], 'sym', 'P 1');
             fe_cu_chain.addatom('label', 'MCu2', 'r', [0 0 0]);
             fe_cu_chain.addatom('label', 'MFe2', 'r', [0 1/2 0]);
             fe_cu_chain.gencoupling;

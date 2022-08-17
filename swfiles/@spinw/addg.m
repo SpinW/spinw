@@ -21,7 +21,7 @@ function addg(obj, matrixIdx, varargin)
 % 
 % ```
 % >>cryst = spinw
-% >>cryst.genlattice('lat_const',[4 4 3],'spgr','P 4')
+% >>cryst.genlattice('lat_const',[4 4 3],'sym','P 4')
 % >>cryst.addatom('r',[1/4 1/4 1/2],'S',1)
 % >>cryst.addmatrix('label','g_1','value',diag([2 1 1]))
 % >>cryst.gencoupling
