@@ -133,7 +133,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = struct('nExt', int32(nExt), ...
                                       'k', k', ...
                                       'F', [1 -1i; 1i 1; 0 0]);
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_spin_size_incomm_with_epsilon_warns(testCase)
             swobj = copy(testCase.swobj);
@@ -152,7 +152,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                                       'F', [1 -0.5-0.866i -0.5+0.866i; ...
                                             1i 0.866-0.5i -0.866-0.5i; ...
                                              0          0          0]);
-            testCase.verify_obj(expected_mag_str, swobj.mag_str, 'rel_tol', 1e-4);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str, 'rel_tol', 1e-4);
         end
         function test_fourier_too_large_nExt_warns(testCase)
             swobj = copy(testCase.swobj);
@@ -170,7 +170,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = struct('nExt', int32(nExt), ...
                                       'k', k', ...
                                       'F', cat(2, F_rep, F_rep));
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_fourier_nExt_wrong_direction_warns(testCase)
             swobj = copy(testCase.swobj);
@@ -186,7 +186,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = struct('nExt', int32(nExt), ...
                                       'k', k', ...
                                       'F', cat(2, F_rep, F_rep));
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_any_S_parallel_to_n_warns(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -200,7 +200,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'nExt', int32([1 1 1]), ...
                 'k', k', ...
                 'F', [-sqrt(9/8)*1i; sqrt(9/8); sqrt(9/8)]);
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_helical_S2_norm(testCase, input_norm_output_F)
             swobj = spinw();
@@ -212,19 +212,19 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = input_norm_output_F{2};
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_direct_fm_chain(testCase)
             swobj = copy(testCase.swobj);
             swobj.genmagstr('mode', 'direct', 'k', [0 0 0], ...
                             'S', [0; 1; 0]);
-            testCase.verify_obj(testCase.default_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, testCase.default_mag_str);
 
         end
         function test_direct_fm_chain_nok(testCase)
             swobj = copy(testCase.swobj);
             swobj.genmagstr('mode', 'direct', 'S', [0; 1; 0]);
-            testCase.verify_obj(testCase.default_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, testCase.default_mag_str);
         end
         function test_direct_multiatom_nExt(testCase)
             swobj = copy(testCase.swobj);
@@ -240,7 +240,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                                       'F', [sqrt(2)/2        0 1 -2; ...
                                             sqrt(2)/2  sqrt(2) 0  0; ...
                                                     0 -sqrt(2) 0  0]);
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_direct_multiatom_multik(testCase)
             swobj = copy(testCase.swobj);
@@ -255,7 +255,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = cat(3, F_k, F_k);
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_direct_multik_scalar_nExt(testCase)
             % Test if a scalar is used for nExt it is treated as a
@@ -272,7 +272,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = struct('nExt', int32([2 3 1]), ...
                                       'k', k', ...
                                       'F', cat(3, F_k, F_k));
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_tri(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -282,7 +282,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = [1.5; 1.5i; 0];
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_helical_tri_n(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -292,7 +292,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k';
             expected_mag_str.F = [1.5; 0; -1.5i];
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_helical_tri_lu_unit(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -303,7 +303,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = [-0.75-1.299038105676658i; ...
                                   1.299038105676658-0.75i; ...
                                   0];
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_fourier_tri(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -312,7 +312,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [1/3; 1/3; 0];
             expected_mag_str.F = [1.5; 0; 0];
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_nExt_1spin(testCase)
             % Test where only 1 spin is provided
@@ -326,7 +326,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [1 2 -1 -2; 1i 2i -1i -2i; 0 0 0 0]);
-             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+             testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_nExt_1spin_r0(testCase)
             swobj = spinw();
@@ -342,7 +342,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [1 2i -1 -2i; 1i -2 -1i 2; 0 0 0 0]);
-             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+             testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_fourier_multiatom_nExt_nMagAtom_spins(testCase)
             % Test where there are the same number of spins provided as in
@@ -358,7 +358,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [-1i 2 1i -2; 1 2i -1 -2i; 0 0 0 0]);
-             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+             testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_nExt_nMagAtom_spins(testCase)
             % Test where there are the same number of spins provided as in
@@ -373,7 +373,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [-1i 2 1i -2; 1 2i -1 -2i; 0 0 0 0]);
-             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+             testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_nExt_nMagExt_spins(testCase)
             % Test where there are the same number of spins provided as in
@@ -392,7 +392,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [-1i 2 0 -2; 1 2i 0 -2i; 0 0 1 0]);
-             testCase.verify_obj(expected_mag_str, swobj.mag_str);
+             testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_multik_multin(testCase)
             swobj = copy(testCase.swobj);
@@ -413,7 +413,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = cat(3, ...
                                      [1 1-sqrt(3)*1i; 1i sqrt(3)+1i; 0   0], ...
                                      [1i           2;  0          0; 1 -2i]);
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_random_structure(testCase)
             swobj = copy(testCase.swobj);
@@ -431,8 +431,8 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             testCase.verify_val(dot(imag(swobj.mag_str.F), [0 0 1]), 0);
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
-            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
-                                rmfield(mag_str1, 'F'));
+            testCase.verify_obj(rmfield(mag_str1, 'F'), ...
+                                rmfield(expected_mag_str, 'F'));
         end
         function test_random_structure_k_and_n(testCase)
             swobj = copy(testCase.swobj);
@@ -448,8 +448,8 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = k;
-            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
-                                rmfield(mag_str1, 'F'));
+            testCase.verify_obj(rmfield(mag_str1, 'F'),...
+                                rmfield(expected_mag_str, 'F'));
         end
         function test_random_structure_multiatom_and_nExt(testCase)
             swobj = copy(testCase.swobj);
@@ -473,8 +473,8 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             % Check other fields
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
-            testCase.verify_obj(rmfield(expected_mag_str, 'F'), ...
-                                rmfield(mag_str1, 'F'));
+            testCase.verify_obj(rmfield(mag_str1, 'F'), ...
+                                rmfield(expected_mag_str, 'F'));
         end
         function test_tile_existing_struct_extend_cell(testCase)
             % Test that tile and increasing nExt will correctly tile
@@ -488,7 +488,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
             expected_mag_str.F = [1 0 1 0; 0 1 0 1; 0 0 0 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_tile_existing_struct_same_size(testCase)
             % Test that tile with nExt same as initialised structure
@@ -502,7 +502,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
             expected_mag_str.F = S;
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_tile_input_S_extend_cell(testCase)
             % Test that tile and input S less than nExt will correctly tile
@@ -515,7 +515,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
             expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_tile_multik(testCase)
             % Test that S is summed over third dimension with tile, and k
@@ -527,7 +527,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                             'S', S);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_tile_multik_provided_k_set_to_zero(testCase)
             % Test that S is summed over third dimension with tile, and if
@@ -540,7 +540,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                               'S', S, 'k', k);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_extend_mode_input_S_extend_cell_and_warns(testCase)
             % Test undocumented 'extend' mode does same as tile
@@ -556,7 +556,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.nExt = nExt;
             expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_rotate_phi(testCase, rotate_phi_inputs)
             swobj = copy(testCase.swobj);
@@ -567,7 +567,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
             expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_rotate_multiatom_n(testCase)
             swobj = copy(testCase.swobj);
@@ -578,7 +578,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [0.5 0.5; 0.5 0.5; -sqrt(2)/2 sqrt(2)/2];
             expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_rotate_no_phi_collinear(testCase)
             swobj = copy(testCase.swobj);
@@ -587,7 +587,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj.genmagstr('mode', 'rotate', 'n', [0 1 0]);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [0 0; 1 -1; 0 0];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_rotate_no_phi_coplanar(testCase)
             swobj = copy(testCase.swobj);
@@ -596,7 +596,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj.genmagstr('mode', 'rotate', 'n', [0 1 0]);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [1 0; 0 0; 0 -1];
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_rotate_no_phi_incomm(testCase)
             swobj_tri = copy(testCase.swobj_tri);
@@ -607,7 +607,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [0; 1.5i; -1.5];
             expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+            testCase.verify_obj(swobj_tri.mag_str, expected_mag_str);
         end
         function test_func_multiatom_default(testCase)
             swobj = copy(testCase.swobj);
@@ -618,7 +618,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [sqrt(2)/2*(1-i) 0; -sqrt(2)/2*(1+i) 0; 0 1];
             expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_func_custom(testCase)
              function [S, k, n] = func(S0, x0)
@@ -632,7 +632,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = [-1; 0; 0];
             expected_mag_str.k = x0';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
     end
     methods (Test, TestTags = {'Symbolic'})
@@ -649,7 +649,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sym([-1; 0; 0]);
             expected_mag_str.k = sym(x0');
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
     end
 end
