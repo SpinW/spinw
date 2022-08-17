@@ -53,6 +53,8 @@ Bug Fixes
 - Raise error if ``phi`` or ``phid`` is not real in ``rotate`` mode in
   ``genmagstr``. This was an undocumented feature which has been removed.
 - Emit warning that the spin amplitude will be moderated if components
-  of ``S`` are parallel to ``n`` in ``helical`` mode
+  of ``S`` are parallel to ``n`` in ``helical`` mode in ``genmagstr``
 - Emit warning if  ``nExt`` is unnecessarily large compared to ``k`` in
-  ``helical`` and ``fourier`` modes
+  ``helical`` and ``fourier`` modes in ``genmagstr``
+- Emit warning if arguments that will be ignored are passed to a particular
+  mode in ``genmagstr`` (e.g. ``S`` is passed to ``random``)

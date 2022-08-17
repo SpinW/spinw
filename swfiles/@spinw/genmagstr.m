@@ -246,6 +246,32 @@ if strcmpi(param.mode, 'rotate') && isempty(obj.mag_str.F)
                                          'structure to be defined with another mode first'])
 end
 
+if strcmp(param.mode,'extend')
+    warning('spinw:genmagstr:DeprecationWarning',...
+            'extend mode is deprecated, please use tile mode instead');
+    param.mode = 'tile';
+end
+
+mode_args = struct("random", ["k", "n", "nExt", "unit"], ...
+                   "direct", ["S", "k", "nExt", "unit"], ...
+                   "tile", ["S", "nExt", "unit"], ...
+                   "helical", ["S", "n", "k", "r0", "nExt", "epsilon", "unit"], ...
+                   "rotate", ["S", "phi", "phid", "n", "nExt", "unit"], ...
+                   "func", ["func", "x0"], ...
+                   "fourier", ["S", "k", "r0", "nExt", "epsilon", "unit"]);
+if ~any(strcmp(fields(mode_args), param.mode))
+    error('spinw:genmagstr:WrongMode','Wrong param.mode value!');
+else
+    input_arg_names = varargin(1:2:end);
+    input_arg_names(ismember(input_arg_names, "mode")) = [];
+    unused_args = setdiff(input_arg_names, mode_args.(param.mode));
+    if ~isempty(unused_args)
+        warning('spinw:genmagstr:UnusedInput', ...
+                'Input(s) %s will be ignored in %s mode', ...
+                join(unused_args, ', '), param.mode)
+    end
+end
+
 if isempty(param.k)
     noK = true;
     param.k = k0;
@@ -255,12 +281,6 @@ end
 
 if prod(double(param.nExt)) == 0
     error('spinw:genmagstr:WrongInput','''nExt'' has to be larger than 0!');
-end
-
-if strcmp(param.mode,'extend')
-    warning('spinw:genmagstr:DeprecationWarning',...
-            'extend mode is deprecated, please use tile mode instead');
-    param.mode = 'tile';
 end
 
 % input type for S, check whether it is complex type
@@ -370,17 +390,6 @@ switch param.mode
         S = S + 1i*cross(repmat(permute(n,[2 3 1]),[1 size(S,2) 1]),S);
         
     case {'helical' 'fourier'}
-        if strcmpi(param.mode, 'helical')
-            for ik=1:size(k, 1)
-                Sk = real(param.S(:, :, ik));
-                if any(dot(repmat(n(ik, :), size(Sk, 2), 1)', Sk))
-                    warning('spinw:genmagstr:SnParallel', ...
-                            ['There are spin components parallel to n, the ' ...
-                             'amplitude of these components will be modulated']);
-                    break;
-                end
-            end
-        end
         S0 = param.S;
         % Magnetic ordering wavevector in the extended unit cell.
         kExt = k.*nExt;
@@ -433,6 +442,17 @@ switch param.mode
             S = bsxfunsym(@times,S0(:,mod(0:(nMagExt-1),nSpin)+1,:),exp(-1i*phi));
         else
             S = S0;
+        end
+        if strcmpi(param.mode, 'helical')
+            for ik=1:size(k, 1)
+                Sk = real(param.S(:, :, ik));
+                if any(dot(repmat(n(ik, :), size(Sk, 2), 1)', Sk))
+                    warning('spinw:genmagstr:SnParallel', ...
+                            ['There are spin components parallel to n, the ' ...
+                             'amplitude of these components will be modulated']);
+                    break;
+                end
+            end
         end
     case 'direct'
         % direct input of real magnetic moments
@@ -503,9 +523,6 @@ switch param.mode
         if any(k)
             S = S + 1i*cross(repmat(permute(n,[2 3 1]),[1 size(S,2) 1]),S);
         end
-        
-    otherwise
-        error('spinw:genmagstr:WrongMode','Wrong param.mode value!');
 end
 
 % normalize the magnetic moments
