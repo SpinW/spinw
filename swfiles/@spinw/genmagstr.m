@@ -246,12 +246,9 @@ if strcmpi(param.mode, 'rotate') && isempty(obj.mag_str.F)
                                          'structure to be defined with another mode first'])
 end
 
-
-real_inputs = {"n", "k", "nExt", "epsilon", "phid"};
-for i = 1:length(real_inputs)
-    if any(strcmp(varargin, real_inputs{i})) && ~isreal(param.(real_inputs{i}))
-        error('spinw:genmagstr:WrongInput', '%s should be real', real_inputs{i})
-    end
+% Complex n causes a crash, error out instead
+if ~isreal(param.n)
+    error('spinw:genmagstr:WrongInput', 'n should be real')
 end
 
 if isempty(param.k)

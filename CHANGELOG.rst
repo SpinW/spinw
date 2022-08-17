@@ -63,6 +63,5 @@ Bug Fixes
   ``helical`` and ``fourier`` modes in ``genmagstr``
 - Emit warning if arguments that will be ignored are passed to a particular
   mode in ``genmagstr`` (e.g. ``S`` is passed to ``random``)
-- Raise error if complex values are provided for ``k``, ``n``, ``nExt``,
-  ``epsilon`` or ``phid`` in ``genmagstr``. Previously
-  this might result in hanging or other errors depending on the argument.
+- Raise error if complex values is provided for ``n`` in ``genmagstr``.
+  Previously this would've caused a crash.
