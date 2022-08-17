@@ -230,10 +230,16 @@ param = sw_readparam(inpForm, varargin{:});
 % Error if S or k is provided but is empty. This means it has failed the
 % input validation, but hasn't caused an error because soft=True
 err_str = [];
-if any(strcmp(varargin, 'S')) && isempty(param.S)
+if isstruct(varargin{1})
+    varargin_struct = varargin{1};
+else
+    varargin_struct = struct(varargin{:});
+end
+varargin_names = fields(varargin_struct);
+if any(strcmpi(varargin_names, 'S')) && isempty(param.S)
     err_str = ["S"];
 end
-if any(strcmp(varargin, 'k')) && isempty(param.k)
+if any(strcmpi(varargin_names, 'k')) && isempty(param.k)
     err_str = [err_str "k"];
 end
 if length(err_str) > 0
@@ -286,13 +292,13 @@ mode_args = struct("random", ["k", "n", "nExt", "unit"], ...
 if ~any(strcmp(fields(mode_args), param.mode))
     error('spinw:genmagstr:WrongMode','Wrong param.mode value!');
 else
-    input_arg_names = varargin(1:2:end);
-    input_arg_names(ismember(input_arg_names, ["mode" "norm"])) = [];
-    unused_args = setdiff(input_arg_names, mode_args.(param.mode));
+    unused_args = {varargin_names{:}};
+    unused_args(ismember(lower(unused_args), ["mode" "norm"])) = [];
+    unused_args(ismember(lower(unused_args), lower(mode_args.(lower(param.mode))))) = [];
     if ~isempty(unused_args)
-        warning('spinw:genmagstr:UnusedInput', ...
+        warning('spinw:genmagstr:UnreadInput', ...
                 'Input(s) %s will be ignored in %s mode', ...
-                join(unused_args, ', '), param.mode)
+                string(join(unused_args', ', ')), param.mode)
     end
 end
 
