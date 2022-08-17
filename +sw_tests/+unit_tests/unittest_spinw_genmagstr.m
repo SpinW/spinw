@@ -55,6 +55,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
              {'nExt', [1 1 i]}, ...
              {'epsilon', complex(1)}, ...
              {'phid', i}};
+         rotate_phi_inputs = {{'phi', pi/4}, {'phid', 45}, {'phi', pi/4, 'phid', 90}};
     end
     methods (TestMethodSetup)
         function setup_chain_model(testCase)
@@ -545,22 +546,12 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             expected_mag_str.F = [1 0 1 0 1 0; 0 1 0 1 0 1; 0 0 0 0 0 0];
             testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
-        function test_rotate_phi(testCase)
+        function test_rotate_phi(testCase, rotate_phi_inputs)
             swobj = copy(testCase.swobj);
             k = [1/2 0 0];
             % Need to initialise structure before rotating it
             swobj.genmagstr('mode', 'direct', 'S', [1; 0; 0], 'k', k);
-            swobj.genmagstr('mode', 'rotate', 'phi', pi/4);
-            expected_mag_str = testCase.default_mag_str;
-            expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
-            expected_mag_str.k = k';
-            testCase.verify_obj(expected_mag_str, swobj.mag_str);
-        end
-        function test_rotate_phid(testCase)
-            swobj = copy(testCase.swobj);
-            k = [1/2 0 0];
-            swobj.genmagstr('mode', 'direct', 'S', [1; 0; 0], 'k', k);
-            swobj.genmagstr('mode', 'rotate', 'phid', 45);
+            swobj.genmagstr('mode', 'rotate', rotate_phi_inputs{:});
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1; 1; 0];
             expected_mag_str.k = k';
