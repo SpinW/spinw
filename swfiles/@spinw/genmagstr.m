@@ -290,7 +290,7 @@ if ~any(strcmp(fields(mode_args), param.mode))
     error('spinw:genmagstr:WrongMode','Wrong param.mode value!');
 else
     input_arg_names = varargin(1:2:end);
-    input_arg_names(ismember(input_arg_names, "mode")) = [];
+    input_arg_names(ismember(input_arg_names, ["mode" "norm"])) = [];
     unused_args = setdiff(input_arg_names, mode_args.(param.mode));
     if ~isempty(unused_args)
         warning('spinw:genmagstr:UnusedInput', ...

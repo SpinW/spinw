@@ -56,6 +56,11 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
              {'epsilon', complex(1)}, ...
              {'phid', i}};
          rotate_phi_inputs = {{'phi', pi/4}, {'phid', 45}, {'phi', pi/4, 'phid', 90}};
+         input_norm_output_F = {
+             % norm_bool, mag_str.F
+             {true, [2; 0; -2i]}, ...
+             {false, [1; 0; -1i]}
+         };
     end
     methods (TestMethodSetup)
         function setup_chain_model(testCase)
@@ -201,6 +206,18 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'F', [-sqrt(9/8)*1i; sqrt(9/8); sqrt(9/8)]);
             testCase.verify_obj(expected_mag_str, swobj_tri.mag_str);
+        end
+        function test_helical_S2_norm(testCase, input_norm_output_F)
+            swobj = spinw();
+            swobj.genlattice('lat_const', [3 8 8], 'angled', [90 90 90]);
+            swobj.addatom('r', [0 0 0], 'S', 2);
+            k = [1/3 0 0];
+            swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], 'k', k, ...
+                            'n', [0 1 0], 'norm', input_norm_output_F{1});
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = k';
+            expected_mag_str.F = input_norm_output_F{2};
+            testCase.verify_obj(expected_mag_str, swobj.mag_str);
         end
         function test_direct_fm_chain(testCase)
             swobj = copy(testCase.swobj);
