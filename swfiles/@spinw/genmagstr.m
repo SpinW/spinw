@@ -246,6 +246,33 @@ if strcmpi(param.mode, 'rotate') && isempty(obj.mag_str.F)
                                          'structure to be defined with another mode first'])
 end
 
+
+real_inputs = {"n", "k", "nExt", "epsilon", "phid"};
+for i = 1:length(real_inputs)
+    if any(strcmp(varargin, real_inputs{i})) && ~isreal(param.(real_inputs{i}))
+        error('spinw:genmagstr:WrongInput', '%s should be real', real_inputs{i})
+    end
+end
+
+if isempty(param.k)
+    noK = true;
+    param.k = k0;
+else
+    noK = false;
+end
+
+if prod(double(param.nExt)) == 0
+    error('spinw:genmagstr:WrongInput','''nExt'' has to be larger than 0!');
+end
+
+% input type for S, check whether it is complex type
+cmplxS = ~isreal(param.S);
+if strcmpi(param.mode, 'helical') && cmplxS
+    error('spinw:genmagstr:WrongInput', ...
+          ['S must be real for helical mode. To specify complex basis ' ...
+           'vectors directly use fourier mode.'])
+end
+
 if strcmp(param.mode,'extend')
     warning('spinw:genmagstr:DeprecationWarning',...
             'extend mode is deprecated, please use tile mode instead');
@@ -270,25 +297,6 @@ else
                 'Input(s) %s will be ignored in %s mode', ...
                 join(unused_args, ', '), param.mode)
     end
-end
-
-if isempty(param.k)
-    noK = true;
-    param.k = k0;
-else
-    noK = false;
-end
-
-if prod(double(param.nExt)) == 0
-    error('spinw:genmagstr:WrongInput','''nExt'' has to be larger than 0!');
-end
-
-% input type for S, check whether it is complex type
-cmplxS = ~isreal(param.S);
-if strcmpi(param.mode, 'helical') && cmplxS
-    error('spinw:genmagstr:WrongInput', ...
-          ['S must be real for helical mode. To specify complex basis ' ...
-           'vectors directly use fourier mode.'])
 end
 
 switch lower(param.unit)
