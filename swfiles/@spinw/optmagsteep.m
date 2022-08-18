@@ -450,7 +450,8 @@ else
 end
 
 if rIdx == nRun
-    warning('Convergence was not reached!')
+    warning('spinw:optmagsteep:NotConverged', ...
+            'Convergence was not reached!')
 end
 
 % Save optimised magnetic structure into the spinw object.
