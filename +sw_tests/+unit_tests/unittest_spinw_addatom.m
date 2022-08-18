@@ -178,7 +178,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
             expected_unit_cell.label = {label};
             expected_unit_cell.color = int32([224; 102; 51]);
             testCase.verify_val(testCase.swobj.unit_cell, ...
-                expected_unit_cell, 'abs_tol', 1e-4)
+                expected_unit_cell)
         end
         
         function test_add_atom_with_custom_form_factor(testCase)
