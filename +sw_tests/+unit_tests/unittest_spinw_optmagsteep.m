@@ -31,6 +31,18 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.verifyError(func_call, 'spinw:optmagsteep:NoField')
         end
         
+        function test_starting_from_groundstate_executes_one_iteration(testCase)
+            % generate ground state magnetic structure
+            testCase.swobj.genmagstr('mode', 'helical', 'S', [0; 0; -1], ...
+                                     'k',[0.5,0,0], 'n', [0,1,0], ...
+                                     'nExt', [2,1,1]);
+            out = testCase.swobj.optmagsteep;
+            testCase.verify_val(testCase.swobj.mag_str, ...
+                                testCase.default_mag_str, 'abs_tol', 1e-6);
+            testCase.verify_val(out.nRun, 1)
+            testCase.verify_val(out.e, -1.1)  % energy/spin
+        end
+        
         function test_converges_local_minimum_along_hard_axis(testCase)
             % FM with S//a (hard axis) - no component along easy-axis
             testCase.swobj.genmagstr('mode', 'direct', ...
