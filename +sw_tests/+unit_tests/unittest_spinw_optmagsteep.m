@@ -22,7 +22,6 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.gencoupling();
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1); % along a
             testCase.swobj.addaniso('A');
-
         end
     end
 
@@ -105,6 +104,22 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                 testCase.verify_val(testCase.swobj.energy, -1.1)
             end
         end
+        
+        function test_output_to_fid(testCase)
+           % generate ground state magnetic structure
+            testCase.swobj.genmagstr('mode', 'helical', 'S', [0; 0; 1], ...
+                                     'k',[0.5,0,0], 'n', [0,1,0], ...
+                                     'nExt', [2,1,1]);
+            mock_fprintf = sw_tests.utilities.mock_function('fprintf0');
+            fid = 3;
+            testCase.swobj.optmagsteep('fid', fid)
+            testCase.assertEqual(mock_fprintf.n_calls, 2);
+            % check fid used to write file
+            for irow = 1:mock_fprintf.n_calls
+                testCase.assertEqual(mock_fprintf.arguments{irow}{1}, fid)
+            end
+        end
+            
         
     end
 
