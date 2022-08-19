@@ -2,11 +2,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        default_mag_str = struct('nExt', int32([2 2 1]), ...
+        default_mag_str = struct('nExt', int32([2 1 1]), ...
                                  'k', [0; 0; 0], ...
-                                 'F', repmat([0,        0; 
-                                              0,        0; 
-                                              -1+0j, 1+0j], 1, 2));
+                                 'F', [0  0; 0 0; -1+0j 1+0j]);
     end
     properties (TestParameter)
 
@@ -36,11 +34,11 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
         function test_converges_local_minimum_along_hard_axis(testCase)
             % FM with S//a (hard axis) - no component along easy-axis
             testCase.swobj.genmagstr('mode', 'direct', ...
-                                     'S', repmat([1;0;0], 1,4), ...
-                                     'k',[0,0,0], 'nExt', [2,2,1]);
+                                     'S', [1 1; 0 0; 0 0], ...
+                                     'k',[0,0,0], 'nExt', [2,1,1]);
             testCase.swobj.optmagsteep;  % results in AFM S//a
             expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = repmat([-1, 1; -1j, 1j; 0, 0], 1, 2);
+            expected_magstr.F = [-1, 1; -1j, 1j; 0, 0];
             testCase.verify_val(testCase.swobj.mag_str, expected_magstr);
             testCase.verify_val(testCase.swobj.energy, -1.0)
         end
@@ -49,11 +47,11 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.field([0 0 1]);
             % FM with S//a (hard axis) - no component along easy-axis
             testCase.swobj.genmagstr('mode', 'direct', ...
-                                     'S', repmat([1;0;0], 1,4), ...
-                                     'k',[0,0,0], 'nExt', [2,2,1]);
-            testCase.swobj.optmagsteep;  % results in AFM S//c
+                                     'S', [1 1; 0 0; 0 0], ...
+                                     'k',[0,0,0], 'nExt', [2,1,1]);
+            testCase.swobj.optmagsteep('nRun', 150);  % results in AFM S//c
             expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = repmat([0, 0; 0, 0; 1+0j, -1+0j], 1, 2);
+            expected_magstr.F = [0, 0; 0, 0; 1+0j, -1+0j];
             testCase.verify_val(testCase.swobj.mag_str, expected_magstr, ...
                 'abs_tol', 1e-6);
             testCase.verify_val(testCase.swobj.energy, -1.1, ...
@@ -63,26 +61,23 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
         function test_converges_global_minimum(testCase)
             % FM with component of S // c (easy-axis)
             testCase.swobj.genmagstr('mode', 'direct', ...
-                                     'S', repmat([0;1;1], 1,4), ...
-                                     'k',[0,0,0], 'nExt', [2,2,1]);
+                                     'S', [0 0; 1 1; 1 1], ...
+                                     'k',[0,0,0], 'nExt', [2,1,1]);
             % try with one iterations - will not convergence
             testCase.verifyWarning(...
                 @() testCase.swobj.optmagsteep('nRun', 1), ...
                 'spinw:optmagsteep:NotConverged');
-            testCase.swobj.optmagsteep('nRun', 200);  % results in AFM S//c
-            expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = repmat([0, 0; 0, 0; -1+0j, 1+0j], 1, 2);
-            testCase.verify_val(testCase.swobj.mag_str, expected_magstr, ...
-                                'abs_tol', 1e-8);
-            
+            testCase.swobj.optmagsteep('nRun', 150);  % results in AFM S//c
+            testCase.verify_val(testCase.swobj.mag_str, ...
+                                testCase.default_mag_str, 'abs_tol', 1e-8);
             testCase.verify_val(testCase.swobj.energy, -1.1)
         end
         
         function test_random_init_of_spins(testCase)
             % FM with S//a (hard axis) - no component along easy-axis
             testCase.swobj.genmagstr('mode', 'direct', ...
-                                     'S', repmat([1;0;0], 1,4), ...
-                                     'k',[0,0,0], 'nExt', [2,2,1]);
+                                     'S', [1 1; 0 0; 0 0], ...
+                                     'k',[0,0,0], 'nExt', [2,1,1]);
             has_easy_comp = false;
             for irun = 1:5
                 testCase.swobj.optmagsteep('random', true, 'nRun', 200)
@@ -93,12 +88,10 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             end
             if has_easy_comp
                 expected_magstr = testCase.default_mag_str;
-                expected_magstr.F = repmat([0, 0; 0, 0; 1+0j, 1+0j], ...
-                                           1, 2);
-                % no coupling between chains so can be AFM or FM 
-                % ordered along b-axis (same energy)
-                expected_magstr.F(end,:) = expected_magstr.F(end,:).*sign(...
-                    testCase.swobj.mag_str.F(end,:));
+                % first moment can be up/down (same energy) so adjust 
+                % expected value to have same z-component sign on 1st spin
+                expected_magstr.F = -sign(testCase.swobj.mag_str.F(end,1))*...
+                    expected_magstr.F;
                 testCase.verify_val(testCase.swobj.mag_str, ...
                                     expected_magstr, 'abs_tol', 1e-6);
                 testCase.verify_val(testCase.swobj.energy, -1.1)
@@ -119,7 +112,6 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                 testCase.assertEqual(mock_fprintf.arguments{irow}{1}, fid)
             end
         end
-            
         
     end
 
