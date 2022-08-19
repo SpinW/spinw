@@ -46,6 +46,21 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.swobj.energy, -1.0)
         end
         
+        function test_spins_align_along_easy_axis_external_field(testCase)
+            testCase.swobj.field([0 0 1]);
+            % FM with S//a (hard axis) - no component along easy-axis
+            testCase.swobj.genmagstr('mode', 'direct', ...
+                                     'S', repmat([1;0;0], 1,4), ...
+                                     'k',[0,0,0], 'nExt', [2,2,1]);
+            testCase.swobj.optmagsteep;  % results in AFM S//c
+            expected_magstr = testCase.default_mag_str;
+            expected_magstr.F = repmat([0, 0; 0, 0; 1+0j, -1+0j], 1, 2);
+            testCase.verify_val(testCase.swobj.mag_str, expected_magstr, ...
+                'abs_tol', 1e-6);
+            testCase.verify_val(testCase.swobj.energy, -1.1, ...
+                'abs_tol', 1e-10)  % same energy as grd state without field
+        end
+        
         function test_converges_global_minimum(testCase)
             % FM with component of S // c (easy-axis)
             testCase.swobj.genmagstr('mode', 'direct', ...
@@ -71,7 +86,7 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                                      'k',[0,0,0], 'nExt', [2,2,1]);
             has_easy_comp = false;
             for irun = 1:5
-                testCase.swobj.optmagsteep('random', true)
+                testCase.swobj.optmagsteep('random', true, 'nRun', 200)
                 has_easy_comp = abs(real(testCase.swobj.mag_str.F(end,1))) > 0;
                 if has_easy_comp
                     break;
@@ -81,12 +96,12 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                 expected_magstr = testCase.default_mag_str;
                 expected_magstr.F = repmat([0, 0; 0, 0; 1+0j, 1+0j], ...
                                            1, 2);
-                % no coupling between chains so can be AFM and FM ordered
-                % along b-axis
+                % no coupling between chains so can be AFM or FM 
+                % ordered along b-axis (same energy)
                 expected_magstr.F(end,:) = expected_magstr.F(end,:).*sign(...
                     testCase.swobj.mag_str.F(end,:));
                 testCase.verify_val(testCase.swobj.mag_str, ...
-                                    expected_magstr, 'abs_tol', 5e-8);
+                                    expected_magstr, 'abs_tol', 1e-6);
                 testCase.verify_val(testCase.swobj.energy, -1.1)
             end
         end
