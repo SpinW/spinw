@@ -87,26 +87,33 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
         
         function test_random_init_of_spins(testCase)
             % FM with S//a (hard axis) - no component along easy-axis
+            % optmagsteep would converge at local not global minimum
             testCase.swobj.genmagstr('mode', 'direct', ...
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
-            has_easy_comp = false;
             for irun = 1:5
                 testCase.swobj.optmagsteep('random', true, 'nRun', 200)
-                has_easy_comp = abs(real(testCase.swobj.mag_str.F(end,1))) > 0;
-                if has_easy_comp
-                    break;
-                end
+                if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
+                    expected_magstr = testCase.default_mag_str;
+                    % first moment can be up/down (same energy) so adjust 
+                    % expected value to have same z-component sign on 1st S
+                    expected_magstr.F = -sign(testCase.swobj.mag_str.F(end,1))*...
+                        expected_magstr.F;
+                    testCase.verify_val(testCase.swobj.mag_str, ...
+                                        expected_magstr, 'abs_tol', 1e-6);
+                    testCase.verify_val(testCase.swobj.energy, -1.1);
+                    break
+                end               
             end
-            if has_easy_comp
-                expected_magstr = testCase.default_mag_str;
-                % first moment can be up/down (same energy) so adjust 
-                % expected value to have same z-component sign on 1st spin
-                expected_magstr.F = -sign(testCase.swobj.mag_str.F(end,1))*...
-                    expected_magstr.F;
-                testCase.verify_val(testCase.swobj.mag_str, ...
-                                    expected_magstr, 'abs_tol', 1e-6);
-                testCase.verify_val(testCase.swobj.energy, -1.1)
+        end
+        
+        function test_random_init_spins_if_no_initial_magstr(testCase)
+            for irun = 1:5
+                testCase.swobj.optmagsteep('nExt', [2,1,1], 'nRun', 250);
+                if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
+                    testCase.verify_val(testCase.swobj.energy, -1.1);
+                    break
+                end
             end
         end
         
