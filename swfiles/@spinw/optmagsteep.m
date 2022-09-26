@@ -354,7 +354,11 @@ M = [M zeros(3,1)];
 
 % create swplot figure if it doesn't exist
 if param.plot
-    hFigure = swplot.activefigure;
+    try
+        hFigure = swplot.activefigure;
+    catch
+        hFigure = obj.plot();
+    end
 end
 
 while (rIdx < nRun) && (dM>param.TolX)

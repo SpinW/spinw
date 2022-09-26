@@ -7,7 +7,7 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                                  'F', [0  0; 0 0; -1+0j 1+0j]);
     end
     properties (TestParameter)
-
+        existing_plot = {true, false};
     end
     methods (TestClassSetup)
         function setup_afm_chain_model_easy_axis(testCase)            
@@ -123,6 +123,25 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             for irow = 1:mock_fprintf.n_calls
                 testCase.assertEqual(mock_fprintf.arguments{irow}{1}, fid)
             end
+        end
+        
+        function test_plot_moment_each_iteration(testCase, existing_plot)
+            if existing_plot
+                existing_fig = testCase.swobj.plot();
+            end
+            % generate ground state magnetic structure
+            testCase.swobj.genmagstr('mode', 'helical', 'S', [0; 0; -1], ...
+                                     'k',[0.5,0,0], 'n', [0,1,0], ...
+                                     'nExt', [2,1,1]);
+            testCase.swobj.optmagsteep('plot',true);
+            % check magstr plotted (with arrow)
+            fig = swplot.activefigure;
+            testCase.assertEqual(numel(findobj(fig.Children(1),'Tag', ...
+                                               'arrow')), 2)
+            if existing_plot
+                testCase.assertEqual(fig, existing_fig);
+            end
+            close(fig);
         end
         
     end
