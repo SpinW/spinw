@@ -166,15 +166,18 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'helical', 'S', [0; 0; -1], ...
                                      'k',[0.5,0,0], 'n', [0,1,0], ...
                                      'nExt', [2,1,1]);
-            testCase.swobj.optmagsteep('plot',true);
+            mock_pause = sw_tests.utilities.mock_function('pause');
+            tpause = 1e-5;
+            testCase.swobj.optmagsteep('plot', true, 'pause', tpause);
             % check magstr plotted (with arrow)
             fig = swplot.activefigure;
-            testCase.assertEqual(numel(findobj(fig.Children(1),'Tag', ...
-                                               'arrow')), 2)
+            testCase.assertEqual(numel(findobj(fig,'Tag', 'arrow')), 2)
             if existing_plot
                 testCase.assertEqual(fig, existing_fig);
             end
             close(fig);
+            testCase.assertEqual(mock_pause.n_calls, 1);
+            testCase.assertEqual(mock_pause.arguments{1}, {tpause})
         end
         
         function test_convergence_stops_with_given_xtol(testCase)
