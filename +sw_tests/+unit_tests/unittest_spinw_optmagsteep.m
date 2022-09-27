@@ -177,6 +177,30 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             close(fig);
         end
         
+        function test_convergence_stops_with_given_xtol(testCase)
+            testCase.swobj.genmagstr('mode', 'direct', ...
+                         'S', [0 0; 1 1; 1 1], ...
+                         'k',[0,0,0], 'nExt', [2,1,1]);
+            dM_tol = 1e-3;
+            opt_struct = testCase.swobj.optmagsteep('TolX', dM_tol);
+            testCase.verify_val(opt_struct.dM, dM_tol, 'abs_tol', 1e-4);
+        end
+        
+        function test_not_move_moments_in_field_more_than_Hmin(testCase)
+            testCase.swobj.genmagstr('mode', 'direct', ...
+                         'S', [0 0; 1 1; 1 1], ...
+                         'k',[0,0,0], 'nExt', [2,1,1]);
+            opt_struct = testCase.swobj.optmagsteep('Hmin', 2);
+            % check moments haven't moved
+            testCase.verify_val(opt_struct.dM, 0);
+            % check structure is unchanged
+            expected_magstr = testCase.default_mag_str;
+            expected_magstr.F = [0-1j,  0-1j; 
+                                 1+0j, 1+0j;
+                                 1+0j, 1+0j]/sqrt(2);
+            testCase.verify_val(testCase.swobj.mag_str, expected_magstr);
+        end
+        
     end
 
 end
