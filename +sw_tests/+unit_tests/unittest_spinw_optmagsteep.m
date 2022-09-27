@@ -185,8 +185,11 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                          'S', [0 0; 1 1; 1 1], ...
                          'k',[0,0,0], 'nExt', [2,1,1]);
             dM_tol = 1e-3;
-            opt_struct = testCase.swobj.optmagsteep('TolX', dM_tol);
+            opt_struct = testCase.swobj.optmagsteep('TolX', dM_tol, ...
+                                                    'saveAll', true);
             testCase.verify_val(opt_struct.dM, dM_tol, 'abs_tol', 1e-4);
+            % check M saved fro each iteration
+            testcase.assertEqual(size(opt_struct.M, 3), opt_struct.nRun);
         end
         
         function test_not_move_moments_in_field_more_than_Hmin(testCase)
