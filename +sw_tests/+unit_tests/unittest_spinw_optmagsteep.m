@@ -2,9 +2,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
 
     properties
         swobj = [];
-        default_mag_str = struct('nExt', int32([2 1 1]), ...
-                                 'k', [0; 0; 0], ...
-                                 'F', [0  0; 0 0; -1+0j 1+0j]);
+        default_magstr = struct('S', [0  0; 0 0; -1 1], 'n', [0 0 1], ...
+                                'N_ext', [2 1 1], 'k', [0 0 0], ...
+                                'exact', true)
     end
     properties (TestParameter)
         existing_plot = {true, false};
@@ -62,11 +62,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'helical', 'S', [0; 0; -1], ...
                                      'k',[0.5,0,0], 'n', [0,1,0], ...
                                      'nExt', [2,1,1]);
-            out = testCase.swobj.optmagsteep;
-            testCase.verify_val(testCase.swobj.mag_str, ...
-                                testCase.default_mag_str, 'abs_tol', 1e-6);
-            testCase.verify_val(out.nRun, 1)
-            testCase.verify_val(out.e, -1.1)  % energy/spin
+            opt = testCase.swobj.optmagsteep;
+            testCase.verify_val(testCase.swobj.magstr, ...
+                                testCase.default_magstr, 'abs_tol', 1e-6);
         end
         
         function test_converges_local_minimum_along_hard_axis(testCase)
@@ -75,9 +73,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
             testCase.swobj.optmagsteep;  % results in AFM S//a
-            expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = [-1, 1; -1j, 1j; 0, 0];
-            testCase.verify_val(testCase.swobj.mag_str, expected_magstr);
+            expected_magstr = testCase.default_magstr;
+            expected_magstr.S = [-1, 1; 0, 0; 0, 0];
+            testCase.verify_val(testCase.swobj.magstr, expected_magstr);
             testCase.verify_val(testCase.swobj.energy, -1.0)
         end
         
@@ -88,9 +86,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
             testCase.swobj.optmagsteep('nRun', 150);  % results in AFM S//c
-            expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = [0, 0; 0, 0; 1+0j, -1+0j];
-            testCase.verify_val(testCase.swobj.mag_str, expected_magstr, ...
+            expected_magstr = testCase.default_magstr;
+            expected_magstr.S = [0, 0; 0, 0; 1, -1];
+            testCase.verify_val(testCase.swobj.magstr, expected_magstr, ...
                 'abs_tol', 1e-6);
             testCase.verify_val(testCase.swobj.energy, -1.1, ...
                 'abs_tol', 1e-10)  % same energy as grd state without field
@@ -106,8 +104,8 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                 @() testCase.swobj.optmagsteep('nRun', 1), ...
                 'spinw:optmagsteep:NotConverged');
             testCase.swobj.optmagsteep('nRun', 150);  % results in AFM S//c
-            testCase.verify_val(testCase.swobj.mag_str, ...
-                                testCase.default_mag_str, 'abs_tol', 1e-8);
+            testCase.verify_val(testCase.swobj.magstr, ...
+                                testCase.default_magstr, 'abs_tol', 1e-8);
             testCase.verify_val(testCase.swobj.energy, -1.1)
         end
         
@@ -120,12 +118,12 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             for irun = 1:5
                 testCase.swobj.optmagsteep('random', true, 'nRun', 200)
                 if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
-                    expected_magstr = testCase.default_mag_str;
+                    expected_magstr = testCase.default_magstr;
                     % first moment can be up/down (same energy) so adjust 
                     % expected value to have same z-component sign on 1st S
-                    expected_magstr.F = -sign(testCase.swobj.mag_str.F(end,1))*...
-                        expected_magstr.F;
-                    testCase.verify_val(testCase.swobj.mag_str, ...
+                    expected_magstr.S = -sign(testCase.swobj.magstr.S(end,1))*...
+                        expected_magstr.S;
+                    testCase.verify_val(testCase.swobj.magstr, ...
                                         expected_magstr, 'abs_tol', 1e-6);
                     testCase.verify_val(testCase.swobj.energy, -1.1);
                     break
@@ -188,8 +186,8 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             opt_struct = testCase.swobj.optmagsteep('TolX', dM_tol, ...
                                                     'saveAll', true);
             testCase.verify_val(opt_struct.dM, dM_tol, 'abs_tol', 1e-4);
-            % check M saved fro each iteration
-            testcase.assertEqual(size(opt_struct.M, 3), opt_struct.nRun);
+            % check M saved for each iteration
+            testCase.assertEqual(size(opt_struct.M, 3), opt_struct.nRun);
         end
         
         function test_not_move_moments_in_field_more_than_Hmin(testCase)
@@ -200,11 +198,9 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             % check moments haven't moved
             testCase.verify_val(opt_struct.dM, 0);
             % check structure is unchanged
-            expected_magstr = testCase.default_mag_str;
-            expected_magstr.F = [0-1j,  0-1j; 
-                                 1+0j, 1+0j;
-                                 1+0j, 1+0j]/sqrt(2);
-            testCase.verify_val(testCase.swobj.mag_str, expected_magstr);
+            expected_magstr = testCase.default_magstr;
+            expected_magstr.S = [0, 0; 1, 1; 1, 1]/sqrt(2);
+            testCase.verify_val(testCase.swobj.magstr, expected_magstr);
         end
         
     end
