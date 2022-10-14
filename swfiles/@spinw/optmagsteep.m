@@ -472,7 +472,7 @@ if nargout > 0
     if param.saveAll
         optm.M = Msave;
     else
-        optm.M = M(1:end-1);
+        optm.M = M;
     end
     optm.dM       = dM;
     optm.e        = E(1:rIdx);
