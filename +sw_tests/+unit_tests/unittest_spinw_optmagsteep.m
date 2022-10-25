@@ -126,6 +126,8 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'direct', ...
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
+            % try a few times in case converges to local minima from random
+            % starting point
             for irun = 1:5
                 testCase.swobj.optmagsteep('random', true, 'nRun', 200)
                 if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
@@ -143,6 +145,8 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
         end
         
         function test_random_init_spins_if_no_initial_magstr(testCase)
+            % try a few times in case converges to local minima from random
+            % starting point
             for irun = 1:5
                 testCase.swobj.optmagsteep('nExt', [2,1,1], 'nRun', 250);
                 if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
