@@ -47,5 +47,30 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
                                 'abs_tol', 1e-4);
         end
+        function test_kbase(testCase)
+            % See https://doi.org/10.1103/PhysRevB.59.14367
+            swobj = spinw();
+            swobj.genlattice('lat_const', [3 3 8])
+            swobj.addatom('r',[0; 0; 0],'S',1)
+            swobj.gencoupling();
+            J1 = 1.2;
+            J2 = 1.0;
+            swobj.addmatrix('label', 'J1', 'value', J1);
+            swobj.addmatrix('label', 'J2', 'value', J2);
+            swobj.addcoupling('mat', 'J1', 'bond', 2, 'subidx', 2);
+            swobj.addcoupling('mat', 'J2', 'bond', 1);
+            swobj.optmagk('kbase', [1; 1; 0]);
+
+            expected_k = acos(-J2/(2*J1))/(2*pi);
+            rel_tol = 1e-5;
+            if abs(expected_k - swobj.mag_str.k(1)) > rel_tol*expected_k
+                % If this k doesn't match, try 1-k
+                expected_k = 1 - expected_k; % k and 1-k are degenerate
+            end
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = [expected_k; expected_k; 0];
+            testCase.verify_val(swobj.mag_str, expected_mag_str, ...
+                                'rel_tol', rel_tol);
+        end
     end
 end
