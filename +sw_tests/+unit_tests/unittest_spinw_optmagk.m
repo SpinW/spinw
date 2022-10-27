@@ -10,6 +10,9 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
                                        sqrt(1/3) - 1i*sqrt(1/2)], ...
                                  'k', [1; 0; 0]);
     end
+    properties (TestParameter)
+        kbase_opts = {[1; 1; 0], [1 0; 0 1; 0 0]};
+    end
     methods (TestMethodSetup)
         function setup_chain_model(testCase)            
             testCase.swobj = spinw();
@@ -47,7 +50,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
                                 'abs_tol', 1e-4);
         end
-        function test_kbase(testCase)
+        function test_kbase(testCase, kbase_opts)
             % See https://doi.org/10.1103/PhysRevB.59.14367
             swobj = spinw();
             swobj.genlattice('lat_const', [3 3 8])
@@ -59,7 +62,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             swobj.addmatrix('label', 'J2', 'value', J2);
             swobj.addcoupling('mat', 'J1', 'bond', 2, 'subidx', 2);
             swobj.addcoupling('mat', 'J2', 'bond', 1);
-            swobj.optmagk('kbase', [1; 1; 0]);
+            swobj.optmagk('kbase', kbase_opts);
 
             expected_k = acos(-J2/(2*J1))/(2*pi);
             rel_tol = 1e-5;
