@@ -22,7 +22,19 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
         end
     end
     methods (Test)
-        function test_fm_optk(testCase)
+        function test_symbolic_warns_returns_nothing(testCase)
+            testCase.swobj.addmatrix('label', 'J1', 'value', 1);
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
+            testCase.swobj.symbolic(true)
+            testCase.verifyWarning(...
+                @() testCase.swobj.optmagk, ...
+                'spinw:optmagk:NoSymbolic');
+            testCase.verifyEmpty(testCase.swobj.mag_str.k);
+            testCase.verifyEmpty(testCase.swobj.mag_str.F);
+            testCase.verify_val(testCase.swobj.mag_str.nExt, ...
+                                int32([1 1 1]));
+        end
+        function test_fm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', -1);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
             out = testCase.swobj.optmagk;
@@ -41,7 +53,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
                                 'abs_tol', 1e-4);
         end
-        function test_afm_optk(testCase)
+        function test_afm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
             testCase.swobj.optmagk;
