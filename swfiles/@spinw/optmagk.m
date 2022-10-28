@@ -59,6 +59,7 @@ inpForm.soft   = {true   };
 
 warning('off','sw_readparam:UnreadInput')
 param = sw_readparam(inpForm, varargin{:});
+softparamcheck(["kbase"], 'optmagk', param, varargin{:});
 warning('on','sw_readparam:UnreadInput')
 
 

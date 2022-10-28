@@ -226,26 +226,7 @@ inpForm.size   = [inpForm.size   {[3 -7 -6] [1 1] [1 1]  [1 1]     [1 -5]}];
 inpForm.soft   = [inpForm.soft   {true      true  false  false     false }];
 
 param = sw_readparam(inpForm, varargin{:});
-
-% Error if S or k is provided but is empty. This means it has failed the
-% input validation, but hasn't caused an error because soft=True
-err_str = [];
-if isstruct(varargin{1})
-    varargin_struct = varargin{1};
-else
-    varargin_struct = struct(varargin{:});
-end
-varargin_names = fields(varargin_struct);
-if any(strcmpi(varargin_names, 'S')) && isempty(param.S)
-    err_str = ["S"];
-end
-if any(strcmpi(varargin_names, 'k')) && isempty(param.k)
-    err_str = [err_str "k"];
-end
-if length(err_str) > 0
-    error('spinw:genmagstr:WrongInput', 'Incorrect input size for ' + ...
-                                        join(err_str, ', '));
-end
+softparamcheck(["S", "k"], 'genmagstr', param, varargin{:});
 
 if strcmpi(param.mode, 'rotate') && isempty(obj.mag_str.F)
     error('spinw:genmagstr:WrongInput', ['rotate mode requires a magnetic ' ...
@@ -292,7 +273,7 @@ mode_args = struct("random", ["k", "n", "nExt", "unit"], ...
 if ~any(strcmp(fields(mode_args), param.mode))
     error('spinw:genmagstr:WrongMode','Wrong param.mode value!');
 else
-    unused_args = {varargin_names{:}};
+    unused_args = vararginnames(varargin{:});
     unused_args(ismember(lower(unused_args), ["mode" "norm"])) = [];
     unused_args(ismember(lower(unused_args), lower(mode_args.(lower(param.mode))))) = [];
     if ~isempty(unused_args)

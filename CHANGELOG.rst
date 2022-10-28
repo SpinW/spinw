@@ -65,3 +65,5 @@ Bug Fixes
   mode in ``genmagstr`` (e.g. ``S`` is passed to ``random``)
 - Raise error if complex values is provided for ``n`` in ``genmagstr``.
   Previously this would've caused a crash.
+- Raise error if invalid shape ``kbase`` is provided to ``optmagk``,
+  previously it would be silently set to empty

@@ -22,6 +22,11 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
         end
     end
     methods (Test)
+        function test_wrong_shape_kbase_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.optmagk('kbase', [1 1 0]), ...
+                'spinw:optmagk:WrongInput');
+        end
         function test_symbolic_warns_returns_nothing(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
