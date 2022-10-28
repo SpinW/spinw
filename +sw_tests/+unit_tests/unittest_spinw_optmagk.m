@@ -11,7 +11,11 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
                                  'k', [1; 0; 0]);
     end
     properties (TestParameter)
-        kbase_opts = {[1; 1; 0], [1 0; 0 1; 0 0]};
+        % kbase, rel_tol
+        % For [1 0; 0 1; 0 0], k in each direction can very independently
+        % which is less accurate, increase tol in this case
+        kbase_opts = {{[1; 1; 0], 1e-5}, ...
+                      {[1 0; 0 1; 0 0], 3e-3}};
     end
     methods (TestMethodSetup)
         function setup_chain_model(testCase)            
@@ -21,12 +25,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.swobj.gencoupling();
         end
     end
-    methods (Test)
-        function test_wrong_shape_kbase_raises_error(testCase)
-            testCase.verifyError(...
-                @() testCase.swobj.optmagk('kbase', [1 1 0]), ...
-                'spinw:optmagk:WrongInput');
-        end
+    methods (Test, TestTags = {'Symbolic'})
         function test_symbolic_warns_returns_nothing(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
@@ -38,6 +37,13 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.verifyEmpty(testCase.swobj.mag_str.F);
             testCase.verify_val(testCase.swobj.mag_str.nExt, ...
                                 int32([1 1 1]));
+        end
+    end
+    methods (Test)
+        function test_wrong_shape_kbase_raises_error(testCase)
+            testCase.verifyError(...
+                @() testCase.swobj.optmagk('kbase', [1 1 0]), ...
+                'spinw:optmagk:WrongInput');
         end
         function test_fm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', -1);
@@ -79,7 +85,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             swobj.addmatrix('label', 'J2', 'value', J2);
             swobj.addcoupling('mat', 'J1', 'bond', 2, 'subidx', 2);
             swobj.addcoupling('mat', 'J2', 'bond', 1);
-            swobj.optmagk('kbase', kbase_opts);
+            swobj.optmagk('kbase', kbase_opts{1});
 
             expected_k = acos(-J2/(2*J1))/(2*pi);
             rel_tol = 1e-5;
@@ -90,7 +96,7 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [expected_k; expected_k; 0];
             testCase.verify_val(swobj.mag_str, expected_mag_str, ...
-                                'rel_tol', rel_tol);
+                                'rel_tol', kbase_opts{2});
         end
     end
 end
