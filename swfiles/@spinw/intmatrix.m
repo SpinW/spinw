@@ -299,7 +299,7 @@ if obj.coupling.rdip > 0
     
     Edip = -obj.unit.mu0*obj.unit.muB^2/4/pi;
     % dipole-dipole interaction matrices
-    rrmat = bsxfun(@times,permute(Edip./lA(1,rSel).^3,[1 3 2]),rrmat);
+    rrmat = Edip.*bsxfun(@times,permute(1./lA(1,rSel).^3,[1 3 2]),rrmat);
     % multiply with the g-tensors on the left and right sides
     rrmat = mmat(permute(SI.g(:,:,coupling.atom1(rSel)),[2 1 3]),rrmat);
     Jdip  = mmat(rrmat,SI.g(:,:,coupling.atom2(rSel)));

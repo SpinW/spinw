@@ -238,6 +238,22 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
             testCase.verify_val([1 2; 2 1], SS_sort.all(4:5,2:end));
             
         end
-     end
+        
+    end
+     
+     methods (Test, TestTags = {'Symbolic'})
+        function add_matrix_with_symbolic_value(testCase)
+            testCase.swobj.symbolic(true);
+            [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', true);
+            % replace symbolic variables with 1
+            SS = structfun(@sw_sub1, SS, 'UniformOutput', false);
+            SI = structfun(@sw_sub1, SI, 'UniformOutput', false);
+            expected_SS = testCase.default_SS;
+            expected_SS.dip(6:end,:) = 298.3569*expected_SS.dip(6:end,:);
+            testCase.verify_val(expected_SS, SS, 'abs_tol', 5e-3)
+            testCase.verify_val(testCase.default_SI, SI)
+            testCase.verify_val(testCase.default_RR, RR)
+        end
+    end
 
 end
