@@ -25,14 +25,14 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('label', 'A', ...
                                      'value', diag([0 0 -0.1])) % c easy
             testCase.swobj.addmatrix('label', 'J1', 'value', 1)  % AFM
-            testCase.swobj.gencoupling();
+            testCase.swobj.gencoupling('maxDistance', 6);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1); % along a
             testCase.swobj.addaniso('A');
         end
     end
 
     methods (Test)
-        function test_no_nExt_throws_error(testCase)
+        function test_only_one_spin_throws_error(testCase)
             testCase.swobj.genmagstr('mode', 'direct', 'S', [0; 0; 1], ...
                                      'k',[0, 0, 0]);
             func_call = @() testCase.swobj.optmagsteep('random', true);
@@ -216,6 +216,23 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             expected_magstr = testCase.default_magstr;
             expected_magstr.S = [0, 0; 1, 1; 1, 1]/sqrt(2);
             testCase.verify_val(testCase.swobj.magstr, expected_magstr);
+        end
+        
+        function test_multiple_atoms_in_unit_cell(testCase)
+            testCase.swobj.addatom('r',[0.5; 0.5; 0.5],'S',1)
+            testCase.swobj.gencoupling('maxDistance', 6);
+            testCase.swobj.addaniso('A'); % add again as cleared above
+            % add AFM coupling of spins in same unit cell
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 3, 'dMin', 0.1);
+            testCase.swobj.genmagstr('mode', 'direct', 'S', [0 0; 0 0; 1 1], ...
+                                    'k',[0, 0, 0]); % FM initial state
+                                
+            testCase.swobj.optmagsteep();
+            
+            expected_magstr = testCase.default_magstr;
+            expected_magstr.N_ext = [1 1 1];
+            testCase.verify_val(testCase.swobj.magstr, expected_magstr);
+            testCase.verify_val(testCase.swobj.energy, -4.1)
         end
         
     end
