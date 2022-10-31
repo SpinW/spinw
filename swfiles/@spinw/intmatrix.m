@@ -219,11 +219,7 @@ SS.all   = SS.all(1:5,:);
 % don't calculate these for speedup in case of fitting
 if ~param.fitmode
     JJ.type = sw_mattype(JJ.mat);
-    
-    % new type for biquadratic exchange
-    if any(JJ.type(mat_type==1)~=1)
-        error('spinw:intmatrix:DataError','Biquadratic exchange matrix has to be isotropic!')
-    end
+
     % for biquadratic exchange type = 5
     JJ.type(mat_type==1) = 5;
     

@@ -52,7 +52,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('label','D','value',[0 -1 0])
             testCase.swobj.addmatrix('label','gen','value', ...
                                      reshape(2:2:18, [3, 3]))
-            testCase.swobj.gencoupling();
+            testCase.swobj.gencoupling('maxDistance', 5);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1); % bond // a
             testCase.swobj.addcoupling('mat', 'J2', 'bond', 2, 'type', 'biquadratic'); % bond // b
             testCase.swobj.addaniso('A');
@@ -63,13 +63,6 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
     end
 
     methods (Test)
-            
-        function test_error_anisotropic_biquad_exchange(testCase)
-            testCase.swobj.addcoupling('mat', 'D', 'bond', 3, 'subIdx', 1, ...
-                'type', 'biquadratic');
-            testCase.verifyError(@() testCase.swobj.intmatrix('fitmode',0), ...
-                'spinw:intmatrix:DataError') % better if sw_readparam:MissingParameter
-        end
 
         function test_intmatrix_no_couplings_defined(testCase)
             [SS, SI, RR] = spinw().intmatrix('fitmode', true);

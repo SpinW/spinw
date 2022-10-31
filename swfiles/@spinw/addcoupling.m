@@ -97,6 +97,11 @@ if ~isnumeric(param.mat)
     param.mat = find(ismember(obj.matrix.label,param.mat));
 end
 
+if isempty(param.mat)
+    error('spinw:addcoupling:WrongMatrixLabel', ...
+          'The selected matrix label does not exists!')
+end
+
 if isempty(param.type)
     param.type = 0*param.mat;
 end
@@ -118,6 +123,11 @@ if iscell(param.type)
             'are supported!']);
     end
     
+end
+
+if param.type == 1 && sw_mattype(obj.matrix.mat(:,:,param.mat))~=1
+    error('spinw:addcoupling:WrongInput', ...
+          'Biquadratic exchange matrix has to be isotropic!');
 end
 
 if isempty(param.sym)
@@ -237,10 +247,6 @@ param.sym  = int32(param.sym);
 if any(ismember(Jmod(:),param.mat))
     warning('spinw:addcoupling:CouplingIdxWarning',['Same matrix already '...
         'assigned on some coupling, duplicate assigments are removed!']);
-end
-
-if isempty(param.mat)
-    error('spinw:addcoupling:WrongMatrixLabel','The selected matrix label does not exists!')
 end
 
 if any(Jmod(3,:))
