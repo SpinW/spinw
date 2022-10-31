@@ -65,3 +65,9 @@ Bug Fixes
   mode in ``genmagstr`` (e.g. ``S`` is passed to ``random``)
 - Raise error if complex values is provided for ``n`` in ``genmagstr``.
   Previously this would've caused a crash.
+- Fix error when plotting progress of ``optmagsteep`` without existing figure
+- Correctly report magnetic moments in each iteration of ``optmagsteep``.
+- Fix error when calling ``intmatrix`` with dipolar bonds and symbolic 
+  spinw object.
+- Ensure biquadratic exchange interactions are isotropic in ``addcoupling``
+  (previously checked in ``intmatrix``)
