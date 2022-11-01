@@ -138,8 +138,13 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
             testCase.swobj.optmagsteep('random', true, 'nRun', 200)
+            expected_magstr = testCase.default_magstr;
+            % first moment can be up/down (same energy) so adjust 
+            % expected value to have same z-component sign on 1st S
+            expected_magstr.S = -sign(testCase.swobj.magstr.S(end,1))*...
+                expected_magstr.S;
             testCase.verify_val(testCase.swobj.magstr, ...
-                                testCase.default_magstr, 'abs_tol', 1e-6);
+                                expected_magstr, 'abs_tol', 1e-6);
             testCase.verify_val(testCase.swobj.energy, -1.1);
         end
         
