@@ -12,10 +12,17 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
                              'nRun', 1, ...
                              'title', ['Optimised magnetic structure ', ...
                                       'using the method of steepest ', ...
-                                      'descent']); 
+                                      'descent']);
+       orig_rng_state = []
     end
     properties (TestParameter)
         existing_plot = {true, false};
+    end
+    methods (TestClassSetup)
+        function set_seed(testCase)
+            testCase.orig_rng_state = rng;
+            rng('default');
+        end
     end
     methods (TestMethodSetup)
         function setup_afm_chain_model_easy_axis(testCase)            
@@ -30,7 +37,11 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.addaniso('A');
         end
     end
-
+    methods(TestMethodTeardown)
+        function reset_seed(testCase)
+            rng(testCase.orig_rng_state);
+        end
+    end
     methods (Test)
         function test_only_one_spin_throws_error(testCase)
             testCase.swobj.genmagstr('mode', 'direct', 'S', [0; 0; 1], ...
@@ -126,34 +137,15 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.swobj.genmagstr('mode', 'direct', ...
                                      'S', [1 1; 0 0; 0 0], ...
                                      'k',[0,0,0], 'nExt', [2,1,1]);
-            % try a few times in case converges to local minima from random
-            % starting point
-            for irun = 1:5
-                testCase.swobj.optmagsteep('random', true, 'nRun', 200)
-                if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
-                    expected_magstr = testCase.default_magstr;
-                    % first moment can be up/down (same energy) so adjust 
-                    % expected value to have same z-component sign on 1st S
-                    expected_magstr.S = -sign(testCase.swobj.magstr.S(end,1))*...
-                        expected_magstr.S;
-                    testCase.verify_val(testCase.swobj.magstr, ...
-                                        expected_magstr, 'abs_tol', 1e-6);
-                    testCase.verify_val(testCase.swobj.energy, -1.1);
-                    break
-                end               
-            end
+            testCase.swobj.optmagsteep('random', true, 'nRun', 200)
+            testCase.verify_val(testCase.swobj.magstr, ...
+                                testCase.default_magstr, 'abs_tol', 1e-6);
+            testCase.verify_val(testCase.swobj.energy, -1.1);
         end
         
         function test_random_init_spins_if_no_initial_magstr(testCase)
-            % try a few times in case converges to local minima from random
-            % starting point
-            for irun = 1:5
-                testCase.swobj.optmagsteep('nExt', [2,1,1], 'nRun', 250);
-                if abs(real(testCase.swobj.mag_str.F(end,1))) > 0
-                    testCase.verify_val(testCase.swobj.energy, -1.1);
-                    break
-                end
-            end
+            testCase.swobj.optmagsteep('nExt', [2,1,1], 'nRun', 250);
+            testCase.verify_val(testCase.swobj.energy, -1.1);
         end
         
         function test_output_to_fid(testCase)
