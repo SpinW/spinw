@@ -354,7 +354,11 @@ M = [M zeros(3,1)];
 
 % create swplot figure if it doesn't exist
 if param.plot
-    hFigure = swplot.activefigure;
+    try
+        hFigure = swplot.activefigure;
+    catch
+        hFigure = obj.plot();
+    end
 end
 
 while (rIdx < nRun) && (dM>param.TolX)
@@ -450,7 +454,8 @@ else
 end
 
 if rIdx == nRun
-    warning('Convergence was not reached!')
+    warning('spinw:optmagsteep:NotConverged', ...
+            'Convergence was not reached!')
 end
 
 % Save optimised magnetic structure into the spinw object.
@@ -467,7 +472,7 @@ if nargout > 0
     if param.saveAll
         optm.M = Msave;
     else
-        optm.M = M(1:end-1);
+        optm.M = M;
     end
     optm.dM       = dM;
     optm.e        = E(1:rIdx);
