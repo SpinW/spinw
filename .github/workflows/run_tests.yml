@@ -52,6 +52,6 @@ jobs:
         with:
           path: artifacts
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: artifacts/**/junit_report*.xml
