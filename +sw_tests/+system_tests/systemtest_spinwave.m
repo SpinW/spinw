@@ -12,6 +12,9 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
 
     methods (TestClassSetup)
         function get_reference_data(testCase)
+            if isempty(testCase.reference_data_file)
+                return
+            end
             fname = fullfile(testCase.reference_data_dir, testCase.reference_data_file);
             if ~exist(testCase.reference_data_dir, 'dir')
                 mkdir(testCase.reference_data_dir);
