@@ -81,12 +81,25 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
     
     methods (Test)
 
-        function test_intmatrix_no_couplings_defined(testCase)
+        function test_intmatrix_no_matoms(testCase)
             [SS, SI, RR] = spinw().intmatrix('fitmode', true);
             expected_SS = struct('all', zeros(15,0), 'dip', zeros(15,0));
             expected_SI = struct('aniso', zeros(3,3,0), 'g', zeros(3,3,0), ...
                                  'field', zeros(1,3));
             expected_RR = zeros(3,0);
+            testCase.verify_val(expected_SS, SS)
+            testCase.verify_val(expected_SI, SI)
+            testCase.verify_val(expected_RR, RR)
+        end
+        
+        function test_intmatrix_no_couplings(testCase)
+            sw = spinw();
+            sw.addatom('r',[0; 0; 0],'S',1);
+            [SS, SI, RR] = sw.intmatrix('fitmode', true);
+            expected_SS = struct('all', zeros(15,0), 'dip', zeros(15,0));
+            expected_SI = struct('aniso', zeros(3,3), 'g', 2*eye(3), ...
+                                 'field', zeros(1,3));
+            expected_RR = zeros(3,1);
             testCase.verify_val(expected_SS, SS)
             testCase.verify_val(expected_SI, SI)
             testCase.verify_val(expected_RR, RR)
