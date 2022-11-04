@@ -249,9 +249,26 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
             % just check the atom indices of the subsequent bonds
             testCase.verify_val([2 1; 1 2], SS_unsort.all(4:5,2:end));
             testCase.verify_val([1 2; 2 1], SS_sort.all(4:5,2:end));
-            
         end
         
+        function test_2_atoms_in_unit_cell_P1_sym(testCase)
+            % Revert P1 sym and add atom at body-center
+            testCase.swobj.genlattice('sym', 'P 1')
+            testCase.swobj.addatom('r',[0.5; 0.5; 0.5],'S',1)
+            testCase.swobj.gencoupling('maxDistance', 5);
+            % need to add each matrix twice (once for each atom)
+            testCase.swobj.addcoupling('mat', 'J1', 'bond', 1:2); % bond // a
+            testCase.swobj.addcoupling('mat', 'J2', 'bond', 3:4, 'type', ...
+                                       'biquadratic'); % bond // b
+            testCase.swobj.addaniso('A');
+            testCase.swobj.addg('g1');
+            testCase.swobj.field([0 0 0.5]);
+            
+            [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', true);
+            testCase.verify_val(testCase.default_SS, SS, 'abs_tol', 1e-4)
+            testCase.verify_val(testCase.default_SI, SI)
+            testCase.verify_val(testCase.default_RR, RR)
+        end
     end
      
      methods (Test, TestTags = {'Symbolic'})
