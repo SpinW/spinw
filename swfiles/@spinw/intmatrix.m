@@ -62,31 +62,38 @@ function [SS, SI, RR] = intmatrix(obj, varargin)
 % ### Output Arguments
 % 
 % `SS`
-% : structure with fields `iso`, `ani`, `dm`, `gen`, `bq`, `dip` and
-%   `all`. It describes the bonds between spins. Every field is a matrix,
-%               where every column is a coupling between two spins. The
-%               first 3 rows contain the unit cell translation vector
-%               between the interacting spins, the 4th and 5th rows contain
-%               the indices of the two interacting spins in the
-%               [spinw.matom] list. The following rows contains the
-%               strength of the interaction. For isotropic exchange it is a
-%               single number, for DM interaction it is a column vector
-%               `[DMx; DMy; DMz]`, for anisotropic interaction `[Jxx; Jyy;
-%               Jzz]` and for general interaction `[Jxx; Jxy; Jxz; Jyx; Jyy;
-%               Jyz; Jzx; Jzy; Jzz]` and for biquadratic exchange it is also
-%               a single number. For example:
-%   ```
-%   SS.iso = [dl_a; dl_b; dl_c; matom1; matom2; Jval]
-%   ```
+% : structure where every field is a matrix. Every column is a coupling 
+%   between two spins. The first 3 rows contain the unit cell translation 
+%   vector between the interacting spins, the 4th and 5th rows contain
+%   the indices of the two interacting spins in the [spinw.matom] list. 
+%   Subsequent rows in the matrix depend on the field
+%   SS will always have the following fields
+%   * `all`
+%   * `dip`
+%   Subsequent rows in these matrices are the elements of the 3 x 3 
+%   exchange matrix `[Jxx; Jxy; Jxz; Jyx; Jyy; Jyz; Jzx; Jzy; Jzz]`
+%   and the final row indicates whether the coupling is
+%   quadratic (0) or biquadratic (1). The `dip` field contains the dipolar
+%   interactions only that are not added to `SS.all.
 %   If `plotmode` is `true`, two additional rows are added to `SS.all`,
-%               that contains the `idx` indices of the
-%               `obj.matrix(:,:,idx)` corresponding matrix for each
-%               coupling and the `idx` values of the couplings (stored in
-%               `spinw.coupling.idx`). The `dip` field contains the dipolar
-%               interactions that are not added to the `SS.all` field.
+%   that contains the `idx` indices of the `obj.matrix(:,:,idx)`
+%   corresponding matrix for each coupling and the `idx` values of the 
+%   couplings (stored in `spinw.coupling.idx`).
+%
+%  If fitmode = false there are additional fields
+%  * `iso` : One subsequent row which is the isotropic exchane
+%  * `ani` : Subsequent rows contain anisotropic interaction `[Jxx; Jyy;
+%               Jzz]`), 
+%  * `dm`  : Subsequent rows contain DM interaction `[DMx; DMy; DMz]`
+%  * `gen` : Subsequent rows contain a general interaction 
+%            `[Jxx; Jxy; Jxz; Jyx; Jyy; Jyz; Jzx; Jzy; Jzz]`
+%  * `bq   : One subsequent row which is the isotropic exchane as in SS.iso
+%            but only the biquadratic couplings which are not included in
+%            SS.iso
 %
 % `SI`
 % : single ion properties stored in a structure with fields:
+%
 %   * `aniso`   Matrix with dimensions of $[3\times 3\times n_{magAtom}]$,
 %               where the classical energy of the $i$-th spin is expressed
 %               as `E_aniso = spin(:)*A(:,:,i)*spin(:)'`
