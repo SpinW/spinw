@@ -61,7 +61,24 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
             testCase.swobj.coupling.rdip = 3;  % set max dist for dipolar
         end
     end
-
+    
+    methods
+        function expected_SS = get_expected_SS_fitmode_false(testCase)
+            expected_SS = testCase.default_SS;
+            expected_SS.iso = expected_SS.all(1:6,1:2);
+            expected_SS.bq = expected_SS.all(1:6,3:4);
+            expected_SS.ani = [1; 0; 0; 2; 1; 1; 2; 3];
+            expected_SS.dm = [1; 0; 0; 2; 1; 0; -1; 0];
+            expected_SS.gen = [1 0 0 2 1 2 4 6 8 10 12 14 16 18]';
+            expected_SS.all = [expected_SS.all, zeros(15, 3)];
+            expected_SS.all(1:5, 5:end) = repmat(expected_SS.ani(1:5), ...
+                                                 1, 3);
+            expected_SS.all(1:end-1, 6) = expected_SS.gen;
+            expected_SS.all([8, 12], 5) = [-1 1]; % DM
+            expected_SS.all([6, 10, 14], 7) = [1, 2, 3]; % aniso
+        end
+    end
+    
     methods (Test)
 
         function test_intmatrix_no_couplings_defined(testCase)
@@ -120,17 +137,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
              
             [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', false);
             
-            expected_SS = testCase.default_SS;
-            expected_SS.iso = expected_SS.all(1:6,1:2);
-            expected_SS.bq = expected_SS.all(1:6,3:4);
-            expected_SS.ani = [1; 0; 0; 2; 1; 1; 2; 3];
-            expected_SS.dm = [1; 0; 0; 2; 1; 0; -1; 0];
-            expected_SS.gen = [1; 0; 0; 2; 1; 2; 4; 6; 8; 10; 12; 14; 16; 18];
-            expected_SS.all = [expected_SS.all, zeros(15, 3)];
-            expected_SS.all(1:5, 5:end) = repmat(expected_SS.ani(1:5), 1, 3);
-            expected_SS.all(1:end-1, 6) = expected_SS.gen;
-            expected_SS.all([8, 12], 5) = [-1 1]; % DM
-            expected_SS.all([6, 10, 14], 7) = [1, 2, 3]; % aniso
+            expected_SS = testCase.get_expected_SS_fitmode_false();
             testCase.verify_val(expected_SS, SS, 'abs_tol', 1e-4)
             testCase.verify_val(testCase.default_SI, SI)
             testCase.verify_val(testCase.default_RR, RR)
@@ -235,7 +242,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
     end
      
      methods (Test, TestTags = {'Symbolic'})
-        function add_matrix_with_symbolic_value(testCase)
+        function symbolic_obj_with_fitmode_true(testCase)
             testCase.swobj.symbolic(true);
             [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', true);
             % replace symbolic variables with 1
@@ -247,6 +254,31 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
             testCase.verify_val(testCase.default_SI, SI)
             testCase.verify_val(testCase.default_RR, RR)
         end
+        
+        function symbolic_obj_with_fitmode_false(testCase)
+            % add all different types of interaction
+            testCase.swobj.addmatrix('label','Janiso','value', ...
+                                     diag([1,2,3]))
+            for mat_name = {'D', 'gen', 'Janiso'}
+                testCase.swobj.addcoupling('mat', mat_name, 'bond', 3, ...
+                                           'subIdx', 1);
+            end
+            testCase.swobj.symbolic(true);
+            
+            [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', false);
+            % replace symbolic variables with 1
+            SS = structfun(@sw_sub1, SS, 'UniformOutput', false);
+            SI = structfun(@sw_sub1, SI, 'UniformOutput', false);
+            
+            expected_SS = testCase.get_expected_SS_fitmode_false();
+            expected_SS.dip(6:end,:) = 298.3569*expected_SS.dip(6:end,:);
+            
+            testCase.verify_val(expected_SS, SS, 'abs_tol', 5e-3)
+            testCase.verify_val(testCase.default_SI, SI)
+            testCase.verify_val(testCase.default_RR, RR)
+        end
+        
+     
     end
 
 end

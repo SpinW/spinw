@@ -267,7 +267,12 @@ if ~param.fitmode
     JJ.gen = reshape(JJ.mat,1,9,size(JJ.mat,3));
     SS.gen = [SS.all(:,JJ.type == 4); shiftdim(JJ.gen(1,:,JJ.type == 4),1)];
     
-    idx = any(SS.gen(6:end,:));
+    if obj.symbolic
+        idx = any(~sw_always(SS.gen(6:end,:)==0));
+    else
+        idx = any(SS.gen(6:end,:));
+    end
+    
     %SS.gen = SS.gen(:,sum(SS.gen(6:end,:).^2,1)~=0);
     SS.gen = SS.gen(:,idx);
     
