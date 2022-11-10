@@ -27,7 +27,7 @@ function result = run_tests(out_dir)
 
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
-    if ~license('test', 'symbolic_toolbox')
+    if ~sw_hassymtoolbox()
         % only run symbolic tests when the toolbox is available
         suite = suite.selectIf(~HasTag('Symbolic'));
     end
