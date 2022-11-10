@@ -123,6 +123,10 @@ if nargin == 0
     return
 end
 
+if sw_issymspec(spectra)
+    error('sw_instrument:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 func0 = @swfunc.gaussfwhm;
 
 inpForm.fname  = {'dE'    'ki'  'Ei'  'kf'  'Ef'  'plot' 'polDeg' 'thetaMin'};

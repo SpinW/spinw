@@ -76,6 +76,10 @@ if nargin==0
     return
 end
 
+if sw_issymspec(spec)
+    error('sw_tofres:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 dQ0 = ones(1,3)*0.1;
 nQ0 = ones(1,3)*5;
 

@@ -177,6 +177,10 @@ if nargin == 0
     return
 end
 
+if sw_issymspec(spectra)
+    error('sw_egrid:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 if isfield(spectra,'obj')
     T0 = spectra.obj.single_ion.T;
 else

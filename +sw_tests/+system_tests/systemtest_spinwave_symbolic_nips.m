@@ -3,12 +3,16 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
     properties
         reference_data_file = '';
         swobj_nn = [];
+        symspec = [];
     end
 
-    methods (TestMethodSetup)
+    properties (TestParameter)
+        test_spectra_function_name = {'sw_neutron', 'sw_egrid', 'sw_instrument', ...
+                                      'sw_omegasum', 'sw_plotspec', 'sw_tofres'};
+    end
+
+    methods (TestClassSetup)
         function prepareForRun(testCase)
-            % Skips all these tests if the symbolic toolbox is not installed
-            testCase.assumeTrue(license('test', 'symbolic_toolbox'), 'Symbolic Toolbox not installed');
             % Symbolic calculation, based on "Magnetic dynamics of NiPS3", A.R.Wildes et al., Phys. Rev. B in press
             nips = spinw();
             nips.genlattice('lat_const', [5.812, 10.222, 6.658], 'angled', [90, 107.16, 90], 'sym', 12);
@@ -18,8 +22,12 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
             nips.addcoupling('mat', 'J1', 'bond', 1);
             nips.addcoupling('mat', 'J1', 'bond', 2);
             nips.genmagstr('mode', 'direct', 'k', [0 1 0], 'S', [1 0 0; -1 0 0; -1 0 0; 1 0 0]');
-            testCase.swobj_nn = nips.copy();          % Simplified model for faster calcs
+            % The full system is too complicated to determine the general dispersion 
+            % It will run for several hours and then run out of memory.
+            % Instead for some tests we simplify it to be able to run through the full calculation
+            testCase.swobj_nn = nips.copy();
             testCase.swobj_nn.symbolic(true);
+            testCase.symspec = testCase.swobj_nn.spinwavesym();
             nips.addmatrix('label', 'J2', 'mat', 1);
             nips.addcoupling('mat', 'J2', 'bond', 3);
             nips.addcoupling('mat', 'J2', 'bond', 4);
@@ -36,7 +44,7 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
         end
     end
 
-    methods (Test)
+    methods (Test, TestTags = {'Symbolic'})
         function test_symbolic_hamiltonian(testCase)
             % Calculates the symbolic Hamiltonian and check it is Hermitian
             nips = testCase.swobj;
@@ -62,7 +70,7 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
             % Calculates the symbolic Hamiltonian and its squared eigenvalues
             % agree with the block determinant identity
             nips = testCase.swobj;
-            symSpec = nips.spinwavesym('hkl', [0.5; 0.125; 0.25]);
+            symSpec = nips.spinwavesym('hkl', [0.5; 0.5; 0.5]);
             g = sym(diag([ones(1, 4) -ones(1,4)]));
             hamsq = (g * symSpec.ham)^2;
             % Split squared hamiltonian into blocks - hamsq = [A B; C D]
@@ -86,18 +94,21 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
             E1 = sort(simplify(eig(A + B)));
             E2 = sort(simplify(eig(A - B)));
             testCase.verifyThat(E1, IsEqualTo(E2));
-            omega = sort(unique(simplify(symSpec.omega.^2)));
-            testCase.verifyThat(omega, IsEqualTo(E1));
+            omega = sort(simplify(symSpec.omega.^2));
+            testCase.verifyThat(unique(omega), IsEqualTo(unique(E1)));
         end
         function test_symbolic_general_hkl(testCase)
-            % The system here is too complicated to determine the general dispersion 
-            % It will run for several hours and then run out of memory.
-            % Instead we simplify it and just run through the calculation
-            nips = testCase.swobj_nn;
-            symSpec = nips.spinwavesym();
+            % Test we can run the full spin wave calc outputing the spin-spin correlation matrix Sab
             variables = [sym('J1'), sym('h'), sym('k')]; % No 'l' because no out-of-plane coupling
             import matlab.unittest.constraints.IsEqualTo
-            testCase.verifyThat(sort(symvar(symSpec.omega)), IsEqualTo(variables));
+            testCase.verifyThat(sort(symvar(testCase.symspec.omega)), IsEqualTo(variables));
+        end
+        function test_symbolic_spectra(testCase, test_spectra_function_name)
+            % Tests that running standard functions with symbolic spectra gives error
+            test_fun = eval(['@' test_spectra_function_name]);
+            testCase.verifyError( ...
+                @() feval(test_spectra_function_name, testCase.symspec), ...
+                [test_spectra_function_name ':SymbolicInput']);
         end
     end
 

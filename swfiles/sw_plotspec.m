@@ -172,6 +172,10 @@ if nargin==0
     return
 end
 
+if sw_issymspec(spectra)
+    error('sw_plotspec:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 if isfield(spectra,'norm')
     norm0 = spectra.norm;
 else

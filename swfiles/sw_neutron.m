@@ -95,6 +95,10 @@ if nargin == 0
     return
 end
 
+if sw_issymspec(spectra)
+    error('sw_neutron:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 inpForm.fname  = {'n'     'pol' 'uv'  };
 inpForm.defval = {[0 0 1] false  {}    };
 inpForm.size   = {[1 3]   [1 1] [1 2] };
