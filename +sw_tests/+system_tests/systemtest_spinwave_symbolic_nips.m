@@ -13,6 +13,8 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
 
     methods (TestClassSetup)
         function prepareForRun(testCase)
+            % Skips all these tests if the symbolic toolbox is not installed
+            testCase.assumeTrue(license('test', 'symbolic_toolbox') == 1, 'Symbolic Toolbox not installed');
             % Symbolic calculation, based on "Magnetic dynamics of NiPS3", A.R.Wildes et al., Phys. Rev. B in press
             nips = spinw();
             nips.genlattice('lat_const', [5.812, 10.222, 6.658], 'angled', [90, 107.16, 90], 'sym', 12);
