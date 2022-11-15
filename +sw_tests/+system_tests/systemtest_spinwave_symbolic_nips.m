@@ -1,4 +1,4 @@
-classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_spinwave
+classdef (TestTags = {'Symbolic'}) systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_spinwave
 
     properties
         reference_data_file = '';
@@ -13,8 +13,6 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
 
     methods (TestClassSetup)
         function prepareForRun(testCase)
-            % Skips all these tests if the symbolic toolbox is not installed
-            testCase.assumeTrue(sw_hassymtoolbox(), 'Symbolic Toolbox not installed');
             % Symbolic calculation, based on "Magnetic dynamics of NiPS3", A.R.Wildes et al., Phys. Rev. B in press
             nips = spinw();
             nips.genlattice('lat_const', [5.812, 10.222, 6.658], 'angled', [90, 107.16, 90], 'sym', 12);
@@ -26,7 +24,8 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
             nips.genmagstr('mode', 'direct', 'k', [0 1 0], 'S', [1 0 0; -1 0 0; -1 0 0; 1 0 0]');
             % The full system is too complicated to determine the general dispersion 
             % It will run for several hours and then run out of memory.
-            % Instead for some tests we simplify it to be able to run through the full calculation
+            % Instead for some tests we simplify it by including only nearest neighbour interactions
+            % to be able to run through the full calculation.
             testCase.swobj_nn = nips.copy();
             testCase.swobj_nn.symbolic(true);
             testCase.symspec = testCase.swobj_nn.spinwavesym();
@@ -46,7 +45,7 @@ classdef systemtest_spinwave_symbolic_nips < sw_tests.system_tests.systemtest_sp
         end
     end
 
-    methods (Test, TestTags = {'Symbolic'})
+    methods (Test)
         function test_symbolic_hamiltonian(testCase)
             % Calculates the symbolic Hamiltonian and check it is Hermitian
             nips = testCase.swobj;
