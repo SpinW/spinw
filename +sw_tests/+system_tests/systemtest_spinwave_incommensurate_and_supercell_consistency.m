@@ -58,7 +58,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             FeCuChain.addcoupling('mat','J_{Cu-Cu}','bond',1)
             FeCuChain.addcoupling('mat','J_{Fe-Fe}','bond',2)
             FeCuChain.addcoupling('mat','J_{Cu-Fe}','bond',[4 5])
-            % sqrt3 x sqrt(3) magnetic structure 
+            % AFM  structure 
             k = [1/2, 0, 0];
             S = [0 0;1 1;0 0];
             % binning for spinwave spectrum
@@ -85,6 +85,40 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             testCase.assertEqual(size(spec_super.Sperp, 1), 8)
         end
         
+        function test_two_sym_equiv_matoms_per_unit_cell(testCase)
+            sw = spinw;
+            sw.genlattice('lat_const',[4,5,12],'spgr','I m m m')
+            sw.addatom('S', 1, 'r',[0 0 0]);
+            sw.addmatrix('label', 'J', 'value', 1);
+            sw.addmatrix('label', 'A', 'value', diag([0 0 -0.1]))
+            sw.gencoupling;
+            sw.addcoupling('mat','J','bond', 1);
+            sw.addaniso('A');
+            % AFM structure
+            S = [0; 0; 1];
+            k = [0.5, 0 0];
+            % binning for spinwave spectrum
+            qarg = {[0 0 0] [1/2 0 0] 5};
+            evec = 0:0.5:1.5;
+            
+            % use structural unit cell with incommensurate k
+            sw.genmagstr('mode','helical','k', k,...
+                                'S', S, 'nExt',[1 1 1]);
+            spec_incom = sw.spinwave(qarg, 'hermit', true);
+            spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect', evec);
+            % use supercell k=0 structure
+            sw.genmagstr('mode','helical','k', k,...
+                                'S', S, 'nExt',[2 1 1]);
+            spec_super = sw.spinwave(qarg, 'hermit', true);
+            spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect', evec);
+            
+            % test cross-section in q,En bins
+            testCase.verify_test_data(spec_incom.swConv, ...
+                                      spec_super.swConv)
+            % check correct number of modes
+            testCase.assertEqual(size(spec_incom.Sperp, 1), 12)
+            testCase.assertEqual(size(spec_super.Sperp, 1), 8)
+        end
     end
 
 end
