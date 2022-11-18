@@ -73,7 +73,7 @@ function [SS, SI, RR] = intmatrix(obj, varargin)
 %   Subsequent rows in these matrices are the elements of the 3 x 3 
 %   exchange matrix `[Jxx; Jxy; Jxz; Jyx; Jyy; Jyz; Jzx; Jzy; Jzz]`
 %   and the final row indicates whether the coupling is
-%   quadratic (0) or biquadratic (1). The `dip` field contains the dipolar
+%   bilinear (0) or biquadratic (1). The `dip` field contains the dipolar
 %   interactions only that are not added to `SS.all.
 %   If `plotmode` is `true`, two additional rows are added to `SS.all`,
 %   that contains the `idx` indices of the `obj.matrix(:,:,idx)`
@@ -87,9 +87,9 @@ function [SS, SI, RR] = intmatrix(obj, varargin)
 %  * `dm`  : Subsequent rows contain DM interaction `[DMx; DMy; DMz]`
 %  * `gen` : Subsequent rows contain a general interaction 
 %            `[Jxx; Jxy; Jxz; Jyx; Jyy; Jyz; Jzx; Jzy; Jzz]`
-%  * `bq   : One subsequent row which is the isotropic exchane as in SS.iso
-%            but only the biquadratic couplings which are not included in
-%            SS.iso
+%  * `bq`  : One subsequent row which is the isotropic exchagne as in 
+%            SS.iso but only the biquadratic couplings which are not 
+%            included in SS.iso
 %
 % `SI`
 % : single ion properties stored in a structure with fields:
