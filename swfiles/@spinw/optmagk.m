@@ -10,10 +10,9 @@ function result = optmagk(obj,varargin)
 % `res = optmagk(obj,Name,Value)` determines the optimal propagation vector
 % using the Luttinger-Tisza method. It calculates the Fourier transform of
 % the Hamiltonian as a function of wave vector and finds the wave vector
-% that corresponds to the smalles global eigenvalue of the Hamiltonian. It
-% also returns the normal vector that corresponds to the rotating
-% coordinate system. The global optimization is achieved using
-% Particle-Swarm optimizer.
+% that corresponds to the smalles global eigenvalue of the Hamiltonian.
+% The global optimization is achieved using Particle-Swarm optimizer. This
+% function sets k and F in spinw.mag_str, and also returns them.
 % 
 % ### Input Arguments
 % 
@@ -41,8 +40,8 @@ function result = optmagk(obj,varargin)
 % : Structure with the following fields:
 %   * `k`       Value of the optimal k-vector, with values between 0
 %                       and 1/2.
-%   * `n`       Normal vector, defines the rotation axis of the
-%                       rotating coordinate system.
+%   * `F`       Fourier components for every spin in the magnetic
+%                       cell.
 %   * `E`       The most negative eigenvalue at the given propagation
 %                       vector.
 %   * `stat`    Full output of the [ndbase.pso] optimizer.
@@ -59,6 +58,7 @@ inpForm.soft   = {true   };
 
 warning('off','sw_readparam:UnreadInput')
 param = sw_readparam(inpForm, varargin{:});
+softparamcheck(["kbase"], 'optmagk', param, varargin{:});
 warning('on','sw_readparam:UnreadInput')
 
 
@@ -126,8 +126,8 @@ kones = ones(1,D);
 
 warning('off','sw_readparam:UnreadInput')
 % optimise the energy using particle swarm
-[pOpt0, ~, ~] = ndbase.pso([],@optfun,1/4*kones,'lb',0*kones,'ub',kones,varargin{:},...
-    'TolFun',1e-5,'TolX',1e-5,'MaxIter',1e3);
+[pOpt0, ~, ~] = ndbase.pso([],@optfun,1/4*kones,'lb',0*kones,'ub',kones,...
+    'TolFun',1e-5,'TolX',1e-5,'MaxIter',1e3, varargin{:});
 warning('on','sw_readparam:UnreadInput')
 
 % generate an R-value

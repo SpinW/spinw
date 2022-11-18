@@ -37,6 +37,10 @@ function spectra = sw_omegasum(spectra, varargin)
 % [spinw.spinwave] \| [sw_egrid]
 %
 
+if sw_issymspec(spectra)
+    error('sw_omegasum:SymbolicInput', 'This function does not handle symbolic spectra');
+end
+
 if iscell(spectra.omega)
     error('sw_omegasum:NoTwin','The sw_omegasum() function doesn''t work for spectra calculated for multiple twins!');
 end
