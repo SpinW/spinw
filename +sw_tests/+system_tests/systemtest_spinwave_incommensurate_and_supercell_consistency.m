@@ -10,8 +10,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             AF33kagome = spinw;
             AF33kagome.genlattice('lat_const',[6 6 40], ...
                                   'angled',[90 90 120], 'sym','P -3')
-            AF33kagome.addatom('r',[1/2 0 0],'S', 1, ...
-                               'label','MCu1','color','r')
+            AF33kagome.addatom('r',[1/2 0 0],'S', 1, 'label','MCu1')
             AF33kagome.gencoupling('maxDistance',7);
             AF33kagome.addmatrix('label','J1','value',1.00)
             AF33kagome.addcoupling('mat','J1','bond',1);
@@ -43,6 +42,49 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             testCase.assertEqual(size(spec_incom.Sperp, 1), nmode)
             testCase.assertEqual(size(spec_super.Sperp, 1), 3*nmode)
         end
+        
+        function test_two_matom_per_unit_cell(testCase)
+            % setup structure (taken from tutorial 19)
+            FeCuChain = spinw;
+            FeCuChain.genlattice('lat_const',[3 8 4],'spgr','P 1')
+            FeCuChain.addatom('label','MCu2','r',[0 0 0])
+            FeCuChain.addatom('label','MFe2','r',[0 1/2 0])
+
+            FeCuChain.gencoupling
+            FeCuChain.addmatrix('label','J_{Cu-Cu}','value',1)
+            FeCuChain.addmatrix('label','J_{Fe-Fe}','value',1)
+            FeCuChain.addmatrix('label','J_{Cu-Fe}','value',-0.1)
+
+            FeCuChain.addcoupling('mat','J_{Cu-Cu}','bond',1)
+            FeCuChain.addcoupling('mat','J_{Fe-Fe}','bond',2)
+            FeCuChain.addcoupling('mat','J_{Cu-Fe}','bond',[4 5])
+            % sqrt3 x sqrt(3) magnetic structure 
+            k = [1/2, 0, 0];
+            S = [0 0;1 1;0 0];
+            % binning for spinwave spectrum
+            qarg = {[0 0 0] [1/2 0 0] 5};
+            evec = 0:1.5:5;
+            
+            % use structural unit cell with incommensurate k
+            FeCuChain.genmagstr('mode','helical','k', k,...
+                                'S', S, 'nExt',[1 1 1]);
+            spec_incom = FeCuChain.spinwave(qarg, 'hermit', true);
+            spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
+            % use supercell k=0 structure
+            FeCuChain.genmagstr('mode','helical','k', k,...
+                                'S', S, 'nExt',[2 1 1]);
+            spec_super = FeCuChain.spinwave(qarg, 'hermit', true);
+            spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect',evec);
+            
+            
+            % test cross-section in q,En bins
+            testCase.verify_test_data(spec_incom.swConv, ...
+                                      spec_super.swConv)
+            % check correct number of modes
+            testCase.assertEqual(size(spec_incom.Sperp, 1), 12)
+            testCase.assertEqual(size(spec_super.Sperp, 1), 8)
+        end
+        
     end
 
 end
