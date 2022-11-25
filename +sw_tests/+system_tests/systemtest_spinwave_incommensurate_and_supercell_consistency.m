@@ -9,6 +9,22 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             om = spec.omega(find(abs(spec.Sperp) > testCase.tol));
             om = sort(unique(round(om / testCase.tol) * testCase.tol));
         end
+        
+        function assert_super_and_incom_consistency(testCase, swobj, ...
+                                                    spec_super, spec_incom)
+            % test cross-section in q,En bins
+            testCase.verify_test_data(spec_incom.swConv, ...
+                                      spec_super.swConv)
+            % check correct number of modes (2*nmag)
+            nExt = swobj.mag_str.nExt;
+            n_matom = numel(swobj.matom().S);
+            testCase.assertEqual(size(spec_incom.Sperp, 1), ...
+                                 6*n_matom);
+            testCase.assertEqual(size(spec_super.Sperp, 1), ...
+                                 2*prod(nExt)*n_matom);
+            testCase.assertEqual(testCase.remove_ghosts(spec_super),...
+                                 testCase.remove_ghosts(spec_incom));         
+        end
     end
     
     methods (Test)
@@ -35,21 +51,14 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             spec_incom = AF33kagome.spinwave(qarg, 'hermit', true);
             spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
             % use supercell k=0 structure
-            nExt = [3,3,1];
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
-                                 'n',n, 'S', S, 'nExt', nExt);
+                                 'n',n, 'S', S, 'nExt', [3,3,1]);
             spec_super = AF33kagome.spinwave(qarg, 'hermit', true);
             spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect',evec);
             
-            
-            % test cross-section in q,En bins
-            testCase.verify_test_data(spec_incom.swConv, ...
-                                      spec_super.swConv)
-            % check correct number of modes (2*nmag)
-            n_matom = numel(AF33kagome.matom().S);
-            testCase.assertEqual(size(spec_incom.Sperp, 1), 6*n_matom)
-            testCase.assertEqual(size(spec_super.Sperp, 1), 2*prod(nExt)*n_matom)
-            testCase.assertEqual(testCase.remove_ghosts(spec_super), testCase.remove_ghosts(spec_incom))
+            testCase.assert_super_and_incom_consistency(AF33kagome, ...
+                                                        spec_super, ...
+                                                        spec_incom);
         end
         
         function test_two_matom_per_unit_cell(testCase)
@@ -80,21 +89,14 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             spec_incom = FeCuChain.spinwave(qarg, 'hermit', true);
             spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
             % use supercell k=0 structure
-            nExt = [2,1,1];
             FeCuChain.genmagstr('mode','helical','k', k,...
-                                'S', S, 'nExt', nExt);
+                                'S', S, 'nExt', [2,1,1]);
             spec_super = FeCuChain.spinwave(qarg, 'hermit', true);
             spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect',evec);
             
-            
-            % test cross-section in q,En bins
-            testCase.verify_test_data(spec_incom.swConv, ...
-                                      spec_super.swConv)
-            % check correct number of modes
-            n_matom = numel(FeCuChain.matom().S);
-            testCase.assertEqual(size(spec_incom.Sperp, 1), 6*n_matom)
-            testCase.assertEqual(size(spec_super.Sperp, 1), 2*prod(nExt)*n_matom)
-            testCase.assertEqual(testCase.remove_ghosts(spec_super), testCase.remove_ghosts(spec_incom))
+            testCase.assert_super_and_incom_consistency(FeCuChain, ...
+                                                        spec_super, ...
+                                                        spec_incom);
         end
         
         function test_two_sym_equiv_matoms_per_unit_cell(testCase)
@@ -119,20 +121,14 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             spec_incom = sw.spinwave(qarg, 'hermit', true);
             spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect', evec);
             % use supercell k=0 structure
-            nExt = [2 1 1];
             sw.genmagstr('mode','helical','k', k,...
-                                'S', S, 'nExt',nExt);
+                                'S', S, 'nExt', [2 1 1]);
             spec_super = sw.spinwave(qarg, 'hermit', true);
             spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect', evec);
             
-            % test cross-section in q,En bins
-            testCase.verify_test_data(spec_incom.swConv, ...
-                                      spec_super.swConv)
-            % check correct number of modes
-            n_matom = numel(sw.matom().S);
-            testCase.assertEqual(size(spec_incom.Sperp, 1), 6*n_matom)
-            testCase.assertEqual(size(spec_super.Sperp, 1), 2*prod(nExt)*n_matom)
-            testCase.assertEqual(testCase.remove_ghosts(spec_super), testCase.remove_ghosts(spec_incom))
+            testCase.assert_super_and_incom_consistency(sw, ...
+                                                        spec_super, ...
+                                                        spec_incom);
         end
     end
 
