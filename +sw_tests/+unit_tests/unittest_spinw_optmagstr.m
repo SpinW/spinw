@@ -6,9 +6,9 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         afm = [];
         afm3d = [];
         fr_afm = [];
-        default_magstr = struct('S', [0  0; 0 0; -1 1], 'n', [0 0 1], ...
-                                'N_ext', [2 1 1], 'k', [0 0 0], ...
-                                'exact', true)
+        default_mag_str = struct('nExt', int32([1 1 1]), ...
+                                 'k', [1/3; 1/3; 0], ...
+                                 'F', [1; 1i; 0]);
         % output from optmagsteep
         default_opt = struct('M', [0 0; 0 0; -1 1],...
                              'dM', 6.6e-17,...
@@ -123,7 +123,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                 'fname', '2D planar structure', ...
                 'xname', {{'Phi1_rad'  'kx_rlu'  'ky_rlu'  'kz_rlu'  'nTheta_rad'  'nPhi_rad'}}, ...
                 'title', 'Optimised magnetic structure using simplex search');
-            % Some values will change on each iteration, just check they
+            % Some values will change on each call, just check they
             % exist and are of the right type
             assert(isa(out.datestart, 'char'));
             assert(isa(out.dateend, 'char'));
@@ -136,29 +136,45 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                 rmfield(out, {'output', 'datestart', 'dateend', 'obj'}), ...
                 expected_out, 'rel_tol', 1e-3);
 
-            expected_mag_str =  struct('nExt', int32([1 1 1]), ...
-                               'k', [1/3; 1/3; 0], ...
-                               'F', [1; 1i; 0]);
+            testCase.verify_val(testCase.tri.mag_str, testCase.default_mag_str, ...
+                                'rel_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_no_init(testCase)
+            % Test without initialising parameters, a different min is found
+            out = testCase.tri.optmagstr();
+            expected_k = [2/3; 2/3; 0.861806743515228];
+            testCase.verify_val(testCase.tri.mag_str.k, expected_k, ...
+                                'rel_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_x0(testCase)
+            % Test initialising near a min converges to min
+            diff = 0.05;
+            out = testCase.tri.optmagstr('func', @gm_planar, 'x0', [0 1/3+diff 1/3+diff 0 0 0]);
+            expected_mag_str =  testCase.default_mag_str;
+            expected_mag_str.F = [-1i; 1; 0];
+            % Use abs tol for F = 0
+            testCase.verify_val(testCase.tri.mag_str, expected_mag_str, ...
+                                'rel_tol', 1e-3, 'abs_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_epsilon(testCase)
+            % Test that large epsilon doesn't rotate spins
+            out = testCase.tri.optmagstr('epsilon', 1.);
+            expected_mag_str = testCase.default_mag_str;
+            expected_mag_str.k = [0 0 0]';
+            expected_mag_str.F = [0 0 1]';
             testCase.verify_val(testCase.tri.mag_str, expected_mag_str, ...
                                 'rel_tol', 1e-3);
         end
 
-        function test_optmagstr_tri_af(testCase)
-            out = testCase.tri.optmagstr(); % gets 2/3 2/3 0.8618 ??
-        end
-
-        function test_optmagstr_afm_chain_easy_axis(testCase)
-            out = testCase.afm.optmagstr();
-        end
-
-        function test_optmagstr_frustrated_afm_chain(testCase)
-            out = testCase.fr_afm.optmagstr();
-            out = testCase.afm3d.optmagstr('func',@gm_planar,'xmin',[0 0, 0 0 0,0 0],'xmax',[pi/2 0,1/2 0 0,0 0])
-        end
-
-        function test_optmagstr_afm_3d(testCase)
-            out = testCase.afm3d.optmagstr(); % gets 0.6250 0.9646 0.8840
-            out = testCase.afm3d.optmagstr('func',@gm_spherical3d,'xmin',[0 0, 0 0 0, 0 0],'xmax',[pi/2 0, 1/2 0 0, 0 0]) % 0.3850 0 0
+        function test_optmagstr_tri_nRun(testCase)
+            % sw_timeit called in nRun loop, and before and after
+            nRun = 4;
+            mock_sw_timeit = sw_tests.utilities.mock_function('sw_timeit');
+            out = testCase.tri.optmagstr('nRun', nRun);
+            testCase.assertEqual(mock_sw_timeit.n_calls, nRun + 2);
         end
        
     end
