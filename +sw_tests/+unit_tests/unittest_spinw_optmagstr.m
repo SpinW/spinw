@@ -204,4 +204,30 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                                 'rel_tol', 1e-3);
         end
 
+        function test_optmagstr_optimisation_params(testCase)
+            % We could just mock optimset and check correct args are passed
+            % through, but Matlab doesn't allow mocking functions so just
+            % check some behaviour and output struct. mock_function doesn't
+            % support complex return values such as structs.
+            tolx = 1e-5;
+            tolfun = 1e-6;
+            maxfunevals = 10;
+            maxiter = 5;
+            out = testCase.tri.optmagstr(testCase.tri_optmagstr_args{:}, ...
+                                         'tolx', tolx, 'tolfun', tolfun, ...
+                                         'maxfunevals', maxfunevals, ...
+                                         'maxiter', maxiter);
+            converged_k = [1/3; 1/3; 0];
+            actual_k = testCase.tri.mag_str.k;
+            % Test with low iterations k doesn't converge
+            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.1);
+            % Test that params are in output struct
+            testCase.verifyEqual(out.param.tolx, tolx);
+            testCase.verifyEqual(out.param.tolfun, tolfun);
+            testCase.verifyEqual(out.param.maxfunevals, maxfunevals);
+            testCase.verifyEqual(out.param.maxiter, maxiter);
+        end
+
+    end
+
 end
