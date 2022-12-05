@@ -194,8 +194,8 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             % doesn't support complex return values such as structs.
             tolx = 1e-5;
             tolfun = 1e-6;
-            maxfunevals = 3;
-            maxiter = 2;
+            maxfunevals = 2;
+            maxiter = 1;
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
             out = testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
