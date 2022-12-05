@@ -97,17 +97,6 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                                 'rel_tol', 1e-3);
         end
 
-        function test_optmagstr_tri_af_x0(testCase)
-            % Test initialising near a min converges to min
-            diff = 0.05;
-            testCase.tri.optmagstr('func', @gm_planar, 'x0', [0 1/3+diff 1/3+diff 0 0 0]);
-            expected_mag_str =  testCase.opt_tri_mag_str;
-            expected_mag_str.F = [-1i; 1; 0];
-            % Use abs tol for F = 0
-            testCase.verify_val(testCase.tri.mag_str, expected_mag_str, ...
-                                'rel_tol', 1e-3, 'abs_tol', 1e-3);
-        end
-
         function test_optmagstr_tri_af_named_xparam(testCase)
             % Test using named params
             testCase.tri.optmagstr('func', @gm_planar, ...
@@ -119,6 +108,43 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                                    'nPhi_rad', [0 0]);
             testCase.verify_val(testCase.tri.mag_str, testCase.opt_tri_mag_str, ...
                                 'rel_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_x0(testCase)
+            % Test initialising near a min converges to min
+            diff = 0.05;
+            testCase.tri.optmagstr('func', @gm_planar, 'x0', [0 1/3+diff 1/3+diff 0 0 0]);
+            expected_mag_str =  testCase.opt_tri_mag_str;
+            expected_mag_str.F = [-1i; 1; 0];
+            % Use abs tol for F = 0
+            testCase.verify_val(testCase.tri.mag_str, expected_mag_str, ...
+                                'rel_tol', 1e-3, 'abs_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_custom_func(testCase)
+            function [S, k, n] = custom_func(S0, x)
+                S = [1; 0; 0];
+                k = [1/3 1/3 0];
+                n = [0 0 1];
+            end
+            testCase.tri.optmagstr('func', @custom_func, 'xmin', [0], 'xmax', [0]);
+            testCase.verify_val(testCase.tri.mag_str, testCase.opt_tri_mag_str, ...
+                                'rel_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_custom_func_requires_xmin_and_xmax(testCase)
+            function [S, k, n] = custom_func(S0, x)
+                S = [1; 0; 0];
+                k = [1/3 1/3 0];
+                n = [0 0 1];
+
+            end
+            testCase.verifyError(@() testCase.tri.optmagstr('func', @custom_func), ...
+                                 'spinw:optmagtr:WrongInput');
+            testCase.verifyError(@() testCase.tri.optmagstr('func', @custom_func, 'xmin', [0]), ...
+                                 'spinw:optmagtr:WrongInput');
+            testCase.verifyError(@() testCase.tri.optmagstr('func', @custom_func, 'xmax', [0]), ...
+                                 'spinw:optmagtr:WrongInput');
         end
 
         function test_optmagstr_tri_af_epsilon(testCase)
