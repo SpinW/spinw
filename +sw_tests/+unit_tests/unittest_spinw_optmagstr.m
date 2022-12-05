@@ -166,6 +166,28 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             testCase.verifyEqual(out.param.maxiter, maxiter);
         end
 
+        function test_afc_gm_spherical(testCase)
+            % From tutorial 22
+            afc = spinw();
+            afc.genlattice('lat_const',[3 4 4],'angled',[90 90 90]);
+            afc.addatom('r',[0 0 0],'S',1);
+            afc.addmatrix('label', 'A', 'value', diag([0 0 0.1]));
+            afc.addmatrix('label','J1', 'value', 1);
+            afc.addmatrix('label','J2', 'value', 1/3);
+            afc.gencoupling;
+            afc.addcoupling('mat', 'J1', 'bond', 1);
+            afc.addcoupling('mat', 'J2', 'bond', 5);
+            afc.addaniso('A');
+            afc.genmagstr('mode','helical','S',[1 0 0]','k',[0 0 0]);
+
+            xmin = [0 0  0 0 0 0 0];
+            xmax = [pi/2 0 1/2 0 0 0 0];
+            afc.optmagstr('xmin', xmin, 'xmax', xmax);
+            expected_k = [0.385; 0; 0];
+            testCase.verify_val(afc.mag_str.k, expected_k, ...
+                                'rel_tol', 1e-3, 'abs_tol', 1e-3);
+        end
+
     end
 
 end
