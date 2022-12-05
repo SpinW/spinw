@@ -196,12 +196,14 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             tolfun = 1e-6;
             maxfunevals = 3;
             maxiter = 2;
-            out = testCase.tri.optmagstr(testCase.tri_optmagstr_args{:}, ...
+            xmin = [0 0  0 0 0 0 0];
+            xmax = [pi/2 0 1/2 0 0 0 0];
+            out = testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
                                          'tolx', tolx, 'tolfun', tolfun, ...
                                          'maxfunevals', maxfunevals, ...
                                          'maxiter', maxiter);
-            converged_k = [1/3; 1/3; 0];
-            actual_k = testCase.tri.mag_str.k;
+            converged_k = [0.385; 0; 0];
+            actual_k = testCase.afc.mag_str.k;
             % Test with low iterations k doesn't converge
             testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.1);
             % Test that params are in output struct
