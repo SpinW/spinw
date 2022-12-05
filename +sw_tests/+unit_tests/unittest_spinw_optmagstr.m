@@ -2,6 +2,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
 
     properties
         tri = [];
+        afc = [];
         opt_tri_mag_str = struct('nExt', int32([1 1 1]), ...
                                  'k', [1/3; 1/3; 0], ...
                                  'F', [1; 1i; 0]);
@@ -25,6 +26,20 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             testCase.tri.addmatrix('value', 1,'label','J1');
             testCase.tri.addcoupling('mat', 'J1','bond', 1);
             testCase.tri.genmagstr('mode','helical','S',[1 0 0]','k',[0 0 0]);
+        end
+        function setup_afc(testCase)
+            % From tutorial 22
+            testCase.afc = spinw();
+            testCase.afc.genlattice('lat_const',[3 4 4],'angled',[90 90 90]);
+            testCase.afc.addatom('r',[0 0 0],'S',1);
+            testCase.afc.addmatrix('label', 'A', 'value', diag([0 0 0.1]));
+            testCase.afc.addmatrix('label','J1', 'value', 1);
+            testCase.afc.addmatrix('label','J2', 'value', 1/3);
+            testCase.afc.gencoupling;
+            testCase.afc.addcoupling('mat', 'J1', 'bond', 1);
+            testCase.afc.addcoupling('mat', 'J2', 'bond', 5);
+            testCase.afc.addaniso('A');
+            testCase.afc.genmagstr('mode','helical','S',[1 0 0]','k',[0 0 0]);
         end
     end
     methods(TestMethodTeardown)
@@ -80,15 +95,6 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
 
             testCase.verify_val(testCase.tri.mag_str, testCase.opt_tri_mag_str, ...
                                 'rel_tol', 1e-3);
-        end
-
-        function test_optmagstr_tri_af_no_init(testCase)
-            % Test without initialising parameters, converges to different
-            % k
-            testCase.tri.optmagstr();
-            converged_k = [1/3; 1/3; 0];
-            actual_k = testCase.tri.mag_str.k;
-            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.1);
         end
 
         function test_optmagstr_tri_af_x0(testCase)
@@ -166,25 +172,20 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             testCase.verifyEqual(out.param.maxiter, maxiter);
         end
 
-        function test_afc_gm_spherical(testCase)
-            % From tutorial 22
-            afc = spinw();
-            afc.genlattice('lat_const',[3 4 4],'angled',[90 90 90]);
-            afc.addatom('r',[0 0 0],'S',1);
-            afc.addmatrix('label', 'A', 'value', diag([0 0 0.1]));
-            afc.addmatrix('label','J1', 'value', 1);
-            afc.addmatrix('label','J2', 'value', 1/3);
-            afc.gencoupling;
-            afc.addcoupling('mat', 'J1', 'bond', 1);
-            afc.addcoupling('mat', 'J2', 'bond', 5);
-            afc.addaniso('A');
-            afc.genmagstr('mode','helical','S',[1 0 0]','k',[0 0 0]);
+        function test_afc_no_init(testCase)
+            % Test without initialising parameters, doesn't converge k
+            converged_k = [0.385; 0; 0];
+            testCase.afc.optmagstr();
+            actual_k = testCase.afc.mag_str.k;
+            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.1);
+        end
 
+        function test_afc_gm_spherical3d(testCase)
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
-            afc.optmagstr('xmin', xmin, 'xmax', xmax);
+            testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax);
             expected_k = [0.385; 0; 0];
-            testCase.verify_val(afc.mag_str.k, expected_k, ...
+            testCase.verify_val(testCase.afc.mag_str.k, expected_k, ...
                                 'rel_tol', 1e-3, 'abs_tol', 1e-3);
         end
 
