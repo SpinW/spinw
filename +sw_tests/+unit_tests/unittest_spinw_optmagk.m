@@ -54,11 +54,11 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
                                   'stat', struct('S', 0, ...
                                                  'exitflag', -1));
             % Test struct output by optmagk
-            testCase.verify_val(out, expected_out, 'abs_tol', 1e-4);
+            testCase.verify_val(out, expected_out, 'abs_tol', 2e-4);
             % Also test spinw attributes have been set
             expected_mag_str = testCase.default_mag_str;
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
-                                'abs_tol', 1e-4);
+                                'abs_tol', 2e-4);
         end
         function test_afm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);
