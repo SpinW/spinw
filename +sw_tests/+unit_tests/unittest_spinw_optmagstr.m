@@ -272,9 +272,11 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             sq.addcoupling('mat', 'J1', 'bond', 2);
             % Needs something not aligned with axis
             sq.genmagstr('mode', 'direct', 'S', [1 -1; 0.1 -0.1; 0.2 -0.2]);
+            % Sometimes fails to find min, run multiple times
             sq.optmagstr('func', @gm_spherical3d, ...
                          'xmin', [-pi/2 -pi -pi/2 -pi, 0 0 0, 0 0], ...
-                         'xmax', [pi/2 pi pi/2 pi, 0 0 0, 0 0]);
+                         'xmax', [pi/2 pi pi/2 pi, 0 0 0, 0 0], ...
+                         'nRun', 5);
             spin_angles = {{90, 121}, {31, 180}}; % theta, phi
             expected_F = zeros(3, length(spin_angles));
             for i=1:length(spin_angles)
