@@ -13,6 +13,9 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
     end
     properties (TestParameter)
         xparams = {'xmin', 'xmax', 'x0'};
+        optparams = {{'maxfunevals', 1}, ...
+                     {'maxiter', 1}, ...
+                     {'tolx', 1, 'tolfun', 1}}; % Need to set both or the funtion converges
     end
     methods (Static)
         function [S, k, n] = optmagstr_custom_func(S0, x)
@@ -64,9 +67,9 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
 
         function test_wrong_xparam_length_warns(testCase, xparams)
             params = struct('func', @gm_planar, ...
-                             'xmin', [0 0 0 0 0 0], ...
-                             'xmax', [0 1/2 1/2 0 0 0], ...
-                             'x0', [0 1/4 1/4 0 0 0]);
+                            'xmin', [0 0 0 0 0 0], ...
+                            'xmax', [0 1/2 1/2 0 0 0], ...
+                            'x0', [0 1/4 1/4 0 0 0]);
             xparam = params.(xparams);
             params.(xparams) = xparam(1:end-1);
             testCase.verifyWarning(...
@@ -198,30 +201,23 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                                 'rel_tol', 1e-3);
         end
 
-        function test_optmagstr_optimisation_params(testCase)
+        function test_optmagstr_optimisation_params(testCase, optparams)
             % We could just mock optimset and check correct args are passed
             % through, but Matlab doesn't allow mocking functions so just
             % check some behaviour and the output struct. Our mock_function
             % doesn't support complex return values such as structs.
-            tolx = 1e-5;
-            tolfun = 1e-6;
-            maxfunevals = 2;
-            maxiter = 1;
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
             out = testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
-                                         'tolx', tolx, 'tolfun', tolfun, ...
-                                         'maxfunevals', maxfunevals, ...
-                                         'maxiter', maxiter);
+                                         optparams{:});
             converged_k = [0.385; 0; 0];
             actual_k = testCase.afc.mag_str.k;
             % Test with low iterations k doesn't converge
-            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.1);
+            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.05);
             % Test that params are in output struct
-            testCase.verifyEqual(out.param.tolx, tolx);
-            testCase.verifyEqual(out.param.tolfun, tolfun);
-            testCase.verifyEqual(out.param.maxfunevals, maxfunevals);
-            testCase.verifyEqual(out.param.maxiter, maxiter);
+            for i=1:2:length(optparams)
+                testCase.verifyEqual(out.param.(optparams{i}), optparams{i+1})
+            end
         end
 
         function test_afc_no_init(testCase)
