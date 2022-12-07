@@ -11,6 +11,9 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                               'xmax', [0 1/2 1/2 0 0 0]};
        orig_rng_state = []
     end
+    properties (TestParameter)
+        xparams = {'xmin', 'xmax', 'x0'};
+    end
     methods (TestClassSetup)
         function set_seed(testCase)
             testCase.orig_rng_state = rng;
@@ -51,6 +54,18 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         function test_no_mag_atom_throws_error(testCase)
             swobj = spinw();
             testCase.verifyError(@() swobj.optmagstr, 'spinw:optmagstr:NoMagAtom');
+        end
+
+        function test_wrong_xparam_length_warns(testCase, xparams)
+            params = struct('func', @gm_planar, ...
+                             'xmin', [0 0 0 0 0 0], ...
+                             'xmax', [0 1/2 1/2 0 0 0], ...
+                             'x0', [0 1/4 1/4 0 0 0]);
+            xparam = params.(xparams);
+            params.(xparams) = xparam(1:end-1);
+            testCase.verifyWarning(...
+                @() testCase.tri.optmagstr(params), ...
+                'spinw:optmagstr:WrongLengthXParam');
         end
 
         function test_optmagstr_tri_af_out_planar_xmin_xmax(testCase)

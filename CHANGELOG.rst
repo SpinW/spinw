@@ -72,3 +72,5 @@ Bug Fixes
 - Ensure varargin is correctly passed through to ``ndbase.pso`` from
   ``optmagk``. Previously user provided ``TolFun``, ``TolX`` and
   ``MaxIter`` would be overwritten by the defaults.
+- Emit warning if wrong length ``xmin``, ``xmax`` or ``x0`` is passed to
+  ``optmagstr``. Previously they would be silently ignored.

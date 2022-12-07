@@ -176,11 +176,16 @@ warnState = warning('off','sw_readparam:UnreadInput');
 param = sw_readparam(inpForm, varargin{:});
 pref = swpref;
 
+% Don't see the point in passing param here
+% It just resets k to [0 0 0], and uses Fourier as S because no args passed
+% in. Warn should be turned off too
 obj.genmagstr(param);
 
 magStr  = obj.magstr; 
 
 % starting magnetic structure from spinw object
+% This can never be reached now because if magStr.S were empty genmagstr would
+% fail
 if isempty(magStr.S)
     obj.genmagstr('mode','random');
 end
@@ -195,16 +200,25 @@ end
 
 
 % determine the limits from the constraint function
+xparam_warn_id = 'spinw:optmagstr:WrongLengthXParam';
+xparam_warn_msg = ['Provided %s is the wrong length, expected length %i, got %i. ' ...
+                   'This input parameter will be ignored.'];
 if nargout(param.func) == 6
     [~, ~, ~, fname, pname, limit] = param.func(S,[]);
     % limits of the fitting parameters
     nPar = size(limit,2);
     % limits of the parameters
     if numel(param.xmin) ~= nPar
+        if ~isempty(param.xmin)
+            warning(xparam_warn_id, xparam_warn_msg, 'xmin', nPar, numel(param.xmin));
+        end
         param.xmin = limit(1,:);
     end
     
     if numel(param.xmax) ~= nPar
+        if ~isempty(param.xmax)
+            warning(xparam_warn_id, xparam_warn_msg, 'xmax', nPar, numel(param.xmax));
+        end
         param.xmax = limit(2,:);
     end
     
@@ -244,6 +258,9 @@ SS.all = [SS.all SS.dip];
 
 % Initial parameters are random if param.x0 is undefined/wrong size
 xRand = (numel(param.x0)~= nPar);
+if xRand && ~isempty(param.x0)
+    warning(xparam_warn_id, xparam_warn_msg, 'x0', nPar, numel(param.x0));
+end
 
 if (~xRand) || (param.nRun<1)
     param.nRun = 1;
