@@ -249,7 +249,23 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 'spinw:spinwave:CommensurateSabp');
             testCase.verify_spinwave(sw, testCase.get_expected_sw_qh5);
         end
-         function test_sw_qh5_saveSabp_incommensurate(testCase)
+        function test_sw_incom_in_supercell_warns(testCase)
+            cycloid = spinw;
+            cycloid.genlattice('lat_const',[3 8 10], 'sym',0);
+            cycloid.addatom('r',[0 0 0],'S',1,'label','Cu1');
+            cycloid.gencoupling('maxDistance',7);
+            cycloid.addmatrix('label','J2','value', 1);
+            cycloid.addcoupling('mat','J2','bond',2);
+            % modulation of [1/4 0 0] gets transfromed in gemagstr to
+            % [0.5 0 0] for nExt = [2 1 1]
+            cycloid.genmagstr('mode', 'helical', ...
+                              'S', [1 0; 0 1; 0 0], 'n', [0 0 1], ...
+                               'nExt', [2 1 1], 'k', [0.25, 0, 0]);
+            testCase.verifyWarning(@() cycloid.spinwave({[0 0 0], [1 0 0], ...
+                                                         30}), ...
+                                   'spinw:spinwave:IncommKinSupercell');
+        end
+        function test_sw_qh5_saveSabp_incommensurate(testCase)
              qpts = testCase.qh5;
              sw_out = testCase.swobj_tri.spinwave(qpts, ...
                                                   'saveSabp', true);
