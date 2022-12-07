@@ -252,10 +252,38 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         function test_afc_gm_spherical3d(testCase)
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
-            testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax);
+            testCase.afc.optmagstr(...
+                'func', @gm_spherical3d, 'xmin', xmin, 'xmax', xmax);
             expected_k = [0.385; 0; 0];
             testCase.verify_val(testCase.afc.mag_str.k, expected_k, ...
                                 'rel_tol', 1e-3, 'abs_tol', 1e-3);
+        end
+
+        function test_dm_multiatom_spherical3d(testCase)
+            sq = spinw();
+            sq.genlattice('lat_const', [4 4 4], 'angled', [90 90 90]);
+            sq.addatom('r', [0 0 0], 'S', 1);
+            sq.addatom('r', [0.5 0.5 0.5], 'S', 1);
+            sq.gencoupling('maxDistance', 10);
+            % This is the DM interaction, with the vector along [1 1 1]
+            sq.addmatrix('value', [1 1 1], 'label', 'DM');
+            sq.addcoupling('mat', 'DM', 'bond', 1);
+            sq.addmatrix('value', 1, 'label', 'J1');
+            sq.addcoupling('mat', 'J1', 'bond', 2);
+            % Needs something not aligned with axis
+            sq.genmagstr('mode', 'direct', 'S', [1 -1; 0.1 -0.1; 0.2 -0.2]);
+            sq.optmagstr('func', @gm_spherical3d, ...
+                         'xmin', [-pi/2 -pi -pi/2 -pi, 0 0 0, 0 0], ...
+                         'xmax', [pi/2 pi pi/2 pi, 0 0 0, 0 0]);
+            spin_angles = {{90, 121}, {31, 180}}; % theta, phi
+            expected_F = zeros(3, length(spin_angles));
+            for i=1:length(spin_angles)
+                [theta, phi] = spin_angles{i}{:};
+                expected_F(1, i) = sind(theta)*cosd(phi); % a
+                expected_F(2, i) = sind(theta)*sind(phi); % b
+                expected_F(3, i) = cosd(theta); % c
+            end
+            testCase.verify_val(sq.mag_str.F, expected_F, abs_tol=0.02);
         end
 
     end
