@@ -161,6 +161,27 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                                  'spinw:optmagtr:WrongInput');
         end
 
+        function test_optmagstr_tri_af_custom_func_wrong_number_of_outputs(testCase)
+            function [S, k] = custom_func(S0, x)
+                S = [1; 0; 0];
+                k = [0 0 0];
+            end
+            testCase.verifyError(@() testCase.tri.optmagstr(...
+                'func', @custom_func, 'xmin', [0], 'xmax', [0]), ...
+                'MATLAB:TooManyOutputs');
+        end
+
+        function test_optmagstr_tri_af_custom_func_wrong_number_of_inputs(testCase)
+            function [S, k, n] = custom_func(S0)
+                S = [1; 0; 0];
+                k = [0 0 0];
+                n = [0 0 1];
+            end
+            testCase.verifyError(@() testCase.tri.optmagstr(...
+                'func', @custom_func, 'xmin', [0], 'xmax', [0]), ...
+                'MATLAB:TooManyInputs');
+        end
+
         function test_optmagstr_tri_af_epsilon(testCase)
             % Test that large epsilon doesn't rotate spins
             testCase.tri.optmagstr('epsilon', 1.);
