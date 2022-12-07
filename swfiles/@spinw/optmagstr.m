@@ -161,34 +161,26 @@ end
 
 title0 = 'Optimised magnetic structure using simplex search';
 
-inpForm.fname  = {'epsilon' 'func'           'boundary'          'xmin'   'xmax'  'x0'   };
-inpForm.defval = {1e-5      @gm_spherical3d  {'per' 'per' 'per'} []       []      []     };
-inpForm.size   = {[1 1]     [1 1]            [1 3]               [1 -1]   [1 -2]  [1 -3] };
-inpForm.soft   = {0         0                0                   1        1       1      };
+inpForm.fname  = {'epsilon' 'func'           'random'  'boundary'          'xmin'   'xmax'  'x0'   };
+inpForm.defval = {1e-5      @gm_spherical3d  false     {'per' 'per' 'per'} []       []      []     };
+inpForm.size   = {[1 1]     [1 1]            [1 1]     [1 3]               [1 -1]   [1 -2]  [1 -3] };
+inpForm.soft   = {0         0                0         0                   1        1       1      };
 
 inpForm.fname  = [inpForm.fname  {'tolx' 'tolfun' 'maxfunevals' 'nRun' 'maxiter' 'title' 'tid'}];
 inpForm.defval = [inpForm.defval {1e-4   1e-5     1e7           1      1e4       title0  -1   }];
 inpForm.size   = [inpForm.size   {[1 1]  [1 1]    [1 1]         [1 1]  [1 1]     [1 -4]  [1 1]}];
 inpForm.soft   = [inpForm.soft   {0      0        0             0      0         1       false}];
 
-% creat initial magnetic structure
 warnState = warning('off','sw_readparam:UnreadInput');
 param = sw_readparam(inpForm, varargin{:});
 pref = swpref;
 
-% Don't see the point in passing param here
-% It just resets k to [0 0 0], and uses Fourier as S because no args passed
-% in. Warn should be turned off too
-obj.genmagstr(param);
-
-magStr  = obj.magstr; 
-
-% starting magnetic structure from spinw object
-% This can never be reached now because if magStr.S were empty genmagstr would
-% fail
-if isempty(magStr.S)
+% If magnetic structure hasn't been initialised
+% generate a random magnetic structure
+if isempty(obj.mag_str.F)
     obj.genmagstr('mode','random');
 end
+magStr  = obj.magstr;
 
 S       = sqrt(sum(magStr.S.^2,1));
 nExt    = double(magStr.N_ext);
