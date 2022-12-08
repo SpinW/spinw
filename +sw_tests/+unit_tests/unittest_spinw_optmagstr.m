@@ -13,8 +13,11 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
     end
     properties (TestParameter)
         xparams = {'xmin', 'xmax', 'x0'};
-        optparams = {{'maxfunevals', 1}, ...
-                     {'maxiter', 1}};
+        optparams = {{'maxfunevals', 5}, ...
+                     {'maxiter', 10}, ...
+                     {'tolx', 1e-3}, ...
+                     {'tolfun', 1e-4}, ...
+                     {'maxfunevals', 5, 'maxiter', 10}};
     end
     methods (Static)
         function [S, k, n] = optmagstr_custom_func(S0, x)
@@ -223,17 +226,15 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
 
         function test_optmagstr_optimisation_params(testCase, optparams)
             % We could just mock optimset and check correct args are passed
-            % through, but Matlab doesn't allow mocking functions so just
-            % check some behaviour and the output struct. Our mock_function
-            % doesn't support complex return values such as structs.
+            % through, but Matlab doesn't allow mocking functions, and our
+            % mock_function doesn't support complex return values such as
+            % structs. So just check the output struct. O.
+            % We could also check for non-convergence but this is a bit
+            % flaky on different systems.
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
             out = testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
                                          optparams{:});
-            converged_k = [0.385; 0; 0];
-            actual_k = testCase.afc.mag_str.k;
-            % Test with low iterations k doesn't converge
-            testCase.verifyGreaterThan(sum(abs(converged_k - actual_k)), 0.05);
             % Test that params are in output struct
             for i=1:2:length(optparams)
                 testCase.verifyEqual(out.param.(optparams{i}), optparams{i+1})
