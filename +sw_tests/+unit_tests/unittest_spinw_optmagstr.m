@@ -40,7 +40,6 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             testCase.tri.gencoupling('maxDistance',10);
             testCase.tri.addmatrix('value', 1,'label','J1');
             testCase.tri.addcoupling('mat', 'J1','bond', 1);
-            testCase.tri.genmagstr('mode','helical','S',[1 0 0]','k',[0 0 0]);
         end
         function setup_afc(testCase)
             % From tutorial 22
@@ -121,6 +120,17 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
 
             testCase.verify_val(testCase.tri.mag_str, testCase.opt_tri_mag_str, ...
                                 'rel_tol', 1e-3);
+        end
+
+        function test_optmagstr_tri_af_nExt_init(testCase)
+            % Test that if a magnetic structure is initialised with nExt,
+            % it is used in optmagstr
+            testCase.tri.genmagstr('mode', 'random', 'nExt', [3 1 1]);
+            testCase.tri.optmagstr('func', @gm_planar, ...
+                                   'xmin', [0 pi/2 pi 0 0 0 0 0], ...
+                                   'xmax', [0 pi 3*pi/2 0 1/2 0 0 0]);
+            testCase.verify_val(testCase.tri.mag_str.k, [0; 1/3; 0], ...
+                                   'rel_tol', 1e-3);
         end
 
         function test_optmagstr_tri_af_named_xparam(testCase)
@@ -270,8 +280,6 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             sq.addcoupling('mat', 'DM', 'bond', 1);
             sq.addmatrix('value', 1, 'label', 'J1');
             sq.addcoupling('mat', 'J1', 'bond', 2);
-            % Needs something not aligned with axis
-            sq.genmagstr('mode', 'direct', 'S', [1 -1; 0.1 -0.1; 0.2 -0.2]);
             % Sometimes fails to find min, run multiple times
             sq.optmagstr('func', @gm_spherical3d, ...
                          'xmin', [-pi/2 -pi -pi/2 -pi, 0 0 0, 0 0], ...

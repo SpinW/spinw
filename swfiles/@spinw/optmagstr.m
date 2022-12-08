@@ -11,10 +11,13 @@ function optm = optmagstr(obj, varargin)
 % optimizer that as the name suggests is general however usually less
 % efficient than [spinw.optmagk] or [spinw.optmagsteep]. However this
 % function enables the usage of constraint functions to improve the
-% optimization. This function is most usefull if there is 1-2 parameters
-% that has to be optimized, such as a canting angle of the spins in
-% magnetic field. To optimize large number of spin angles
-% [spinw.optmagsteep] might be faster.
+% optimization. This function is most useful if there are 1-2 parameters
+% that have to be optimized, such as a canting angle of the spins in
+% a magnetic field. To optimize large numbers of spin angles
+% [spinw.optmagsteep] might be faster. Only obj.mag_str.nExt is used from
+% an already initialised magnetic structure, initial k and S are determined
+% from the optimisation function parameters. If a magnetic structure has
+% not been initialised in obj, nExt = [1 1 1] is used.
 % 
 % ### Examples
 % 
@@ -59,12 +62,6 @@ function optm = optmagstr(obj, varargin)
 %  default value is `@gm_spherical3d`. For planar magnetic structures
 %  use `@gm_planar`.
 % 
-% `'random'`
-% : If `true` random initial spin orientations will be used (paramagnet),
-%   if initial spin configuration is undefined (`obj.mag_str.F` is empty)
-%   the initial configuration will be always random. Default value is
-%   `false`.
-%
 % `'xmin'`
 % : Lower limit of the optimisation parameters.
 % 
@@ -182,14 +179,14 @@ param = sw_readparam(inpForm, varargin{:});
 pref = swpref;
 
 % If magnetic structure hasn't been initialised
-% generate a random magnetic structure
+% just use nExt = [1 1 1]
 if isempty(obj.mag_str.F)
-    obj.genmagstr('mode','random');
+    S = obj.unit_cell.S;
+    nExt = [1 1 1];
+else
+    S = sqrt(sum(obj.magstr.S.^2,1));
+    nExt = double(obj.magstr.N_ext);
 end
-magStr  = obj.magstr;
-
-S       = sqrt(sum(magStr.S.^2,1));
-nExt    = double(magStr.N_ext);
 nMagExt = length(S);
 
 if param.tid == -1

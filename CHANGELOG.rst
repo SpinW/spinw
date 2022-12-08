@@ -74,3 +74,6 @@ Bug Fixes
   ``MaxIter`` would be overwritten by the defaults.
 - Emit warning if wrong length ``xmin``, ``xmax`` or ``x0`` is passed to
   ``optmagstr``. Previously they would be silently ignored.
+- No longer require a magnetic structure be initialised with ``genmagstr``
+  before using ``optmagstr``. If not intialised, a default ``nExt`` of
+  ``[1 1 1]`` is used. This has also been clarified in the docstring.
