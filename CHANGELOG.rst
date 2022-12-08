@@ -72,3 +72,6 @@ Bug Fixes
 - Ensure varargin is correctly passed through to ``ndbase.pso`` from
   ``optmagk``. Previously user provided ``TolFun``, ``TolX`` and
   ``MaxIter`` would be overwritten by the defaults.
+- Warn users that that the results of ``spinwave`` have not been
+  scientifically validated for supercell structures with an
+  incommensurate modulation.

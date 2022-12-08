@@ -256,7 +256,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             cycloid.gencoupling('maxDistance',7);
             cycloid.addmatrix('label','J2','value', 1);
             cycloid.addcoupling('mat','J2','bond',2);
-            % modulation of [1/4 0 0] gets transfromed in gemagstr to
+            % modulation of [1/4 0 0] gets transformed in genmagstr to
             % [0.5 0 0] for nExt = [2 1 1]
             cycloid.genmagstr('mode', 'helical', ...
                               'S', [1 0; 0 1; 0 0], 'n', [0 0 1], ...
