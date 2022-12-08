@@ -59,6 +59,12 @@ function optm = optmagstr(obj, varargin)
 %  default value is `@gm_spherical3d`. For planar magnetic structures
 %  use `@gm_planar`.
 % 
+% `'random'`
+% : If `true` random initial spin orientations will be used (paramagnet),
+%   if initial spin configuration is undefined (`obj.mag_str.F` is empty)
+%   the initial configuration will be always random. Default value is
+%   `false`.
+%
 % `'xmin'`
 % : Lower limit of the optimisation parameters.
 % 
@@ -161,10 +167,10 @@ end
 
 title0 = 'Optimised magnetic structure using simplex search';
 
-inpForm.fname  = {'epsilon' 'func'           'random'  'boundary'          'xmin'   'xmax'  'x0'   };
-inpForm.defval = {1e-5      @gm_spherical3d  false     {'per' 'per' 'per'} []       []      []     };
-inpForm.size   = {[1 1]     [1 1]            [1 1]     [1 3]               [1 -1]   [1 -2]  [1 -3] };
-inpForm.soft   = {0         0                0         0                   1        1       1      };
+inpForm.fname  = {'epsilon' 'func'           'boundary'          'xmin'   'xmax'  'x0'   };
+inpForm.defval = {1e-5      @gm_spherical3d  {'per' 'per' 'per'} []       []      []     };
+inpForm.size   = {[1 1]     [1 1]            [1 3]               [1 -1]   [1 -2]  [1 -3] };
+inpForm.soft   = {0         0                0                   1        1       1      };
 
 inpForm.fname  = [inpForm.fname  {'tolx' 'tolfun' 'maxfunevals' 'nRun' 'maxiter' 'title' 'tid'}];
 inpForm.defval = [inpForm.defval {1e-4   1e-5     1e7           1      1e4       title0  -1   }];

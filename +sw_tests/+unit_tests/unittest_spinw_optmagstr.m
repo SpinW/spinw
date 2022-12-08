@@ -14,8 +14,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
     properties (TestParameter)
         xparams = {'xmin', 'xmax', 'x0'};
         optparams = {{'maxfunevals', 1}, ...
-                     {'maxiter', 1}, ...
-                     {'tolx', 1, 'tolfun', 1}}; % Need to set both or the funtion converges
+                     {'maxiter', 1}};
     end
     methods (Static)
         function [S, k, n] = optmagstr_custom_func(S0, x)
@@ -285,7 +284,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
                 expected_F(2, i) = sind(theta)*sind(phi); % b
                 expected_F(3, i) = cosd(theta); % c
             end
-            testCase.verify_val(sq.mag_str.F, expected_F, abs_tol=0.02);
+            testCase.verify_val(sq.mag_str.F, expected_F, 'abs_tol', 0.02);
         end
 
     end
