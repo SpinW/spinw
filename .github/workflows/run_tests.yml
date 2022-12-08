@@ -48,10 +48,10 @@ jobs:
     if: success() || failure()
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: artifacts
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: artifacts/**/junit_report*.xml
+          junit_files: artifacts/**/junit_report*.xml

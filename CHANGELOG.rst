@@ -67,6 +67,10 @@ Bug Fixes
   Previously this would've caused a crash.
 - Fix error when plotting progress of ``optmagsteep`` without existing figure
 - Correctly report magnetic moments in each iteration of ``optmagsteep``.
+- Fix errors when calling ``intmatrix`` with dipolar bonds and symbolic 
+  spinw object with fitmode true and false
+- Ensure biquadratic exchange interactions are isotropic in ``addcoupling``
+  (previously checked in ``intmatrix``)
 - Raise error if invalid shape ``kbase`` is provided to ``optmagk``,
   previously it would be silently set to empty
 - Ensure varargin is correctly passed through to ``ndbase.pso`` from
@@ -75,3 +79,8 @@ Bug Fixes
 - Warn users that that the results of ``spinwave`` have not been
   scientifically validated for supercell structures with an
   incommensurate modulation.
+- Emit warning if wrong length ``xmin``, ``xmax`` or ``x0`` is passed to
+  ``optmagstr``. Previously they would be silently ignored.
+- No longer require a magnetic structure be initialised with ``genmagstr``
+  before using ``optmagstr``. If not intialised, a default ``nExt`` of
+  ``[1 1 1]`` is used. This has also been clarified in the docstring.

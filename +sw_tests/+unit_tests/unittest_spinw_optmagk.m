@@ -1,5 +1,4 @@
 classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
-    % Runs through unit test for @spinw/spinwave.m
 
     properties
         swobj = [];
@@ -9,9 +8,16 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
                                        sqrt(1/3); ...
                                        sqrt(1/3) - 1i*sqrt(1/2)], ...
                                  'k', [1; 0; 0]);
+        orig_rng_state = [];
     end
     properties (TestParameter)
         kbase_opts = {[1; 1; 0], [1 0; 0 1; 0 0]};
+    end
+    methods (TestClassSetup)
+        function set_seed(testCase)
+            testCase.orig_rng_state = rng;
+            rng('default');
+        end
     end
     methods (TestMethodSetup)
         function setup_chain_model(testCase)            
@@ -19,6 +25,11 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
             testCase.swobj.genlattice('lat_const', [3 8 8])
             testCase.swobj.addatom('r',[0; 0; 0],'S',1)
             testCase.swobj.gencoupling();
+        end
+    end
+    methods(TestMethodTeardown)
+        function reset_seed(testCase)
+            rng(testCase.orig_rng_state);
         end
     end
     methods (Test, TestTags = {'Symbolic'})
@@ -54,11 +65,11 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
                                   'stat', struct('S', 0, ...
                                                  'exitflag', -1));
             % Test struct output by optmagk
-            testCase.verify_val(out, expected_out, 'abs_tol', 1e-4);
+            testCase.verify_val(out, expected_out, 'abs_tol', 2e-4);
             % Also test spinw attributes have been set
             expected_mag_str = testCase.default_mag_str;
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
-                                'abs_tol', 1e-4);
+                                'abs_tol', 2e-4);
         end
         function test_afm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);

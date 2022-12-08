@@ -15,7 +15,7 @@ We are currently in a period of change. **SpinW will be moving to python/C++ (wi
 * can be also accessed from the browser: https://spinw.github.io/spinwdoc/
 
 # Build Status
-We are currently testing on Centos 7.3, macOS and Windows using MATLAB R2018b. It should be noted that MATLAB symbolic calculation changed post R2018a and as such symbolic results may be differ with a relative tolerance of < 0.03 %.
+Currently automated testing is on the `ubuntu-latest`, `windows-latest` and `macos-latest` Github actions runners (Ubuntu 20.04, Windows Server 2022, macOS-11 as of 16/11/22) and the latest Matlab version available from the [setup-matlab](https://github.com/matlab-actions/setup-matlab) action (R2022b as of 16/11/22). We also test on Ubuntu 20.04 and MATLAB2020a. It should be noted that MATLAB symbolic calculation changed post R2018a and as such symbolic results may be differ with a relative tolerance of < 0.03%.
 
 Testing can be pulled from the [testing](https://www.github.com/spinw/testing) repository and run with the `runspinwFunctionalityTests` command from the `Testing` directory.
 <!---

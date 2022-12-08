@@ -55,7 +55,7 @@ classdef unittest_spinw_optmagsteep < sw_tests.unit_tests.unittest_super
             testCase.verifyError(func_call, 'spinw:optmagsteep:WrongInput')
         end
         
-        function test_warns_if_not_convereged(testCase)
+        function test_warns_if_not_converged(testCase)
             % init moment along hard-axis (far from minima) and run 1 iter
             testCase.swobj.genmagstr('mode', 'helical', 'S', [1; 0; 0], ...
                                      'k',[0.5,0,0], 'n', [0,1,0], ...
