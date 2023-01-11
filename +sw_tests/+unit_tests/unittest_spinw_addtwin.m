@@ -79,6 +79,13 @@ classdef unittest_spinw_addtwin < sw_tests.unit_tests.unittest_super
             testCase.assertEqual(testCase.swobj.twin.rotc(:,:,2:end), rotc)  
         end
         
+        function test_addtwin_support_inversion_rotc(testCase)
+            rotc = -eye(3);
+            testCase.swobj.addtwin('rotc', rotc)
+            testCase.assertEqual(testCase.swobj.twin.vol, [1, 1])
+            testCase.assertEqual(testCase.swobj.twin.rotc(:,:,2:end), rotc)  
+        end
+
         function test_addtwin_overwrite_vol_ratio(testCase)
             testCase.swobj.addtwin('axis', [0,0,1], 'vol', 0.5, ...
                 'overwrite', true)
