@@ -277,6 +277,11 @@ singWarn0 = warning('off','MATLAB:nearlySingularMatrix');
 
 % use mex file by default?
 useMex = pref.usemex;
+if useMex
+    matmul = @(a,b) sw_mtimesx(a, b);
+else
+    matmul = @(a,b) mmat(a, b);
+end
 
 % calculate symbolic spectrum if obj is in symbolic mode
 if obj.symbolic
@@ -532,7 +537,7 @@ if incomm
     [~, K] = sw_rot(n,km*dR*2*pi);
     % multiply JJ with K matrices for every interaction
     % and symmetrising JJ for the rotating basis
-    JJ = (mmat(JJ,K)+mmat(K,JJ))/2;
+    JJ = (matmul(JJ,K)+matmul(K,JJ))/2;
 end
 
 nCoupling = size(JJ,3);
@@ -660,7 +665,7 @@ if param.gtensor
         nx  = [0 -n(3) n(2);n(3) 0 -n(1);-n(2) n(1) 0];
         nxn = n'*n;
         m1  = eye(3);
-        gtensor = 1/2*gtensor - 1/2*mmat(mmat(nx,gtensor),nx) + 1/2*mmat(mmat(nxn-m1,gtensor),nxn) + 1/2*mmat(mmat(nxn,gtensor),2*nxn-m1);
+        gtensor = 1/2*gtensor - 1/2*matmul(matmul(nx,gtensor),nx) + 1/2*matmul(matmul(nxn-m1,gtensor),nxn) + 1/2*matmul(matmul(nxn,gtensor),2*nxn-m1);
     end
 end
 
@@ -854,11 +859,7 @@ for jj = 1:nSlice
     else
         % All the matrix calculations are according to White's paper
         % R.M. White, et al., Physical Review 139, A450?A454 (1965)
-        if useMex
-            gham = sw_mtimesx(gComm, ham);
-        else
-            gham = mmat(gComm,ham);
-        end
+        gham = matmul(gComm, ham);
         
         [V, D, orthWarn] = eigorth(gham,param.omega_tol,useMex);
         
@@ -911,8 +912,8 @@ for jj = 1:nSlice
     
     if param.gtensor
         % include the g-tensor
-        zeda = mmat(repmat(permute(gtensor,[1 2 4 3]),[1 1 1 2]),zeda);
-        zedb = mmat(zedb,repmat(gtensor,[1 1 2]));
+        zeda = matmul(repmat(permute(gtensor,[1 2 4 3]),[1 1 1 2]),zeda);
+        zedb = matmul(zedb,repmat(gtensor,[1 1 2]));
     end
     % Dynamical structure factor from S^alpha^beta(k) correlation function.
     % Sab(alpha,beta,iMode,iHkl), size: 3 x 3 x 2*nMagExt x nHkl.
@@ -966,7 +967,7 @@ if incomm
     
     if helical
         % integrating out the arbitrary initial phase of the helix
-        Sab = 1/2*Sab - 1/2*mmat(mmat(nx,Sab),nx) + 1/2*mmat(mmat(nxn-m1,Sab),nxn) + 1/2*mmat(mmat(nxn,Sab),2*nxn-m1);
+        Sab = 1/2*Sab - 1/2*matmul(matmul(nx,Sab),nx) + 1/2*matmul(matmul(nxn-m1,Sab),nxn) + 1/2*matmul(matmul(nxn,Sab),2*nxn-m1);
     end
     
     % Save the structure factor in the rotating frame
@@ -978,8 +979,8 @@ if incomm
     % dispersion
     omega = [omega(:,kmIdx==1); omega(:,kmIdx==2); omega(:,kmIdx==3)];
     % exchange matrices
-    Sab   = cat(3,mmat(Sab(:,:,:,kmIdx==1),K1), mmat(Sab(:,:,:,kmIdx==2),K2), ...
-        mmat(Sab(:,:,:,kmIdx==3),conj(K1)));
+    Sab   = cat(3,matmul(Sab(:,:,:,kmIdx==1),K1), matmul(Sab(:,:,:,kmIdx==2),K2), ...
+        matmul(Sab(:,:,:,kmIdx==3),conj(K1)));
     
     hkl   = hkl(:,kmIdx==2);
     nHkl0 = nHkl0/3;
