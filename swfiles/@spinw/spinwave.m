@@ -804,7 +804,7 @@ for jj = 1:nSlice
             [V, omega(:,hklIdxMEM)] = eig_omp(K2,'sort','descend');
             % the inverse of the para-unitary transformation V
             for ii = 1:nHklMEM
-                V(:,:,ii) = V(:,:,ii)*diag(sqrt(gCommd.*omega(:,hklIdxMEM(ii))));
+                V(:,:,ii) = matmul(V(:,:,ii), diag(sqrt(gCommd.*omega(:,hklIdxMEM(ii)))));
             end
             % V = bsxfun(@times,invK,V);
             V = sw_mtimesx(invK,V);
@@ -840,7 +840,7 @@ for jj = 1:nSlice
                     end
                 end
                 
-                K2 = K*gComm*K';
+                K2 = matmul(matmul(K, gComm), K');
                 K2 = 1/2*(K2+K2');
                 % Hermitian K2 will give orthogonal eigenvectors
                 [U, D] = eig(K2);
@@ -853,7 +853,7 @@ for jj = 1:nSlice
                 omega(:, hklIdxMEM(ii)) = D(idx);
                 
                 % the inverse of the para-unitary transformation V
-                V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii)))); %#ok<MINV>
+                V(:,:,ii) = matmul(matmul(inv(K), U), diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii))))); %#ok<MINV>
             end
         end
     else
@@ -869,8 +869,8 @@ for jj = 1:nSlice
             % multiplication with g removed to get negative and positive
             % energies as well
             omega(:,hklIdxMEM(ii)) = D(:,ii);
-            M              = diag(gComm*V(:,:,ii)'*gComm*V(:,:,ii));
-            V(:,:,ii)      = V(:,:,ii)*diag(sqrt(1./M));
+            M              = diag(matmul(matmul(gComm,V(:,:,ii)'), matmul(gComm, V(:,:,ii))));
+            V(:,:,ii)      = matmul(V(:,:,ii), diag(sqrt(1./M)));
         end
     end
     
