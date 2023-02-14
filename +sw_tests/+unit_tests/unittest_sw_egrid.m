@@ -25,7 +25,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
             testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], ...
-                                     'n', [1 0 0], 'S', [0; 1; 0]);
+                                     'S', [0; 1; 0]);
         end
     end
 
@@ -61,8 +61,8 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
 
             testCase.sw_egrid_out = testCase.spectrum;
             testCase.sw_egrid_out.param.n = [0 0 1];
-            testCase.sw_egrid_out.param.uv = {};
             testCase.sw_egrid_out.param.pol = false;
+            testCase.sw_egrid_out.param.uv = {};
             testCase.sw_egrid_out.param.sumtwin = true;
             testCase.sw_egrid_out.intP = [];
             testCase.sw_egrid_out.Pab = [];
@@ -90,6 +90,50 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         function test_defaults(testCase)
             out = sw_egrid(testCase.spectrum);
             testCase.verify_obj(out, testCase.sw_egrid_out);
+        end
+        function test_Sperp(testCase)
+            out = sw_egrid(testCase.spectrum, 'component', 'Sperp');
+            testCase.verify_obj(out, testCase.sw_egrid_out);
+        end
+        function test_Sxx(testCase)
+            component = 'Sxx';
+            expected_out = rmfield(testCase.sw_egrid_out, ...
+                                   {'intP', 'Pab', 'Mab', 'Sperp'});
+            expected_out.param = rmfield(expected_out.param, ...
+                                         {'n', 'pol', 'uv'});
+            expected_out.component = component;
+            out = sw_egrid(testCase.spectrum, 'component', component);
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_Sxy(testCase)
+            component = 'Sxy';
+            expected_out = rmfield(testCase.sw_egrid_out, {'intP', 'Pab', 'Mab', 'Sperp'});
+            expected_out.param = rmfield(expected_out.param, {'n', 'pol', 'uv'});
+            expected_out.component = component;
+            expected_out.swInt = zeros(2, 5);
+            expected_out.swConv = zeros(500, 5);
+            out = sw_egrid(testCase.spectrum, 'component', component);
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_diff_Sxx_Szz(testCase)
+            component = 'Sxx-Szz';
+            expected_out = rmfield(testCase.sw_egrid_out, {'intP', 'Pab', 'Mab', 'Sperp'});
+            expected_out.param = rmfield(expected_out.param, {'n', 'pol', 'uv'});
+            expected_out.component = component;
+            expected_out.swInt = zeros(2, 5);
+            expected_out.swConv = zeros(500, 5);
+            out = sw_egrid(testCase.spectrum, 'component', component);
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_sum_Sxx_Szz_Sxy(testCase)
+            component = 'Sxx+Szz+Sxy';
+            expected_out = rmfield(testCase.sw_egrid_out, {'intP', 'Pab', 'Mab', 'Sperp'});
+            expected_out.param = rmfield(expected_out.param, {'n', 'pol', 'uv'});
+            expected_out.component = component;
+            expected_out.swInt = 2*expected_out.swInt;
+            expected_out.swConv = 2*expected_out.swConv;
+            out = sw_egrid(testCase.spectrum, 'component', component);
+            testCase.verify_obj(out, expected_out);
         end
     end
 
