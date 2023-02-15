@@ -53,6 +53,17 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj_tri.addcoupling('mat','J1','bond',1);
         end
     end
+    methods (TestMethodSetup)
+        function disable_mex_setup(testCase)
+            swpref.setpref('usemex', false);
+        end
+    end
+    methods (TestMethodTeardown)
+        function disable_mex_teardown(testCase)
+            swpref.setpref('usemex', false);
+        end
+    end
+
     methods
         function sw = get_expected_sw_qh5(testCase)
             % Expected output for the chain model for 5 q-points from
