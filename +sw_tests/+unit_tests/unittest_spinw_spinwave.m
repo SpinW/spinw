@@ -197,11 +197,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swpref.setpref('usemex', mex);
             sw_out = testCase.swobj.spinwave(testCase.qh5, ...
                                              'saveV', true, 'saveH', true);
-            if mex
-                expected_V = repmat(-eye(2), 1, 1, 5);
-            else
-                expected_V = repmat(eye(2), 1, 1, 5);
-            end
+            expected_V = repmat(eye(2), 1, 1, 5);
             expected_H = zeros(2, 2, 5);
             expected_H(:, :, [2 4]) = 2*repmat(eye(2), 1, 1, 2);
             expected_H(:, :, 3) = 4*eye(2);

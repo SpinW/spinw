@@ -71,7 +71,7 @@ classdef unittest_super < matlab.mock.TestCase
             % List of fields to test separately, only remove fields that
             % exist
             rmfields = intersect(fields(expected_spinwave), ...
-                                 {'datestart', 'dateend', 'obj'});
+                                 {'datestart', 'dateend', 'obj', 'V'});
             testCase.verify_obj(rmfield(actual_spinwave, rmfields), ...
                                 rmfield(expected_spinwave, rmfields), varargin{:})
             for field = ["datestart", "dateend"]
@@ -83,6 +83,21 @@ classdef unittest_super < matlab.mock.TestCase
             % true)
             if isfield(expected_spinwave, 'obj')
                 testCase.verify_obj(actual_spinwave.obj, expected_spinwave.obj);
+            end
+            % verify abs of V (matrix of eigenvecs) - sign doesn't matter
+            % get sign by comaparing max abs value
+            if isfield(expected_spinwave, 'V')
+                ifinite = find(isfinite(expected_spinwave.V));
+                [~, imax] = max(abs(expected_spinwave.V(ifinite)));
+                imax = ifinite(imax); % get index in array incl. non-finite
+                scale_sign = sign(expected_spinwave.V(imax)./actual_spinwave.V(imax));
+                if ~isfinite(scale_sign)
+                    % in case actual V(imax) is not finite - verify should fail!
+                    scale_sign = 1;
+                end
+                testCase.verify_val(actual_spinwave.V, ...
+                                    scale_sign.*expected_spinwave.V,...
+                                    varargin{:});
             end
         end
     end
