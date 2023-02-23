@@ -33,6 +33,9 @@ function result = run_tests(out_dir)
     end
     runner = TestRunner.withTextOutput;
 
+    % compile mex files
+    sw_mex('compile', true, 'test', false, 'swtest', false);
+    
     % Add coverage output
     cov_dirs = {'swfiles', 'external'};
     for i = 1:length(cov_dirs)
