@@ -224,13 +224,66 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         function test_single_ion_temp(testCase)
             temp = 300;
             spectrum = testCase.spectrum;
+            % Copy swobj here so don't interfere with other tests
+            spectrum.obj = copy(testCase.swobj);
             spectrum.obj.single_ion.T = temp;
             expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.obj = spectrum.obj;
             expected_out.swConv([727, 1727]) = 6.73826066430112;
             expected_out.swConv(1455) = 3.48826657260066;
             expected_out.T = temp;
             out = sw_egrid(spectrum);
             testCase.verify_obj(out, expected_out, 'rel_tol', 1e-10);
+        end
+        function test_twin(testCase)
+            swobj_twin = copy(testCase.swobj);
+            swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
+            spectrum = swobj_twin.spinwave(testCase.spectrum.hkl);
+            spectrum.datestart = testCase.spectrum.datestart;
+            spectrum.dateend = testCase.spectrum.dateend;
+            out = sw_egrid(spectrum);
+
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.obj = spectrum.obj;
+            expected_out.omega = spectrum.omega;
+            expected_out.Sab = spectrum.Sab;
+            expected_out.param.notwin = false;
+            expected_out.swConv = zeros(500, 5);
+            expected_out.swConv([727, 1455, 1727]) = 0.125;
+            expected_out.swConv([567, 1227, 1888, 2455]) = 0.65625;
+            expected_out.swInt = 0.78125*ones(2, 5);
+            expected_out.intP = cell(1,3);
+            expected_out.Pab = cell(1,3);
+            expected_out.Mab = cell(1,3);
+            expected_out.Sperp = {0.5*ones(2, 5) 0.875*ones(2, 5) 0.875*ones(2, 5)};
+
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_twin_nosum(testCase)
+            swobj_twin = copy(testCase.swobj);
+            swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
+            spectrum = swobj_twin.spinwave(testCase.spectrum.hkl);
+            spectrum.datestart = testCase.spectrum.datestart;
+            spectrum.dateend = testCase.spectrum.dateend;
+            out = sw_egrid(spectrum, 'sumtwin', false);
+
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.obj = spectrum.obj;
+            expected_out.omega = spectrum.omega;
+            expected_out.Sab = spectrum.Sab;
+            expected_out.param.notwin = false;
+            expected_out.param.sumtwin = false;
+            expected_out.component = {'Sperp'};
+            expected_out.swConv = cell(1, 3);
+            expected_out.swConv{1} = testCase.sw_egrid_out_sperp.swConv;
+            expected_out.swInt = cell(1, 3);
+            expected_out.swInt{1} = testCase.sw_egrid_out_sperp.swInt;
+            expected_out.intP = cell(1,3);
+            expected_out.Pab = cell(1,3);
+            expected_out.Mab = cell(1,3);
+            expected_out.Sperp = {0.5*ones(2, 5) 0.875*ones(2, 5) 0.875*ones(2, 5)};
+
+            testCase.verify_obj(out, expected_out);
         end
     end
 
