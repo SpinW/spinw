@@ -7,6 +7,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         spectrum = struct();
         sw_egrid_out = struct();
         sw_egrid_out_pol = struct();
+        sw_egrid_out_sperp = struct();
         qh5 = [0:0.25:1; zeros(2,5)];
     end
 
@@ -59,7 +60,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.spectrum.Sab(:, :, 2, 1:4) = repmat(Sab2, 1, 1, 1, 4);
             testCase.spectrum.Sab(:, :, 1, 5) = Sab2;
 
-            % Output from sw_egrid
+            % Output from sw_egrid when 'component' is specified
             testCase.sw_egrid_out = testCase.spectrum;
             testCase.sw_egrid_out.param.sumtwin = true;
             testCase.sw_egrid_out.T = 0;
@@ -69,20 +70,28 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.sw_egrid_out.swInt = 0.5*ones(2, 5);
             testCase.sw_egrid_out.component = 'Sperp';
 
+            % Default output from sw_egrid - when Sperp is used there are
+            % extra fields
+            testCase.sw_egrid_out_sperp = testCase.sw_egrid_out;
+            testCase.sw_egrid_out_sperp.intP = [];
+            testCase.sw_egrid_out_sperp.Mab = [];
+            testCase.sw_egrid_out_sperp.Pab = [];
+            testCase.sw_egrid_out_sperp.Sperp = 0.5*ones(2, 5);
+            testCase.sw_egrid_out_sperp.param.n = [0 0 1];
+            testCase.sw_egrid_out_sperp.param.pol = false;
+            testCase.sw_egrid_out_sperp.param.uv = {};
+            testCase.sw_egrid_out_sperp.param.sumtwin = true;
+
             % Output from sw_egrid when polarisation required - when
             % sw_neutron has to be called first
-            testCase.sw_egrid_out_pol = testCase.sw_egrid_out;
-            testCase.sw_egrid_out_pol.param.n = [0 0 1];
+            testCase.sw_egrid_out_pol = testCase.sw_egrid_out_sperp;
             testCase.sw_egrid_out_pol.param.pol = true;
-            testCase.sw_egrid_out_pol.param.uv = {};
-            testCase.sw_egrid_out_pol.param.sumtwin = true;
             testCase.sw_egrid_out_pol.intP = 0.5*ones(3, 2, 5);
             testCase.sw_egrid_out_pol.Pab = repmat(diag([-0.5 -0.5 0.5]), 1, 1, 2, 5);
             Mab_mat = [0.5 0 1i*0.5; 0 0 0; -1i*0.5 0 0.5];
             testCase.sw_egrid_out_pol.Mab = repmat(Mab_mat, 1, 1, 2, 5);
             testCase.sw_egrid_out_pol.Mab(:, :, 1, 5) = conj(Mab_mat);
             testCase.sw_egrid_out_pol.Mab(:, :, 2, :) = conj(testCase.sw_egrid_out_pol.Mab(:, :, 1, :));
-            testCase.sw_egrid_out_pol.Sperp = 0.5*ones(2, 5);
 
         end
     end
@@ -107,24 +116,12 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                 'sw_parstr:WrongString');
         end
         function test_defaults(testCase)
-            expected_out = testCase.sw_egrid_out_pol;
-            expected_out.param.pol = false;
-            expected_out.intP = [];
-            expected_out.Pab = [];
-            expected_out.Mab = [];
-
             out = sw_egrid(testCase.spectrum);
-            testCase.verify_obj(out, expected_out);
+            testCase.verify_obj(out, testCase.sw_egrid_out_sperp);
         end
         function test_Sperp(testCase)
-            expected_out = testCase.sw_egrid_out_pol;
-            expected_out.param.pol = false;
-            expected_out.intP = [];
-            expected_out.Pab = [];
-            expected_out.Mab = [];
-
             out = sw_egrid(testCase.spectrum, 'component', 'Sperp');
-            testCase.verify_obj(out, expected_out);
+            testCase.verify_obj(out, testCase.sw_egrid_out_sperp);
         end
         function test_Sxx(testCase)
             component = 'Sxx';
@@ -187,6 +184,24 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.verifyError(...
                 @() sw_egrid(neutron_out, 'component', component), ...
                 'MATLAB:getReshapeDims:notDivisible');
+        end
+        function test_Evect(testCase)
+            Evect = linspace(1, 3, 201);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv = zeros(200, 5);
+            expected_out.swConv([300, 700]) = 0.5;
+            expected_out.Evect = Evect;
+            out = sw_egrid(testCase.spectrum, 'Evect', Evect);
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_Evect_cbin(testCase)
+            Evect_in = linspace(1.005, 2.995, 200);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv = zeros(200, 5);
+            expected_out.swConv([300, 700]) = 0.5;
+            expected_out.Evect = linspace(1, 3, 201);
+            out = sw_egrid(testCase.spectrum, 'Evect', Evect_in, 'binType', 'cbin');
+            testCase.verify_obj(out, expected_out);
         end
     end
 
