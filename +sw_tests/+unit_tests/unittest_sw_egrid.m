@@ -185,6 +185,15 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                 @() sw_egrid(neutron_out, 'component', component), ...
                 'MATLAB:getReshapeDims:notDivisible');
         end
+        function test_fName_component(testCase)
+            % BUG??
+            component = 'fName';
+            spectrum = testCase.spectrum;
+            spectrum.(component) = ones(3, 5);
+            testCase.verifyError(...
+                @() sw_egrid(spectrum, 'component', component), ...
+                'sw_parstr:WrongString');
+        end
         function test_Evect(testCase)
             Evect = linspace(1, 3, 201);
             expected_out = testCase.sw_egrid_out_sperp;
