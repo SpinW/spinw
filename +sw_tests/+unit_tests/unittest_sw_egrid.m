@@ -203,6 +203,26 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             out = sw_egrid(testCase.spectrum, 'Evect', Evect_in, 'binType', 'cbin');
             testCase.verify_obj(out, expected_out);
         end
+        function test_temp(testCase)
+            temp = 300;
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv([727, 1727]) = 6.73826066430112;
+            expected_out.swConv(1455) = 3.48826657260066;
+            expected_out.T = temp;
+            out = sw_egrid(testCase.spectrum, 'T', temp);
+            testCase.verify_obj(out, expected_out, 'rel_tol', 1e-10);
+        end
+        function test_single_ion_temp(testCase)
+            temp = 300;
+            spectrum = testCase.spectrum;
+            spectrum.obj.single_ion.T = temp;
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv([727, 1727]) = 6.73826066430112;
+            expected_out.swConv(1455) = 3.48826657260066;
+            expected_out.T = temp;
+            out = sw_egrid(spectrum);
+            testCase.verify_obj(out, expected_out, 'rel_tol', 1e-10);
+        end
     end
 
 end
