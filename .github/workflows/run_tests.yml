@@ -17,6 +17,8 @@ jobs:
         include:
           - os: ubuntu-latest
             matlab_version: R2020a
+          - os: macos-latest
+            INSTALL_DEPS: brew install llvm libomp
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:

@@ -59,11 +59,17 @@ if param.compile
     elseif ismac
         % add =libiomp5 after -fopenmp?
         cd(eig_omp_dir);
-        mex('-v','-largeArrayDims','eig_omp.cpp','-lmwlapack','COMPFLAGS="/openmp $COMPFLAGS"','CXXFLAGS=$CXXFLAGS -fopenmp -pthread');
+        mex('-v','-largeArrayDims','eig_omp.cpp', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
+            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas -lmwlapack"', ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
         cd(chol_omp_dir);
-        mex('-v','-largeArrayDims','chol_omp.cpp','-lmwlapack','-lmwblas','COMPFLAGS="/openmp $COMPFLAGS"','CXXFLAGS=$CXXFLAGS -fopenmp -pthread');
+        mex('-v','-largeArrayDims','chol_omp.cpp', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
+            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas -lmwlapack"', ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
         cd(mtimesx_dir);
-        mex('-DDEFINEUNIX','-largeArrayDims','sw_mtimesx.c','-lmwblas');
+        mex('-v','-largeArrayDims','sw_mtimesx.c', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
+            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas"', ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
     else
         % linux?
         cd(eig_omp_dir);
