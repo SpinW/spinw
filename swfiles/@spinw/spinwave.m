@@ -799,61 +799,29 @@ for jj = 1:nSlice
         if useMex && nHklMEM>1
             % use mex files to speed up the calculation
             % mex file will return an error if the matrix is not positive definite.
-            [K2, invK] = chol_omp(ham,'Colpa','tol',param.omega_tol);
-            [V, omega(:,hklIdxMEM)] = eig_omp(K2,'sort','descend');
-            % the inverse of the para-unitary transformation V
-            for ii = 1:nHklMEM
-                V(:,:,ii) = V(:,:,ii)*diag(sqrt(gCommd.*omega(:,hklIdxMEM(ii))));
+            do_chol = true;
+            itry = 0;
+            while do_chol && itry < 1
+                [K2, invK] = chol_omp(ham,'Colpa','tol',param.omega_tol);
+                do_chol = any(~isfinite(K2(:)));
+                itry = itry + 1;
             end
-            % V = bsxfun(@times,invK,V);
-            V = sw_mtimesx(invK,V);
-        else
-            for ii = 1:nHklMEM
-                [K, posDef]  = chol(ham(:,:,ii));
-                if posDef > 0
-                    try
-                        % get tolerance from smallest negative eigenvalue
-                        tol0 = eig(ham(:,:,ii));
-                        tol0 = sort(real(tol0));
-                        tol0 = abs(tol0(1));
-                        % TODO determine the right tolerance value
-                        tol0 = tol0*sqrt(nMagExt*2)*4;
-                        if tol0>param.omega_tol
-                            error('spinw:spinwave:NonPosDefHamiltonian','Very baaaad!');
-                        end
-                        try
-                            K = chol(ham(:,:,ii)+eye(2*nMagExt)*tol0);
-                        catch
-                            K = chol(ham(:,:,ii)+eye(2*nMagExt)*param.omega_tol);
-                        end
-                        warn1 = true;
-                    catch PD
-                        if param.tid == 2
-                            % close timer window
-                            sw_timeit(100,2,param.tid);
-                        end
-                        error('spinw:spinwave:NonPosDefHamiltonian',...
-                            ['Hamiltonian matrix is not positive definite, probably'...
-                            ' the magnetic structure is wrong! For approximate'...
-                            ' diagonalization try the param.hermit=false option']);
-                    end
-                end
-                
-                K2 = K*gComm*K';
-                K2 = 1/2*(K2+K2');
-                % Hermitian K2 will give orthogonal eigenvectors
-                [U, D] = eig(K2);
-                D      = diag(D);
-                
-                % sort modes accordign to the real part of the energy
-                [~, idx] = sort(real(D),'descend');
-                U = U(:,idx);
-                % omega dispersion
-                omega(:, hklIdxMEM(ii)) = D(idx);
-                
+            if do_chol
+                warning('spinw:spinwave:chol_omp', ...
+                       ['Cholesky factorization with mex enabled has' ...
+                        'failed - attempting calculation without mex.'])
+                [warn1, omega, V] = calc_hermit_magnon_modes(ham, omega, V, gComm, gCommd, nHklMEM, hklIdxMEM, nMagExt, param);
+            else
+                [V, omega(:,hklIdxMEM)] = eig_omp(K2,'sort','descend');
                 % the inverse of the para-unitary transformation V
-                V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii)))); %#ok<MINV>
+                for ii = 1:nHklMEM
+                    V(:,:,ii) = V(:,:,ii)*diag(sqrt(gCommd.*omega(:,hklIdxMEM(ii))));
+                end
+                % V = bsxfun(@times,invK,V);
+                V = sw_mtimesx(invK,V);
             end
+        else
+            [warn1, omega, V] = calc_hermit_magnon_modes(ham, omega, V, gComm, gCommd, nHklMEM, hklIdxMEM, nMagExt, param);
         end
     else
         % All the matrix calculations are according to White's paper
@@ -883,7 +851,7 @@ for jj = 1:nSlice
     if param.saveH
         Hsave(:,:,hklIdxMEM) = ham;
     end
-    
+
     % Calculates correlation functions.
     % V right
     VExtR = repmat(permute(V  ,[4 5 1 2 3]),[3 3 1 1 1]);
@@ -1090,4 +1058,56 @@ if strcmp(singWarn,'MATLAB:nearlySingularMatrix')
             'to singular or badly scaled. Results may be inaccurate.']);
 end
 
+end
+
+
+function [warn1, omega, V] = calc_hermit_magnon_modes(ham, omega, V, gComm, gCommd, nHklMEM, hklIdxMEM, nMagExt, param)           
+    warn1 = false;
+    for ii = 1:nHklMEM
+        [K, posDef]  = chol(ham(:,:,ii));
+        if posDef > 0
+            try
+                % get tolerance from smallest negative eigenvalue
+                tol0 = eig(ham(:,:,ii));
+                tol0 = sort(real(tol0));
+                tol0 = abs(tol0(1));
+                % TODO determine the right tolerance value
+                tol0 = tol0*sqrt(nMagExt*2)*4;
+                if tol0>param.omega_tol
+                    error('spinw:spinwave:NonPosDefHamiltonian','Very baaaad!');
+                end
+                try
+                    K = chol(ham(:,:,ii)+eye(2*nMagExt)*tol0);
+                catch
+                    K = chol(ham(:,:,ii)+eye(2*nMagExt)*param.omega_tol);
+                end
+                warn1 = true;
+            catch PD
+                if param.tid == 2
+                    % close timer window
+                    sw_timeit(100,2, param.tid);
+                end
+                error('spinw:spinwave:NonPosDefHamiltonian',...
+                    ['Hamiltonian matrix is not positive definite, probably'...
+                    ' the magnetic structure is wrong! For approximate'...
+                    ' diagonalization try the param.hermit=false option']);
+            end
+        end
+        
+        K2 = K*gComm*K';
+        K2 = 1/2*(K2+K2');
+
+        % Hermitian K2 will give orthogonal eigenvectors
+        [U, D] = eig(K2);
+        D      = diag(D);
+        
+        % sort modes accordign to the real part of the energy
+        [~, idx] = sort(real(D),'descend');
+        U = U(:,idx);
+        % omega dispersion
+        omega(:, hklIdxMEM(ii)) = D(idx);
+        
+        % the inverse of the para-unitary transformation V
+        V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii)))); %#ok<MINV>
+    end
 end
