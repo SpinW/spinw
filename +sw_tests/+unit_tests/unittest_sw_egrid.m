@@ -157,6 +157,15 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             out = sw_egrid(testCase.spectrum, 'component', component);
             testCase.verify_obj(out, expected_out);
         end
+        function test_cell_array_component(testCase)
+            component = {'Sxx', 'Sxy'};
+            expected_out = testCase.sw_egrid_out;
+            expected_out.component = component;
+            expected_out.swInt = {expected_out.swInt; zeros(2, 5)};
+            expected_out.swConv = {expected_out.swConv; zeros(500, 5)};
+            out = sw_egrid(testCase.spectrum, 'component', component);
+            testCase.verify_obj(out, expected_out);
+        end
         function test_Mzz(testCase)
             component = 'Mzz';
             expected_out = testCase.sw_egrid_out_pol;
@@ -185,6 +194,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                 @() sw_egrid(neutron_out, 'component', component), ...
                 'MATLAB:getReshapeDims:notDivisible');
         end
+
         function test_fName_component(testCase)
             % BUG??
             component = 'fName';
