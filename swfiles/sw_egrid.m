@@ -441,10 +441,9 @@ end
 if isfield(spectra,'omega')
     % Create vector for energy values, and put extra value below minimum and
     % above maximum for easy indexing swConv.
-    epsilon = 1e-8;
     
     if eBin
-        Evect  = (Evect(2:end)+Evect(1:(end-1)))/2; 
+        Evect  = (Evect(2:end)+Evect(1:(end-1)))/2;  % bin centers
     end
     % energy bin parameters
     nE       = numel(Evect);
@@ -462,25 +461,25 @@ if isfield(spectra,'omega')
         end
     end
     
-    if param.autoEmin && abs(Evect(1)-dE(1)/2)<epsilon
+    if param.autoEmin && abs(Evect(1)-dE(1)/2)<param.epsilon
         if ~exist('ioMax','var')
             ioMax = max(abs(imag(omega{1}(:))));
         end
-        Evect(1) = Evect(1)+ioMax+2*epsilon;
-        eEvect(1)= eEvect(1)+ioMax+2*epsilon;
-        dE(1)    = dE(1)-(ioMax+2*epsilon);
+        Evect(1) = Evect(1)+ioMax+2*param.epsilon;
+        eEvect(1)= eEvect(1)+ioMax+2*param.epsilon;
+        dE(1)    = dE(1)-(ioMax+2*param.epsilon);
     end
     
     
-    % if the energy bin is equally spaced a faster intexing of the
+    % if the energy bin is equally spaced a faster indexing of the
     % modes can be used
     isequalE = sum(abs(dE-dE(1))<param.epsilon) == (nE-1);
     E0 = Evect(1);
     
     if ~isempty(Evect)
-        Evect = [Evect(1)-dE(1)-epsilon; Evect(:); Evect(end)+dE(end)+epsilon];
+        Evect = [Evect(1)-dE(1)-param.epsilon; Evect(:); Evect(end)+dE(end)+param.epsilon];
     else
-        Evect = [-epsilon; epsilon];
+        Evect = [-param.epsilon; param.epsilon];
     end
     
     dE = dE(1);
