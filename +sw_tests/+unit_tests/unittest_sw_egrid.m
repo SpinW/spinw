@@ -295,6 +295,15 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
 
             testCase.verify_obj(out, expected_out);
         end
+        function test_imagChk(testCase)
+            dE = 1;
+            testCase.spectrum.omega(1) = 0 + 1i*1e-10; % imag > dE bins 
+            testCase.verifyError(...
+                @() sw_egrid(testCase.spectrum, ...
+                            'Evect', 0:dE:4, 'imagChk', true), ...
+                'egrid:BadSolution');
+        end
+        
     end
 
 end
