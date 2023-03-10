@@ -129,10 +129,10 @@ end
 
 func0 = @swfunc.gaussfwhm;
 
-inpForm.fname  = {'dE'    'ki'  'Ei'  'kf'  'Ef'  'plot' 'polDeg' 'thetaMin'};
-inpForm.defval = {[]      0     0     0     0     false   5        0        };
-inpForm.size   = {[-1 -2] [1 1] [1 1] [1 1] [1 1] [1 1]  [1 1]    [1 1]     };
-inpForm.soft   = {true    false false false false false  false    false     };
+inpForm.fname  = {'dE'    'ki'  'Ei'  'kf'  'Ef'  'plot' 'polDeg' 'thetaMin' 'thetaMax'};
+inpForm.defval = {[]      0     0     0     0     false   5        5        135};
+inpForm.size   = {[-1 -2] [1 1] [1 1] [1 1] [1 1] [1 1]  [1 1]    [1 1]     [1 1]};
+inpForm.soft   = {true    false false false false false  false    false     false};
 
 inpForm.fname  = [inpForm.fname  {'formFact' 'dQ'  'norm' 'useRaw' 'func' 'fid'}];
 inpForm.defval = [inpForm.defval { 'auto'    0     false   true    func0  -1   }];
@@ -274,27 +274,33 @@ end
 
 if FX > 0
     k0 = param.k;
-    cosT = cosd(param.thetaMin);
-    sinT = sind(param.thetaMin);
-    
+    cosTMin = cosd(param.thetaMin);
+    sinTMin = sind(param.thetaMin);
+    cosTMax = cosd(param.thetaMax);
+    sinTMax = sind(param.thetaMax);
     
     for jj = 1:nPlot
         switch FX
             case 1
                 % fix ki
-                Emax = (k0^2-(k0*cosT-sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
-                Emin = (k0^2-(k0*cosT+sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
+                % Ross Stewart, 9/2/23 - get proper trajectories based on thetamin *and* thetamax
+                Emax = Q*0;
+                Emin = Q*0;
+                ii = find(Q < k0);
+                Emax(ii) = (k0^2-(k0*cosTMin-sqrt(Q(ii).^2-k0^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
+                Emin(ii) = (k0^2-(k0*cosTMin+sqrt(Q(ii).^2-k0^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
+                ii = find(Q > k0);
+                Emax(ii) = (k0^2-(k0*cosTMax+sqrt(Q(ii).^2-k0^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
+                Emin(ii) = (k0^2-(k0*cosTMax-sqrt(Q(ii).^2-k0^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
             case 2
                 % fix kf
                 Emax = -(k0^2-(k0*cosT+sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
                 Emin = -(k0^2-(k0*cosT-sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
         end
-        %Emax = (ki^2-(ki*cosT-sqrt(Q.^2-ki^2*sinT^2)).^2) * sw_converter(1,'k','meV');
-        %Emin = (ki^2-(ki*cosT+sqrt(Q.^2-ki^2*sinT^2)).^2) * sw_converter(1,'k','meV');
-        
+
         Emax(abs(imag(Emax))>0) = 0;
         Emin(abs(imag(Emin))>0) = 0;
-        
+
         Elist = repmat(cEvect',[1 size(spectra.swConv{jj},2)]);
         Emin  = repmat(Emin,[size(spectra.swConv{jj},1) 1]);
         Emax  = repmat(Emax,[size(spectra.swConv{jj},1) 1]);
