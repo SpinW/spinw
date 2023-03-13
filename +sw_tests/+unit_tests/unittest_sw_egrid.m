@@ -306,6 +306,18 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                             'Evect', 0:dE:4, 'imagChk', true), ...
                 'egrid:BadSolution');
         end
+        function test_epsilon_tolerance_on_unequal_bins(testCase)
+            epsilon = 1e-5;
+            Evect = testCase.sw_egrid_out.Evect;
+            Evect(end) = Evect(end) + 2*epsilon;
+            component = 'Sxx';
+            expected_out = testCase.sw_egrid_out;
+            expected_out.component = component;
+            expected_out.Evect = Evect;
+            out = sw_egrid(testCase.spectrum, 'component', component, ...
+                           'Evect', Evect, 'epsilon', epsilon);
+            testCase.verify_obj(out, expected_out);
+        end
 
     end
 
