@@ -454,7 +454,7 @@ if isfield(spectra,'omega')
         end
     end
     
-    if param.autoEmin && abs(ebin_cens(1)-dE(1)/2)<param.epsilon
+    if param.autoEmin && abs(ebin_edges(1))<param.epsilon
         if ~exist('ioMax','var')
             ioMax = max(abs(imag(omega{1}(:))));
         end
@@ -468,11 +468,6 @@ if isfield(spectra,'omega')
     else
         nBose = 1./(exp(abs(ebin_cens)./(spectra.obj.unit.kB*param.T))-1)+double(ebin_cens>=0);
     end
-    
-    % Create indices in the matrix by searching for the closest value, size
-    % nMode x nHkl. Put all the modes to the positive side for magnon creation.
-    % The negative side will be the same, however with different Bose factor
-    % for non-zero temperature.
     
     % Sums up the intensities in DSF into swConv.
     swConv = cell(nConv,nTwin);

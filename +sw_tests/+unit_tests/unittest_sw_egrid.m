@@ -318,7 +318,19 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                            'Evect', Evect, 'epsilon', epsilon);
             testCase.verify_obj(out, expected_out);
         end
-
+        function test_autoEmin(testCase)
+            imag_omega = 0 + 1i*1e-8;
+            epsilon = 1e-8;
+            testCase.spectrum.omega(1) = imag_omega;
+            component = 'Sxx';
+            expected_out = testCase.sw_egrid_out;
+            expected_out.component = component;
+            expected_out.Evect(1) = 2*epsilon + imag(imag_omega);
+            expected_out.omega(1) = imag_omega;
+            expected_out.swConv(1) = 0;
+            out = sw_egrid(testCase.spectrum, 'component', component, 'autoEmin', true, 'epsilon', epsilon);
+            testCase.verify_obj(out, expected_out);
+        end
     end
 
 end
