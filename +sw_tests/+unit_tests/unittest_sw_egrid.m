@@ -331,6 +331,17 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             out = sw_egrid(testCase.spectrum, 'component', component, 'autoEmin', true, 'epsilon', epsilon);
             testCase.verify_obj(out, expected_out);
         end
+        function test_modeIdx(testCase)
+            % only consisder -ve  mode (magnon anhillation/ energy gain)
+            component = 'Sxx';
+            expected_out = testCase.sw_egrid_out;
+            expected_out.component = component;
+            expected_out.swConv = zeros(500, 5);
+            expected_out.swConv(2001) = 0.5; % eigval = 0 is in Evect
+            out = sw_egrid(testCase.spectrum, 'component', component, ...
+                           'modeIdx', 2); 
+            testCase.verify_obj(out, expected_out);
+        end
     end
 
 end
