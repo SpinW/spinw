@@ -66,7 +66,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.sw_egrid_out.T = 0;
             testCase.sw_egrid_out.Evect = linspace(0, 4.4, 501);
             testCase.sw_egrid_out.swConv = zeros(500, 5);
-            testCase.sw_egrid_out.swConv([727, 1455, 1727]) = 0.5;
+            testCase.sw_egrid_out.swConv([1, 728, 1455, 1728, 2001]) = 0.5;
             testCase.sw_egrid_out.swInt = 0.5*ones(2, 5);
             testCase.sw_egrid_out.component = 'Sperp';
 
@@ -208,7 +208,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             Evect = linspace(1, 3, 201);
             expected_out = testCase.sw_egrid_out_sperp;
             expected_out.swConv = zeros(200, 5);
-            expected_out.swConv([300, 700]) = 0.5;
+            expected_out.swConv([301, 701]) = 0.5;
             expected_out.Evect = Evect;
             out = sw_egrid(testCase.spectrum, 'Evect', Evect);
             testCase.verify_obj(out, expected_out);
@@ -217,7 +217,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             Evect_in = linspace(1.005, 2.995, 200);
             expected_out = testCase.sw_egrid_out_sperp;
             expected_out.swConv = zeros(200, 5);
-            expected_out.swConv([300, 700]) = 0.5;
+            expected_out.swConv([301, 701]) = 0.5;
             expected_out.Evect = linspace(1, 3, 201);
             out = sw_egrid(testCase.spectrum, 'Evect', Evect_in, 'binType', 'cbin');
             testCase.verify_obj(out, expected_out);
@@ -225,7 +225,8 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         function test_temp(testCase)
             temp = 300;
             expected_out = testCase.sw_egrid_out_sperp;
-            expected_out.swConv([727, 1727]) = 6.73826066430112;
+            expected_out.swConv([1, 2001]) = 2937.97696163773;
+            expected_out.swConv([728, 1728]) = 6.70976913583173;
             expected_out.swConv(1455) = 3.48826657260066;
             expected_out.T = temp;
             out = sw_egrid(testCase.spectrum, 'T', temp);
@@ -239,7 +240,8 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             spectrum.obj.single_ion.T = temp;
             expected_out = testCase.sw_egrid_out_sperp;
             expected_out.obj = spectrum.obj;
-            expected_out.swConv([727, 1727]) = 6.73826066430112;
+            expected_out.swConv([1, 2001]) = 2937.97696163773;
+            expected_out.swConv([728, 1728]) = 6.70976913583173;
             expected_out.swConv(1455) = 3.48826657260066;
             expected_out.T = temp;
             out = sw_egrid(spectrum);
@@ -259,8 +261,9 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             expected_out.Sab = spectrum.Sab;
             expected_out.param.notwin = false;
             expected_out.swConv = zeros(500, 5);
-            expected_out.swConv([727, 1455, 1727]) = 0.125;
-            expected_out.swConv([567, 1227, 1888, 2455]) = 0.65625;
+            expected_out.swConv(1) = 0.78125;
+            expected_out.swConv([728, 1455, 1728, 2001]) = 0.125;
+            expected_out.swConv([567, 1228, 1888, 2455]) = 0.65625;
             expected_out.swInt = 0.78125*ones(2, 5);
             expected_out.intP = cell(1,3);
             expected_out.Pab = cell(1,3);
@@ -303,6 +306,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                             'Evect', 0:dE:4, 'imagChk', true), ...
                 'egrid:BadSolution');
         end
+
     end
 
 end

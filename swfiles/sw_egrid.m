@@ -430,30 +430,23 @@ for tt = 1:nTwin
 end
 
 % save the edge bins
-Evect   = sort(param.Evect);
+param.Evect = sort(param.Evect);
 if eBin
-    eEvect = Evect;
+    ebin_edges = param.Evect;
+    ebin_cens = (ebin_edges(2:end)+ebin_edges(1:(end-1)))/2;
+    dE = diff(ebin_cens);
 else
-    dE = diff(Evect);
-    eEvect = [Evect-[dE(1) dE]/2 Evect(end)+dE(end)/2];
+    ebin_cens = param.Evect;
+    dE = diff(ebin_cens);
+    ebin_edges = [ebin_cens-0.5*[dE(1) dE], ebin_cens(end) + dE(end)/2];
 end
+nE = numel(ebin_cens);
 
-if isfield(spectra,'omega')
-    % Create vector for energy values, and put extra value below minimum and
-    % above maximum for easy indexing swConv.
-    
-    if eBin
-        Evect  = (Evect(2:end)+Evect(1:(end-1)))/2;  % bin centers
-    end
-    % energy bin parameters
-    nE       = numel(Evect);
-    dE       = diff(Evect);
-    
+if isfield(spectra,'omega')   
     if param.imagChk
         % find the maximum of the imaginary part of the spin wave energies
         % checks only the first twin!
         ioMax = max(abs(imag(omega{1}(:))));
-        
         if ioMax > max(abs(dE(:)))
             error('egrid:BadSolution',['The imaginary part of the spin '...
                 'wave energes is larger than the bin size! Improve '...
@@ -461,76 +454,40 @@ if isfield(spectra,'omega')
         end
     end
     
-    if param.autoEmin && abs(Evect(1)-dE(1)/2)<param.epsilon
+    if param.autoEmin && abs(ebin_cens(1)-dE(1)/2)<param.epsilon
         if ~exist('ioMax','var')
             ioMax = max(abs(imag(omega{1}(:))));
         end
-        Evect(1) = Evect(1)+ioMax+2*param.epsilon;
-        eEvect(1)= eEvect(1)+ioMax+2*param.epsilon;
-        dE(1)    = dE(1)-(ioMax+2*param.epsilon);
+        ebin_cens(1) = ebin_cens(1)+ioMax+2*param.epsilon;
+        ebin_edges(1)= ebin_edges(1)+ioMax+2*param.epsilon;
     end
     
-    
-    % if the energy bin is equally spaced a faster indexing of the
-    % modes can be used
-    isequalE = sum(abs(dE-dE(1))<param.epsilon) == (nE-1);
-    E0 = Evect(1);
-    
-    if ~isempty(Evect)
-        Evect = [Evect(1)-dE(1)-param.epsilon; Evect(:); Evect(end)+dE(end)+param.epsilon];
+    % Calculate Bose temperature factor for magnons
+    if param.T==0
+        nBose = double(ebin_cens>=0);
     else
-        Evect = [-param.epsilon; param.epsilon];
+        nBose = 1./(exp(abs(ebin_cens)./(spectra.obj.unit.kB*param.T))-1)+double(ebin_cens>=0);
     end
-    
-    dE = dE(1);
     
     % Create indices in the matrix by searching for the closest value, size
     % nMode x nHkl. Put all the modes to the positive side for magnon creation.
     % The negative side will be the same, however with different Bose factor
     % for non-zero temperature.
-    idxE = cell(1,nTwin);
-    
-
-    for tt = 1:nTwin
-        % put the modes that are not in the modeIdx parameter above the
-        % energy bin vector
-        omega{tt}(~ismember(1:nMode,param.modeIdx),:) = Evect(end);
-        
-        % faster binning
-        if isequalE
-            idxE{tt} = floor((real(omega{tt})-E0)/dE)+2;
-            idxE{tt}(idxE{tt}<2) = 1;
-            idxE{tt}(idxE{tt}>nE+2) = nE+2;
-        else
-            % memory intensive binnin, bad for large numel(omega)
-            [~, idxE{tt}] = min(abs(repmat(real(omega{tt}),[1 1 nE+2])-repmat(permute(Evect,[2 3 1]),[nMode nHkl 1])),[],3);
-        end
-        
-        % Creates indices in the swConv matrix.
-        idxE{tt} = idxE{tt} + repmat((0:nHkl-1).*(nE+2),[nMode 1]);
-        idxE{tt} = idxE{tt}(:);
-    end
     
     % Sums up the intensities in DSF into swConv.
     swConv = cell(nConv,nTwin);
     
     for tt = 1:nTwin
         for ii = 1:nConv
-            swConv{ii,tt} = reshape(accumarray(idxE{tt},DSF{ii,tt}(:),[(nE+2)*nHkl 1]),[(nE+2) nHkl]);
-        end
-    end
-    
-    % Calculate Bose temperature factor for magnons
-    if param.T==0
-        nBose = double(Evect(2:(end-1))>=0);
-    else
-        nBose = 1./(exp(abs(Evect(2:(end-1)))./(spectra.obj.unit.kB*param.T))-1)+double(Evect(2:(end-1))>=0);
-    end
-    
-    % Multiply the intensities with the Bose factor.
-    for tt = 1:nTwin
-        for ii = 1:nConv
-            swConv{ii,tt} = bsxfun(@times,swConv{ii,tt}(2:(end-1),:),nBose);
+            % find energy bin (cen) index coinciding with evals in omega
+            ien = discretize(real(omega{tt}(param.modeIdx, :)), ebin_edges);
+            [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
+            ifinite = ~isnan(ien(:));  % NaN in ien implies eigvals not in extent of Evect
+            sw_conv_idx = [ien(ifinite), ihkl(ifinite)']; % index in swConv
+            % sum intensities and pad energies above max eigval with 0
+            swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ifinite), [nE, nHkl]);
+            % Multiply the intensities with the Bose factor.
+            swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
             swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
         end
     end
@@ -564,7 +521,7 @@ end
 
 
 spectra.T     = param.T;
-spectra.Evect = eEvect;
+spectra.Evect = ebin_edges;
 
 if isfield(spectra,'swRaw')
     spectra = rmfield(spectra,'swRaw');
