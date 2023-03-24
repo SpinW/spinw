@@ -4,7 +4,7 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
     properties
         generate_reference_data = false;
         reference_data = [];
-        reference_data_dir = fullfile('.', 'test_data');
+        reference_data_dir = fullfile('.', 'test_data', 'system_tests');
         relToll = 0.01;
         absToll = 1e-6;
         swobj = [];
