@@ -25,6 +25,9 @@ function result = run_tests(out_dir)
     import matlab.unittest.selectors.HasTag
     import matlab.unittest.plugins.XMLPlugin
 
+    % Suppress printing to make test output less verbose
+    pref = swpref;
+    pref.fid = 0;
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
     if ~sw_hassymtoolbox()
