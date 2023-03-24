@@ -35,26 +35,27 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
                                   'angled',[90 90 120], 'sym','P -3')
             AF33kagome.addatom('r',[1/2 0 0],'S', 1, 'label','MCu1')
             AF33kagome.gencoupling('maxDistance',7);
-            AF33kagome.addmatrix('label','J1','value',1.00)
+            AF33kagome.addmatrix('label','J1','value',1)
             AF33kagome.addcoupling('mat','J1','bond',1);
             % sqrt3 x sqrt(3) magnetic structure 
             k = [-1/3 -1/3 0];
             n = [0, 0, 1];
             S = [0 0 -1; 1 1 -1; 0 0 0];
             % binning for spinwave spectrum
-            qarg = {[-1/2 0 0] [0 0 0] [1/2 1/2 0] 3};
-            evec = 0:0.5:2;
+            qarg = {[-1/2 0 0] [0 0 0] [1/2 1/2 0] 50};
+            evec = 0:0.1:2;
             
             % use structural unit cell with incommensurate k
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt',[1 1 1]);
-            spec_incom = AF33kagome.spinwave(qarg, 'hermit', true);
-            spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
+            spec_incom = AF33kagome.spinwave(qarg, 'hermit', false);
+            spec_incom = sw_egrid(spec_incom, 'component','Sxx+Syy+Szz', 'Evect',evec);
             % use supercell k=0 structure
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt', [3,3,1]);
-            spec_super = AF33kagome.spinwave(qarg, 'hermit', true);
-            spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect',evec);
+
+            spec_super = AF33kagome.spinwave(qarg, 'hermit', false);
+            spec_super = sw_egrid(spec_super, 'component','Sxx+Syy+Szz', 'Evect',evec);
             
             testCase.assert_super_and_incom_consistency(AF33kagome, ...
                                                         spec_super, ...
@@ -80,8 +81,8 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             k = [1/2, 0, 0];
             S = [0 0;1 1;0 0];
             % binning for spinwave spectrum
-            qarg = {[0 0 0] [1/2 0 0] 5};
-            evec = 0:1.5:5;
+            qarg = {[0 0 0] [0, 0.5, 0] 5};
+            evec = 0:0.5:5;
             
             % use structural unit cell with incommensurate k
             FeCuChain.genmagstr('mode','helical','k', k,...
