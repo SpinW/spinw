@@ -74,7 +74,8 @@ classdef unittest_spinw_optmagk < sw_tests.unit_tests.unittest_super
         function test_afm_chain_optk(testCase)
             testCase.swobj.addmatrix('label', 'J1', 'value', 1);
             testCase.swobj.addcoupling('mat', 'J1', 'bond', 1);
-            testCase.swobj.optmagk;
+            % Use seed for reproducibility
+            testCase.swobj.optmagk('seed', 1);
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.k = [0.5; 0; 0];
             testCase.verify_val(testCase.swobj.mag_str, expected_mag_str, ...
