@@ -40,13 +40,16 @@ function sw_timeit(percent,varargin)
 %
 
 global sw_time
+persistent pref;
+if isempty(pref)
+    pref = swpref;
+end
 
 if nargin == 0
     swhelp sw_timeit
     return
 end
 
-pref = swpref;
 if pref.fid == 0
     % Users wants to suppress output
     return
