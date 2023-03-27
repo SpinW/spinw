@@ -254,7 +254,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             fe_cu_chain.addcoupling('mat','J_{Cu-Fe}','bond',[4 5]);
             fe_cu_chain.genmagstr('mode','helical','S',[0 0;1 1;0 0],'k',[1/2 0 0])
 
-            sw_out = fe_cu_chain.spinwave(testCase.qh5, 'sortMode', false);
+            sw_out = fe_cu_chain.spinwave(testCase.qh5, 'sortMode', false, 'omega_tol', 1e-12);
             om1 = 4.11473;
             om2 = 1.36015;
             om3 = 1.38527;
