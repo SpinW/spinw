@@ -65,12 +65,14 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_spgr_and_sym_throws_error(testCase)
+            testCase.disable_warnings('spinw:genlattice:DeprecationWarning');
             testCase.verifyError(...
                 @() testCase.swobj.genlattice('spgr', 3, 'sym', 3), ...
                 'spinw:genlattice:WrongInput');
         end
         
         function test_spacegroup_property(testCase, sym_param_name, spgr)
+            testCase.disable_warnings('spinw:genlattice:DeprecationWarning');
             testCase.swobj.genlattice(sym_param_name, spgr);
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
@@ -79,6 +81,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_label_always_used(testCase, sym_param_name, spgr_type)
+            testCase.disable_warnings('spinw:genlattice:DeprecationWarning');
             label = 'label';
             testCase.swobj.genlattice(sym_param_name, spgr_type, ...
                 'label', label);
@@ -86,6 +89,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         end
         
         function test_spacegroup_with_sym_operation_matrix(testCase, sym_param_name)
+            testCase.disable_warnings('spinw:genlattice:DeprecationWarning');
             testCase.swobj.genlattice(sym_param_name, testCase.P2_sym);
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;
@@ -166,6 +170,7 @@ classdef unittest_spinw_genlattice < sw_tests.unit_tests.unittest_super
         function test_spacegroup_with_cell_input(testCase, sym_param_name)
             spgr_str = '-x,y,-z';
             label = 'label';
+            testCase.disable_warnings('spinw:genlattice:DeprecationWarning');
             testCase.swobj.genlattice(sym_param_name, {spgr_str, label});
             expected_latt = testCase.default_latt;
             expected_latt.sym = testCase.P2_sym;

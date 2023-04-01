@@ -438,7 +438,7 @@ switch param.mode
         if strcmpi(param.mode, 'helical')
             for ik=1:size(k, 1)
                 Sk = real(param.S(:, :, ik));
-                if any(dot(repmat(n(ik, :), size(Sk, 2), 1)', Sk))
+                if any(dot(repmat(n(ik, :), size(Sk, 2), 1)', Sk) > 1e-4)
                     warning('spinw:genmagstr:SnParallel', ...
                             ['There are spin components parallel to n, the ' ...
                              'amplitude of these components will be modulated']);

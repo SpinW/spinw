@@ -1,4 +1,7 @@
 classdef unittest_super < matlab.mock.TestCase
+    properties
+        cleanup_warnings = {};
+    end
     methods (Static)
         function udir = get_unit_test_dir()
             udir = fullfile('.', 'test_data', 'unit_tests');
@@ -99,6 +102,11 @@ classdef unittest_super < matlab.mock.TestCase
                                     scale_sign.*expected_spinwave.V,...
                                     varargin{:});
             end
+        end
+        function disable_warnings(testCase, varargin)
+            testCase.cleanup_warnings = [testCase.cleanup_warnings, ...
+                {onCleanup(@(c) cellfun(@(c) warning('on', c), varargin))}];
+            cellfun(@(c) warning('off', c), varargin);
         end
     end
 end

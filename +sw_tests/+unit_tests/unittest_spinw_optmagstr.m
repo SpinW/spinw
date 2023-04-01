@@ -125,6 +125,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         function test_optmagstr_tri_af_nExt_init(testCase)
             % Test that if a magnetic structure is initialised with nExt,
             % it is used in optmagstr
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             testCase.tri.genmagstr('mode', 'random', 'nExt', [3 1 1]);
             testCase.tri.optmagstr('func', @gm_planar, ...
                                    'xmin', [0 pi/2 pi 0 0 0 0 0], ...
@@ -195,6 +196,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         end
 
         function test_optmagstr_tri_af_epsilon(testCase)
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             % Test that large epsilon doesn't rotate spins
             testCase.tri.optmagstr('epsilon', 1.);
             expected_mag_str = testCase.opt_tri_mag_str;
@@ -280,6 +282,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             sq.addcoupling('mat', 'DM', 'bond', 1);
             sq.addmatrix('value', 1, 'label', 'J1');
             sq.addcoupling('mat', 'J1', 'bond', 2);
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             % Sometimes fails to find min, run multiple times
             sq.optmagstr('func', @gm_spherical3d, ...
                          'xmin', [-pi/2 -pi -pi/2 -pi, 0 0 0, 0 0], ...

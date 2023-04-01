@@ -37,8 +37,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.swobj.gencoupling('maxDistance', 7);
             testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
-            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], ...
-                                     'n', [1 0 0], 'S', [0; 1; 0]);
+            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'S', [0; 1; 0]);
         end
         function setup_tri_model(testCase)
             % Create a simple triangular lattice model
@@ -106,6 +105,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % target function, number of calls, or not check at all if
             % spinwave is refactored
             sw_timeit_mock = sw_tests.utilities.mock_function('sw_timeit');
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts, 'optmem', optmem);
             testCase.assertEqual(sw_timeit_mock.n_calls, optmem + 2);
             % Test that with optmem gives the same result as without
@@ -125,12 +125,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % Check with low free memory calculation still attempted
             sw_freemem_mock = sw_tests.utilities.mock_function( ...
                 'sw_freemem', 100);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5);
             testCase.verify_spinwave(sw_out, testCase.get_expected_sw_qh5);
         end
         function test_sw_qh5_fid(testCase)
             fprintf_mock = sw_tests.utilities.mock_function('fprintf0');
             fid = 3;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'fid', fid);
             % check fid used to write file
             for irow = 1:fprintf_mock.n_calls
@@ -142,6 +144,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_sw_qh5_tid(testCase)
             sw_timeit_mock = sw_tests.utilities.mock_function('sw_timeit');
             tid = 2;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'tid', tid);
             % check tid used in timing
             for irow = 1:sw_timeit_mock.n_calls
@@ -154,12 +157,14 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     methods (Test)
         function test_sw_qh5(testCase, qpts_h5, mex)
             swpref.setpref('usemex', mex);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts_h5);
             expected_sw = testCase.get_expected_sw_qh5();
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_sortmode(testCase, mex)
             swpref.setpref('usemex', mex);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
             expected_sw = testCase.get_expected_sw_qh5();
             % Sortmode swaps the last 2 modes
@@ -174,6 +179,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj = copy(testCase.swobj);
             nformula = int32(2);
             swobj.unit.nformula = nformula;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out_nformula = swobj.spinwave(testCase.qh5);
             expected_sw = testCase.swobj.spinwave(testCase.qh5);
             expected_sw.Sab = expected_sw.Sab/2;
@@ -185,6 +191,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swpref.setpref('usemex', mex);
             % Test qpts in different BZ give same omega, Sab
             qpts = testCase.qh5 + 1;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts);
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.hkl = qpts;
@@ -195,6 +202,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swpref.setpref('usemex', mex);
             % Test qpts in perpendicular direction give flat modes
             qpts = [zeros(1, 5); 0:0.25:1; 0:0.25:1];
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts);
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.hkl = qpts;
@@ -206,6 +214,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_sw_qh5_saveH_saveV(testCase, mex)
             swpref.setpref('usemex', mex);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, ...
                                              'saveV', true, 'saveH', true);
             expected_V = repmat(eye(2), 1, 1, 5);
@@ -221,6 +230,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_sw_qh5_title(testCase, mex)
             swpref.setpref('usemex', mex);
             title = 'Example title';
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'title', title);
             expected_sw = testCase.get_expected_sw_qh5();
             expected_sw.title = title;
@@ -232,8 +242,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             afm_chain = copy(testCase.swobj);
             afm_chain.matrix.mat = eye(3);
             afm_chain.genmagstr('mode', 'direct', 'k',[1/2 0 0], ...
-                                'n',[1 0 0],'S',[0 0; 1 -1;0 0], ...
-                                'nExt',[2 1 1]);
+                                'S',[0 0; 1 -1;0 0], 'nExt',[2 1 1]);
             sw_afm = afm_chain.spinwave(testCase.qh5);
             omega_vals = [0 2. 0 -2. 0];
             expected_omega = [omega_vals; omega_vals; -omega_vals; -omega_vals];
@@ -254,6 +263,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             fe_cu_chain.addcoupling('mat','J_{Cu-Fe}','bond',[4 5]);
             fe_cu_chain.genmagstr('mode','helical','S',[0 0;1 1;0 0],'k',[1/2 0 0])
 
+            testCase.disable_warnings('spinw:magstr:NotExact', 'spinw:spinwave:Twokm');
             sw_out = fe_cu_chain.spinwave(testCase.qh5, 'sortMode', false, 'omega_tol', 1e-12);
             om1 = 4.11473;
             om2 = 1.36015;
@@ -281,35 +291,38 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             cycloid.addcoupling('mat','J2','bond',2);
             % modulation of [1/4 0 0] gets transformed in genmagstr to
             % [0.5 0 0] for nExt = [2 1 1]
+            testCase.disable_warnings('spinw:genmagstr:UCExtNonSuff');
             cycloid.genmagstr('mode', 'helical', ...
                               'S', [1 0; 0 1; 0 0], 'n', [0 0 1], ...
                                'nExt', [2 1 1], 'k', [0.25, 0, 0]);
-            testCase.verifyWarning(@() cycloid.spinwave({[0 0 0], [1 0 0], ...
-                                                         30}), ...
-                                   'spinw:spinwave:IncommKinSupercell');
+            testCase.verifyWarning(@() cycloid.spinwave({[0 0 0], [1 0 0], 30}), ...
+                                   {'spinw:spinwave:IncommKinSupercell', ...
+                                   'spinw:spinwave:Twokm'});
         end
         function test_sw_qh5_saveSabp_incommensurate(testCase, mex)
             swpref.setpref('usemex', mex);
-             qpts = testCase.qh5;
-             sw_out = testCase.swobj_tri.spinwave(qpts, ...
-                                                  'saveSabp', true);
-             expected_Sabp = zeros(3, 3, 2, 5);
-             expected_Sabp(:, :, :, [1 5]) = repmat( ...
-                 diag([435.71079, 435.71079, 6.45497e-4]), 1, 1, 2, 2);
-             expected_Sabp(:, :, :, [2 4]) = repmat( ...
-                 diag([0.59293, 0.59293, 0.47434]), 1, 1, 2, 2);
-             expected_Sabp(:, :, :, 3) = repmat( ...
-                 diag([0.1875, 0.1875, 1.5]), 1, 1, 2, 1);
-             omegap_vals =  [1.16190e-2 4.74342 3];
-             expected_omegap = [ omegap_vals  omegap_vals(2:-1:1); ...
-                                -omegap_vals -omegap_vals(2:-1:1)];
+            qpts = testCase.qh5;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
+            sw_out = testCase.swobj_tri.spinwave(qpts, ...
+                                                 'saveSabp', true);
+            expected_Sabp = zeros(3, 3, 2, 5);
+            expected_Sabp(:, :, :, [1 5]) = repmat( ...
+                diag([435.71079, 435.71079, 6.45497e-4]), 1, 1, 2, 2);
+            expected_Sabp(:, :, :, [2 4]) = repmat( ...
+                diag([0.59293, 0.59293, 0.47434]), 1, 1, 2, 2);
+            expected_Sabp(:, :, :, 3) = repmat( ...
+                diag([0.1875, 0.1875, 1.5]), 1, 1, 2, 1);
+            omegap_vals =  [1.16190e-2 4.74342 3];
+            expected_omegap = [ omegap_vals  omegap_vals(2:-1:1); ...
+                               -omegap_vals -omegap_vals(2:-1:1)];
 
-             testCase.verify_val(sw_out.Sabp, expected_Sabp, 'rel_tol', 1e-5);
-             testCase.verify_val(sw_out.omegap, expected_omegap, 'rel_tol', 1e-5);
+            testCase.verify_val(sw_out.Sabp, expected_Sabp, 'rel_tol', 1e-5);
+            testCase.verify_val(sw_out.omegap, expected_omegap, 'rel_tol', 1e-5);
         end
         function test_sw_qh5_fitmode(testCase, mex)
             swpref.setpref('usemex', mex);
             qpts = testCase.qh5;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts, 'fitmode', true);
             % fitmode automatically turns off sortMode
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
@@ -323,6 +336,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             else
                 err= 'spinw:spinwave:NonPosDefHamiltonian';
             end
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             % Tests that incommensurate calculation is ok
             hkl = {[0 0 0] [0 1 0] [1 0 0] 5};
             % Create copy to avoid changing obj for other tests
@@ -350,6 +364,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
             rotc = swobj_twin.twin.rotc;
             hkl = [1 2; 3 4; 5 6];
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = swobj_twin.spinwave(hkl);
 
             expected_sw = testCase.default_spinwave;
@@ -382,6 +397,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj_twin = copy(testCase.swobj);
             swobj_twin.addtwin('axis', [0 0 1], 'phid', [60 120], 'vol', [1 2]);
             qpts = testCase.qh5;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = swobj_twin.spinwave(qpts, 'notwin', true);
             % Test even if twin is added to structure it is not actually
             % calculated if notwin is specified
@@ -394,6 +410,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % For this structure, both cmplxBase true and false give the
             % same e-vectors so should give the same result
             qpts = {[0 0 0], [1 0 0], 5};
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', false);
             sw_out_cmplx = testCase.swobj_tri.spinwave(qpts, 'cmplxBase', true);
             testCase.verify_spinwave(sw_out_cmplx, sw_out);
@@ -415,6 +432,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_formfact(testCase, mex)
             swpref.setpref('usemex', mex);
             qpts = {[0 0 0] [10 5 1] 19};
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_ff = testCase.swobj.spinwave(qpts, 'formfact', true);
             % Test that Sab with the form factor (ff) is explicitly the
             % same as Sab with no ff multiplied by ff
@@ -432,6 +450,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 F = sum(Q, 1);
             end
             qpts = {[0 0 0] [10 5 1] 19};
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_ff = testCase.swobj.spinwave(qpts, 'formfact', true, ...
                                             'formfactfun', @formfactfun);
             % Test that Sab with the form factor (ff) is explicitly the
@@ -451,6 +470,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj_g = copy(testCase.swobj);
             swobj_g.addmatrix('label','g_1','value', gmat)
             swobj_g.addg('g_1')
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_g = swobj_g.spinwave(qpts, 'gtensor', true);
             % Also check that it warns that gtensor is not being used
             expected_sw = testCase.verifyWarning(...
@@ -468,6 +488,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swobj_g = copy(testCase.swobj_tri);
             swobj_g.addmatrix('label','g_1','value', gmat)
             swobj_g.addg('g_1')
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_g = swobj_g.spinwave(qpts, 'gtensor', true);
             % Check that Sab with g is same as Sab without g but multiplied
             % by g in each direction
@@ -508,6 +529,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                     'spinw:spinwave:NonPosDefHamiltonian');
             end
             % Check that with tol is approximated to commensurate
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = swobj_tol.spinwave(qpts, 'tol', tol);
             expected_sw = testCase.get_expected_sw_qh5;
             expected_sw.obj = swobj_tol;
@@ -529,6 +551,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 err);
             % Check with omega_tol the omega is changed appropriately
             omega_tol = 1;
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts, 'omega_tol', omega_tol);
             expected_sw = testCase.get_expected_sw_qh5;
             expected_sw.omega(:, 1) = [omega_tol -omega_tol];
@@ -557,7 +580,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         function test_sw_symbolic_no_qpts(testCase)
             swobj = copy(testCase.swobj);
             swobj.symbolic(true);
-            sw_out = swobj.spinwave();
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
+            sw_out = testCase.verifyWarning(@() swobj.spinwave(), 'spinw:spinwave:MissingInput');
 
             symstr = '-Ja*exp(-pi*h*2i)*(exp(pi*h*2i) - 1)^2';
             expected_sw.ham = [str2sym(symstr) sym(0); ...

@@ -48,6 +48,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             % use structural unit cell with incommensurate k
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt',[1 1 1]);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             spec_incom = AF33kagome.spinwave(qarg, 'hermit', true);
             spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
             % use supercell k=0 structure
@@ -64,7 +65,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
         function test_two_matom_per_unit_cell(testCase)
             % setup structure (taken from tutorial 19)
             FeCuChain = spinw;
-            FeCuChain.genlattice('lat_const',[3 8 4],'spgr','P 1')
+            FeCuChain.genlattice('lat_const',[3 8 4],'sym','P 1')
             FeCuChain.addatom('label','MCu2','r',[0 0 0])
             FeCuChain.addatom('label','MFe2','r',[0 1/2 0])
 
@@ -84,6 +85,9 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             evec = 0:1.5:5;
             
             % use structural unit cell with incommensurate k
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian', ...
+                                      'spinw:magstr:NotExact', ...
+                                      'spinw:spinwave:Twokm');
             FeCuChain.genmagstr('mode','helical','k', k,...
                                 'S', S, 'nExt',[1 1 1]);
             spec_incom = FeCuChain.spinwave(qarg, 'hermit', true);
@@ -101,7 +105,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
         
         function test_two_sym_equiv_matoms_per_unit_cell(testCase)
             sw = spinw;
-            sw.genlattice('lat_const',[4,5,12],'spgr','I m m m')
+            sw.genlattice('lat_const',[4,5,12],'sym','I m m m')
             sw.addatom('S', 1, 'r',[0 0 0]);
             sw.addmatrix('label', 'J', 'value', 1);
             sw.addmatrix('label', 'A', 'value', diag([0 0 -0.1]))
@@ -116,6 +120,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             evec = 0:0.5:1.5;
             
             % use structural unit cell with incommensurate k
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             sw.genmagstr('mode','helical','k', k,...
                                 'S', S, 'nExt',[1 1 1]);
             spec_incom = sw.spinwave(qarg, 'hermit', true);
