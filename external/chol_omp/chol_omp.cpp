@@ -203,9 +203,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[]blkid;
-    if(err_code==1) 
+    if(err_code > 100)
         mexErrMsgIdAndTxt("chol_omp:notposdef","The input matrix is not positive definite.");
-    else if(err_code==2) 
+    else if(err_code > 0)
         mexErrMsgIdAndTxt("chol_omp:singular","The input matrix is singular.");
 }
 
@@ -213,7 +213,7 @@ template <typename T>
 int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m, int nlhs,
             int *blkid, char uplo, T tol, bool do_Colpa)
 {
-    int err_code = 0, ib=0;
+    int err_code = 0;
     T* lhs0 = (T*)mxGetData(plhs[0]);
     T* lhs1 = (T*)mxGetData(plhs[1]);
     T* rhs0 = (T*)mxGetData(prhs[0]);
@@ -222,8 +222,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
     T* ilhs1 = (T*)mxGetImagData(plhs[1]);
     bool is_complex = mxIsComplex(prhs[0]);
 #pragma omp parallel default(none) shared(err_code) \
-    firstprivate(nthread, m, nlhs, ib, blkid, uplo, tol, do_Colpa, \
-    lhs0, lhs1, rhs0, irhs0, ilhs0, ilhs1, is_complex)
+    firstprivate(nthread, m, nlhs, blkid, uplo, tol, do_Colpa, lhs0, lhs1, rhs0, irhs0, ilhs0, ilhs1, is_complex)
     {
 #pragma omp for
         for(int nt=0; nt<nthread; nt++) {
@@ -238,21 +237,21 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
             T *alpha;
 
             if(is_complex)
-                M = new T[2*m*m];
+                M = new T[2*m*m]();
             if(do_Colpa) {
                 if(is_complex) {
-                    Mp = new T[2*m*m];
-                    alpha = new T[2];
+                    Mp = new T[2*m*m]();
+                    alpha = new T[2]();
                 }
                 else {
-                    Mp = new T[m*m];
-                    alpha = new T[1];
+                    Mp = new T[m*m]();
+                    alpha = new T[1]();
                 }
                 alpha[0] = 1.;
             }
 
             // Actual loop over individual matrices start here
-            for(ib=blkid[nt]; ib<blkid[nt+1]; ib++) {
+            for(int ib=blkid[nt]; ib<blkid[nt+1]; ib++) {
                 // Loop is in case we want to try again with a constant added to the diagonal
                 for(kk=0; kk<(tol>0?2:1); kk++) {
                     // Populate the matrix input array (which will be overwritten by the Lapack function)
@@ -296,10 +295,9 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                 }
                 if(info>0) {
                     if(nlhs<=1 || do_Colpa) {
-                        #pragma omp critical 
-                        {
-                            err_code = 1;
-                        }
+                        // Have to use this becase VSC only supports OpenMP 2.0, allowing only {op}=, ++, -- in atomic
+                        #pragma omp atomic
+                        err_code += 100;
                         break;
                     }
                     else {
@@ -347,10 +345,8 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                             trtri(&uplo, &diag, &m, M, &lda, &info, false);
                         }
                         if(info>0) {
-                            #pragma omp critical 
-                            {
-                                err_code = 2;
-                            }
+                            #pragma omp atomic
+                            err_code++;
                             break;
                         }
                         if(is_complex) {

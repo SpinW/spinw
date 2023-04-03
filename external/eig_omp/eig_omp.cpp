@@ -672,7 +672,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[]blkid; delete[]issym;
-    if(err_code==1)
+    if(err_code > 0)
         mexErrMsgIdAndTxt("eig_omp:defectivematrix","Eigenvectors of defective eigenvalues cannot be orthogonalised.");
 }
 
@@ -768,10 +768,8 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                                 sort(m, D, (T*)NULL, work, do_sort);
                         if(nlhs>1 && do_orth)
                             if(orth(m, D, V, work, 0)==1) {
-                                #pragma omp critical
-                                {
-                                    err_code = 1;
-                                }
+                                #pragma omp atomic
+                                err_code++;
                                 break;
                             }
                     }
@@ -819,10 +817,8 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                                 sort(m, D, Di, (T*)NULL, work, do_sort);
                         if(nlhs>1 && do_orth)
                             if(orth(m, D, Di, V, lhs0+ib*m2, work, 1)==1) {
-                                #pragma omp critical
-                                {
-                                    err_code = 1;
-                                }
+                                #pragma omp atomic
+                                err_code++;
                                 break;
                             }
                     }
