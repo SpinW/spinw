@@ -203,9 +203,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[]blkid;
-    if(err_code > 100)
+    if(err_code==1)
         mexErrMsgIdAndTxt("chol_omp:notposdef","The input matrix is not positive definite.");
-    else if(err_code > 0)
+    else if(err_code==2)
         mexErrMsgIdAndTxt("chol_omp:singular","The input matrix is singular.");
 }
 
@@ -213,7 +213,7 @@ template <typename T>
 int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m, int nlhs,
             int *blkid, char uplo, T tol, bool do_Colpa)
 {
-    int err_code = 0;
+    int err_nonpos = 0, err_singular = 0;
     T* lhs0 = (T*)mxGetData(plhs[0]);
     T* lhs1 = (T*)mxGetData(plhs[1]);
     T* rhs0 = (T*)mxGetData(prhs[0]);
@@ -221,7 +221,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
     T* ilhs0 = (T*)mxGetImagData(plhs[0]);
     T* ilhs1 = (T*)mxGetImagData(plhs[1]);
     bool is_complex = mxIsComplex(prhs[0]);
-#pragma omp parallel default(none) shared(err_code) \
+#pragma omp parallel default(none) shared(err_nonpos, err_singular) \
     firstprivate(nthread, m, nlhs, blkid, uplo, tol, do_Colpa, lhs0, lhs1, rhs0, irhs0, ilhs0, ilhs1, is_complex)
     {
 #pragma omp for
@@ -297,7 +297,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                     if(nlhs<=1 || do_Colpa) {
                         // Have to use this becase VSC only supports OpenMP 2.0, allowing only {op}=, ++, -- in atomic
                         #pragma omp atomic
-                        err_code += 100;
+                        err_nonpos++;
                         break;
                     }
                     else {
@@ -346,7 +346,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                         }
                         if(info>0) {
                             #pragma omp atomic
-                            err_code++;
+                            err_singular++;
                             break;
                         }
                         if(is_complex) {
@@ -388,7 +388,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                         }
                     }
                 }
-                if(err_code!=0)
+                if((err_nonpos + err_singular) > 0)
                     break;     // One of the threads got a singular or not pos def error - break loop here.
             }
             // Free memory...
@@ -398,10 +398,10 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                 delete[]Mp; delete[]alpha;
             }
             #ifndef _OPENMP
-                if(err_code!=0)
+                if((err_nonpos + err_singular) > 0)
                     break;
             #endif
         }
     }
-    return err_code;
+    return err_nonpos > 0 ? 1 : (err_singular > 0 ? 2 : 0);
 }
