@@ -203,9 +203,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[]blkid;
-    if(err_code==1) 
+    if(err_code==1)
         mexErrMsgIdAndTxt("chol_omp:notposdef","The input matrix is not positive definite.");
-    else if(err_code==2) 
+    else if(err_code==2)
         mexErrMsgIdAndTxt("chol_omp:singular","The input matrix is singular.");
 }
 
@@ -213,9 +213,16 @@ template <typename T>
 int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m, int nlhs,
             int *blkid, char uplo, T tol, bool do_Colpa)
 {
-    int err_code = 0, ib=0;
-#pragma omp parallel default(none) shared(plhs,prhs,err_code) \
-    firstprivate(nthread, m, nlhs, ib, blkid, uplo, tol, do_Colpa)
+    int err_nonpos = 0, err_singular = 0;
+    T* lhs0 = (T*)mxGetData(plhs[0]);
+    T* lhs1 = (T*)mxGetData(plhs[1]);
+    T* rhs0 = (T*)mxGetData(prhs[0]);
+    T* irhs0 = (T*)mxGetImagData(prhs[0]);
+    T* ilhs0 = (T*)mxGetImagData(plhs[0]);
+    T* ilhs1 = (T*)mxGetImagData(plhs[1]);
+    bool is_complex = mxIsComplex(prhs[0]);
+#pragma omp parallel default(none) shared(err_nonpos, err_singular) \
+    firstprivate(nthread, m, nlhs, blkid, uplo, tol, do_Colpa, lhs0, lhs1, rhs0, irhs0, ilhs0, ilhs1, is_complex)
     {
 #pragma omp for
         for(int nt=0; nt<nthread; nt++) {
@@ -223,35 +230,35 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
             //   or we get memory errors.
             T *M, *Mp, *ptr_M, *ptr_Mi, *ptr_I;
             mwSignedIndex lda = m, m2 = m*m, info, ii, jj, kk;
-            mwSignedIndex f = mxIsComplex(prhs[0]) ? 2 : 1;
+            mwSignedIndex f = is_complex ? 2 : 1;
             char diag = 'N';
             char trans = 'C';
             char side = 'R';
             T *alpha;
 
-            if(mxIsComplex(prhs[0]))
-                M = new T[2*m*m];
+            if(is_complex)
+                M = new T[2*m*m]();
             if(do_Colpa) {
-                if(mxIsComplex(prhs[0])) {
-                    Mp = new T[2*m*m];
-                    alpha = new T[2];
+                if(is_complex) {
+                    Mp = new T[2*m*m]();
+                    alpha = new T[2]();
                 }
                 else {
-                    Mp = new T[m*m];
-                    alpha = new T[1];
+                    Mp = new T[m*m]();
+                    alpha = new T[1]();
                 }
                 alpha[0] = 1.;
             }
 
             // Actual loop over individual matrices start here
-            for(ib=blkid[nt]; ib<blkid[nt+1]; ib++) {
+            for(int ib=blkid[nt]; ib<blkid[nt+1]; ib++) {
                 // Loop is in case we want to try again with a constant added to the diagonal
                 for(kk=0; kk<(tol>0?2:1); kk++) {
                     // Populate the matrix input array (which will be overwritten by the Lapack function)
-                    if(mxIsComplex(prhs[0])) {
+                    if(is_complex) {
                         memset(M, 0, 2*m*m*sizeof(T));
-                        ptr_M = (T*)mxGetData(prhs[0]) + ib*m2;
-                        ptr_Mi = (T*)mxGetImagData(prhs[0]) + ib*m2;
+                        ptr_M = rhs0 + ib*m2;
+                        ptr_Mi = irhs0 + ib*m2;
                         // Interleaves complex matrices - Matlab stores complex matrix as an array of real
                         //   values followed by an array of imaginary values; Fortran (and C++ std::complex)
                         //   and hence Lapack stores it as arrays of pairs of values (real,imaginary).
@@ -264,8 +271,8 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                     }
                     else {
                         // *potrf overwrites the input array - copy only upper or lower triangle of input.
-                        M = (T*)mxGetData(plhs[0]) + ib*m2;
-                        ptr_M = (T*)mxGetData(prhs[0]) + ib*m2;
+                        M = lhs0 + ib*m2;
+                        ptr_M = rhs0 + ib*m2;
                         if(uplo=='U')
                             for(ii=0; ii<m; ii++) 
                                 memcpy(M+ii*m, ptr_M+ii*m, (ii+1)*sizeof(T));
@@ -278,7 +285,7 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                         for(ii=0; ii<m; ii++)
                             M[ii*m*f+ii*f] += tol; 
                     // Calls the actual Lapack algorithm for real or complex input.
-                    if(mxIsComplex(prhs[0]))
+                    if(is_complex)
                         potrf(&uplo, &m, M, &lda, &info, true);
                     else
                         potrf(&uplo, &m, M, &lda, &info, false);
@@ -288,14 +295,13 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                 }
                 if(info>0) {
                     if(nlhs<=1 || do_Colpa) {
-                        #pragma omp critical 
-                        {
-                            err_code = 1;
-                        }
+                        // Have to use this becase VSC only supports OpenMP 2.0, allowing only {op}=, ++, -- in atomic
+                        #pragma omp atomic
+                        err_nonpos++;
                         break;
                     }
                     else {
-                        ptr_I = (T*)mxGetData(plhs[1]) + ib;
+                        ptr_I = lhs1 + ib;
                         *ptr_I = (T)info;
                         // Zeros the non positive parts of the factor.
                       //kk = (mwSignedIndex)info-1;
@@ -309,27 +315,27 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                 }
                 if(do_Colpa) {
                     // Computes the Hermitian K^2 matrix = R*gComm*R';
-                    memcpy(Mp, M, mxIsComplex(prhs[0]) ? m*m*2*sizeof(T) : m*m*sizeof(T));
+                    memcpy(Mp, M, is_complex ? m*m*2*sizeof(T) : m*m*sizeof(T));
                     // Applies the commutator [1..1,-1..-1] to the cholesky factor transposed
                     for(ii=m/2; ii<m; ii++)
                         for(jj=0; jj<m; jj++)
                             Mp[ii*f*m+jj*f] = -Mp[ii*f*m+jj*f];
-                    if(mxIsComplex(prhs[0]))
+                    if(is_complex)
                         for(ii=m/2; ii<m; ii++)
                             for(jj=0; jj<m; jj++)
                                 Mp[ii*f*m+jj*f+1] = -Mp[ii*f*m+jj*f+1];
-                    if(mxIsComplex(prhs[0]))
+                    if(is_complex)
                         trmm(&side, &uplo, &trans, &diag, &m, &m, alpha, M, &lda, Mp, &lda, true);
                     else
                         trmm(&side, &uplo, &trans, &diag, &m, &m, alpha, M, &lda, Mp, &lda, false);
                     // Computes the inverse of the triangular factors (still stored in M)
                     if(nlhs>1) {
-                        if(mxIsComplex(prhs[0])) {
+                        if(is_complex) {
                             trtri(&uplo, &diag, &m, M, &lda, &info, true);
                         }
                         else {
-                            M = (T*)mxGetData(plhs[1]) + ib*m2;
-                            ptr_M = (T*)mxGetData(plhs[0]) + ib*m2;
+                            M = lhs1 + ib*m2;
+                            ptr_M = lhs0 + ib*m2;
                             if(uplo=='U')
                                 for(ii=0; ii<m; ii++) 
                                     memcpy(M+ii*m, ptr_M+ii*m, (ii+1)*sizeof(T));
@@ -339,15 +345,13 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                             trtri(&uplo, &diag, &m, M, &lda, &info, false);
                         }
                         if(info>0) {
-                            #pragma omp critical 
-                            {
-                                err_code = 2;
-                            }
+                            #pragma omp atomic
+                            err_singular++;
                             break;
                         }
-                        if(mxIsComplex(prhs[0])) {
-                            ptr_M = (T*)mxGetData(plhs[1]) + ib*m2;
-                            ptr_Mi = (T*)mxGetImagData(plhs[1]) + ib*m2;
+                        if(is_complex) {
+                            ptr_M = lhs1 + ib*m2;
+                            ptr_Mi = ilhs1 + ib*m2;
                             for(ii=0; ii<m; ii++) {
                                 for(jj=(uplo=='U'?0:ii); jj<(uplo=='U'?ii+1:m); jj++) {
                                     ptr_M[ii*m+jj] = M[ii*2*m+jj*2];
@@ -358,9 +362,9 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                     }
                     // Finally copies the output of the K^2=K*g*K' calculation to Matlab left-hand-side
                     //   (We had to keep it memory to compute the inverse)
-                    if(mxIsComplex(prhs[0])) {
-                        ptr_M = (T*)mxGetData(plhs[0]) + ib*m2;
-                        ptr_Mi = (T*)mxGetImagData(plhs[0]) + ib*m2;
+                    if(is_complex) {
+                        ptr_M = lhs0 + ib*m2;
+                        ptr_Mi = ilhs0 + ib*m2;
                         for(ii=0; ii<m; ii++) {
                             for(jj=0; jj<m; jj++) {
                                 *ptr_M++ = Mp[ii*2*m+jj*2];
@@ -369,13 +373,13 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                         }
                     }
                     else {
-                        memcpy((T*)mxGetData(plhs[0])+ib*m2, Mp, m*m*sizeof(T));
+                        memcpy(lhs0+ib*m2, Mp, m*m*sizeof(T));
                     }
                 }
-                else if(mxIsComplex(prhs[0])) {
+                else if(is_complex) {
                     // Copy lapack output to matlab with interleaving
-                    ptr_M = (T*)mxGetData(plhs[0]) + ib*m2;
-                    ptr_Mi = (T*)mxGetImagData(plhs[0]) + ib*m2;
+                    ptr_M = lhs0 + ib*m2;
+                    ptr_Mi = ilhs0 + ib*m2;
                     for(ii=0; ii<m; ii++) {
                       //for(jj=(uplo=='U'?ii:0); jj<(uplo=='U'?m:ii+1); jj++) { }
                         for(jj=0; jj<m; jj++) {
@@ -384,20 +388,20 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
                         }
                     }
                 }
-                if(err_code!=0)
+                if((err_nonpos + err_singular) > 0)
                     break;     // One of the threads got a singular or not pos def error - break loop here.
             }
             // Free memory...
-            if(mxIsComplex(prhs[0]))
+            if(is_complex)
                 delete[]M;
             if(do_Colpa) {
                 delete[]Mp; delete[]alpha;
             }
             #ifndef _OPENMP
-                if(err_code!=0)
+                if((err_nonpos + err_singular) > 0)
                     break;
             #endif
         }
     }
-    return err_code;
+    return err_nonpos > 0 ? 1 : (err_singular > 0 ? 2 : 0);
 }

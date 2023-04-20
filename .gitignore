@@ -23,3 +23,5 @@ dev/standalone/MacOS/Source/
 *.swo
 *.xml
 *.rej
+
+**profile_results

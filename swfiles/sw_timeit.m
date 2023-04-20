@@ -40,20 +40,28 @@ function sw_timeit(percent,varargin)
 %
 
 global sw_time
-pref = swpref;
+persistent pref;
+if isempty(pref)
+    pref = swpref;
+end
 
 if nargin == 0
     swhelp sw_timeit
     return
 end
 
-if nargin > 2 && ~isempty(varargin{2}) && ~ischar(varargin{2})
-    fid = varargin{2};
-else
-    fid = pref.tid;
+if pref.fid == 0
+    % Users wants to suppress output
+    return
 end
 
-if fid == 0
+if nargin > 2 && ~isempty(varargin{2}) && ~ischar(varargin{2})
+    tid = varargin{2};
+else
+    tid = pref.tid;
+end
+
+if tid == 0
     % do nothing
     return
 end
@@ -64,21 +72,21 @@ else
     title0 = 'sw_timeit';
 end
 
-if ~ismember(fid,[1 2])
+if ~ismember(tid,[1 2])
     return
 end
 
 if nargin > 1
-    start = varargin{1};
+    mode = varargin{1};
 else
-    start = 0;
+    mode = 0;
 end
 
-switch start
+switch mode
     case 1
-        % start the time estimation
+        % mode the time estimation
         sw_time = tic;
-        switch fid
+        switch tid
             case 1
                 fprintf([repmat(' ',[1 40]) '\n']);
             case 2
@@ -99,7 +107,7 @@ switch start
         rtime = rtime-hou*60^2;
         min = floor(rtime/60);
         sec = floor(rtime - min*60);
-        switch fid
+        switch tid
             case 1
                 fprintf([repmat('\b',[1 41]) '%6.2f%%, remained: %03d:%02d:%02d (HH:MM:SS).\n'],...
                     percent,hou,min,sec);
@@ -121,7 +129,7 @@ switch start
         sec = floor(etime);
         %tho = floor((etime-sec)*1000);
         %fprintf('Finished in %02d:%02d:%02d.%03d (HH:MM:SS.FFF).\n',hou,min,sec,tho);
-        switch fid
+        switch tid
             case 1
                 fprintf(repmat('\b',1,40+1));
                 fprintf('Calculation is finished in %02d:%02d:%02d (hh:mm:ss).\n',hou,min,sec);

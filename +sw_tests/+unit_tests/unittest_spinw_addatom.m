@@ -102,6 +102,7 @@ classdef unittest_spinw_addatom < sw_tests.unit_tests.unittest_super
         
         function test_add_atom_with_custom_scatt_length(testCase, b_name)
             b = 2;
+            testCase.disable_warnings('spinw:addatom:DeprecationWarning');
             testCase.swobj.addatom('r', [0;0;0], b_name, b)
             expected_unit_cell = testCase.default_unit_cell;
             expected_unit_cell.b = [b; 1];

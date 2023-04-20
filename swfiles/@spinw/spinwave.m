@@ -674,7 +674,7 @@ hklIdx = [floor(((1:nSlice)-1)/nSlice*nHkl)+1 nHkl+1];
 omega = zeros(2*nMagExt, nHkl);
 
 % empty Sab
-Sab = zeros(3,3,2*nMagExt,0);
+Sab = zeros(3,3,2*nMagExt,nHkl);
 
 % Empty matrices to save different intermediate results for further
 % analysis: Hamiltonian, eigenvectors, dynamical structure factor in the
@@ -838,19 +838,19 @@ for jj = 1:nSlice
                             ' diagonalization try the param.hermit=false option']);
                     end
                 end
-                
+
                 K2 = K*gComm*K';
                 K2 = 1/2*(K2+K2');
                 % Hermitian K2 will give orthogonal eigenvectors
                 [U, D] = eig(K2);
                 D      = diag(D);
-                
+
                 % sort modes accordign to the real part of the energy
                 [~, idx] = sort(real(D),'descend');
                 U = U(:,idx);
                 % omega dispersion
                 omega(:, hklIdxMEM(ii)) = D(idx);
-                
+
                 % the inverse of the para-unitary transformation V
                 V(:,:,ii) = inv(K)*U*diag(sqrt(gCommd.*omega(:, hklIdxMEM(ii)))); %#ok<MINV>
             end
@@ -858,8 +858,11 @@ for jj = 1:nSlice
     else
         % All the matrix calculations are according to White's paper
         % R.M. White, et al., Physical Review 139, A450?A454 (1965)
-        
-        gham = mmat(gComm,ham);
+        if useMex
+            gham = sw_mtimesx(gComm, ham);
+        else
+            gham = mmat(gComm,ham);
+        end
         
         [V, D, orthWarn] = eigorth(gham,param.omega_tol,useMex);
         
@@ -880,7 +883,7 @@ for jj = 1:nSlice
     if param.saveH
         Hsave(:,:,hklIdxMEM) = ham;
     end
-    
+
     % Calculates correlation functions.
     % V right
     VExtR = repmat(permute(V  ,[4 5 1 2 3]),[3 3 1 1 1]);
@@ -918,7 +921,7 @@ for jj = 1:nSlice
     % Dynamical structure factor from S^alpha^beta(k) correlation function.
     % Sab(alpha,beta,iMode,iHkl), size: 3 x 3 x 2*nMagExt x nHkl.
     % Normalizes the intensity to single unit cell.
-    Sab = cat(4,Sab,squeeze(sum(zeda.*ExpFL.*VExtL,4)).*squeeze(sum(zedb.*ExpFR.*VExtR,3))/prod(nExt));
+    Sab(:,:,:,hklIdxMEM) = squeeze(sum(zeda.*ExpFL.*VExtL,4)).*squeeze(sum(zedb.*ExpFR.*VExtR,3))/prod(nExt);
     
     sw_timeit(jj/nSlice*100,0,param.tid);
 end

@@ -8,6 +8,12 @@ Improvements
 ############
 - Change to preallocation of output energies in ``spinwave`` to reduce
   memory usage and improve calculation speed
+- Use a mex function (if mex is enabled) for matrix multiplication in
+  ``spinwave`` with ``hermit=false`` that reduces memory usage and
+  improves calculation speed for large magnetic cells (in an example
+  with 216 magnetic atoms the execution time was reduced by ~65%)
+
+
 
 Bug Fixes
 #########

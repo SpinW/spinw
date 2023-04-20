@@ -51,7 +51,7 @@ if numel(n) == 3
     end
     
     if opt
-        vy = cross(n,z);
+        vy = c;
     else
         vy = cross(n,y);
     end

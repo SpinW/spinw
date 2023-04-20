@@ -621,10 +621,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     bool is_complex = mxIsComplex(prhs[0]);
     if(is_single) {
         // Tolerance on whether matrix is symmetric/hermitian
-        check_sym(issym, prhs[0], (float)sqrt(FLT_EPSILON), m, nthread, blkid, is_complex);
+        check_sym(issym, prhs[0], (float)(FLT_EPSILON * 10.0), m, nthread, blkid, is_complex);
         classid = mxSINGLE_CLASS;
     } else {
-        check_sym(issym, prhs[0], (double)sqrt(DBL_EPSILON), m, nthread, blkid, is_complex);
+        check_sym(issym, prhs[0], (double)(DBL_EPSILON * 10.0), m, nthread, blkid, is_complex);
         classid = mxDOUBLE_CLASS;
     }
 
@@ -672,7 +672,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[]blkid; delete[]issym;
-    if(err_code==1)
+    if(err_code > 0)
         mexErrMsgIdAndTxt("eig_omp:defectivematrix","Eigenvectors of defective eigenvalues cannot be orthogonalised.");
 }
 
@@ -681,9 +681,12 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
     const int *blkid, char jobz, bool anynonsym, const bool *issym, bool do_orth, int do_sort, bool is_complex)
 {
     int err_code = 0;
-
-#pragma omp parallel default(none) shared(plhs, mat, mat_i, err_code, blkid, issym) \
-    firstprivate(nthread, m, nlhs, nd, jobz, anynonsym, do_orth, do_sort, is_complex)
+    T* lhs0 = (T*)mxGetData(plhs[0]);
+    T* lhs1 = (T*)mxGetData(plhs[1]);
+    T* ilhs0 = (T*)mxGetImagData(plhs[0]);
+    T* ilhs1 = (T*)mxGetImagData(plhs[1]);
+#pragma omp parallel default(none) shared(mat, mat_i, err_code, blkid, issym) \
+    firstprivate(nthread, m, nlhs, nd, jobz, anynonsym, do_orth, do_sort, is_complex, lhs0, lhs1, ilhs0, ilhs1)
     {
 #pragma omp for
         for(int nt=0; nt<nthread; nt++) {
@@ -739,9 +742,9 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
             for(int ib=blkid[nt]; ib<blkid[nt+1]; ib++) {
                 if(!(is_complex && anynonsym)) {
                     if(nlhs<=1)
-                        D = (T*)mxGetData(plhs[0]) + ib*m;
+                        D = lhs0 + ib*m;
                     else if(nd==3)
-                        D = (T*)mxGetData(plhs[1]) + ib*m;
+                        D = lhs1 + ib*m;
                 }
                 if(is_complex) {
                     ptr_M = mat + ib*m2;
@@ -765,10 +768,8 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                                 sort(m, D, (T*)NULL, work, do_sort);
                         if(nlhs>1 && do_orth)
                             if(orth(m, D, V, work, 0)==1) {
-                                #pragma omp critical
-                                {
-                                    err_code = 1;
-                                }
+                                #pragma omp atomic
+                                err_code++;
                                 break;
                             }
                     }
@@ -783,8 +784,8 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                         }
                     }
                     if(nlhs>1) {
-                        ptr_V = (T*)mxGetData(plhs[0]) + ib*m2;
-                        ptr_Vi = (T*)mxGetImagData(plhs[0]) + ib*m2;
+                        ptr_V = lhs0 + ib*m2;
+                        ptr_Vi = ilhs0 + ib*m2;
                         for(ii=0; ii<m; ii++) {
                             for(jj=0; jj<m; jj++) {
                                 *ptr_V++ = V[ii*2*m+jj*2];
@@ -795,12 +796,12 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                 }
                 else {
                     ptr_M = mat + ib*m2;
-                    V = (T*)mxGetData(plhs[0]) + ib*m2;
+                    V = lhs0 + ib*m2;
                     if(anynonsym) {
                         if(nlhs<=1)
-                            Di = (T*)mxGetImagData(plhs[0]) + ib*m;
+                            Di = ilhs0 + ib*m;
                         else if(nd==3)
-                            Di = (T*)mxGetImagData(plhs[1]) + ib*m;
+                            Di = ilhs1 + ib*m;
                     }
                     // We cannot pass the right-side argument directly to Lapack because the routine
                     //   overwrites the input matrix to be diagonalised - so we create a copy
@@ -815,11 +816,9 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                             else
                                 sort(m, D, Di, (T*)NULL, work, do_sort);
                         if(nlhs>1 && do_orth)
-                            if(orth(m, D, Di, V, (T*)mxGetImagData(plhs[0])+ib*m2, work, 1)==1) {
-                                #pragma omp critical
-                                {
-                                    err_code = 1;
-                                }
+                            if(orth(m, D, Di, V, lhs0+ib*m2, work, 1)==1) {
+                                #pragma omp atomic
+                                err_code++;
                                 break;
                             }
                     }
@@ -836,8 +835,8 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                     // Need to account for complex conjugate eigenvalue/vector pairs (imaginary parts 
                     //   of eigenvectors stored in consecutive columns)
                     if(nlhs>1 && !issym[ib] && !do_orth) {
-                        ptr_V = (T*)mxGetData(plhs[0]) + ib*m2;
-                        ptr_Vi = (T*)mxGetImagData(plhs[0]) + ib*m2;
+                        ptr_V = lhs0 + ib*m2;
+                        ptr_Vi = ilhs0 + ib*m2;
                         // Complex conjugate pairs of eigenvalues appear consecutively with the eigenvalue
                         //   having the positive imaginary part first.
                         for(ii=0; ii<m; ii++) {
@@ -854,19 +853,19 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                 // If the output needs eigenvalues as diagonal matrix, creates it.
                 if(nlhs>1 && nd==2) { 
                     if(is_complex && anynonsym) {
-                        E = (T*)mxGetData(plhs[1]) + ib*m2;
+                        E = lhs1 + ib*m2;
                         for(ii=0; ii<m; ii++) 
                             *(E+ii+ii*m) = *(D+2*ii);
-                        E = (T*)mxGetImagData(plhs[1]) + ib*m2;
+                        E = ilhs1 + ib*m2;
                         for(ii=0; ii<m; ii++) 
                             *(E+ii+ii*m) = *(D+2*ii+1);
                     }
                     else {
-                        E = (T*)mxGetData(plhs[1]) + ib*m2;
+                        E = lhs1 + ib*m2;
                         for(ii=0; ii<m; ii++) 
                             *(E+ii+ii*m) = *(D+ii);
                         if(anynonsym) {
-                            E = (T*)mxGetImagData(plhs[1]) + ib*m2; 
+                            E = ilhs1 + ib*m2; 
                             for(ii=0; ii<m; ii++) 
                                 *(E+ii+ii*m) = *(Di+ii);
                         }
@@ -874,15 +873,15 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
                 }
                 else if(is_complex && anynonsym) {
                     if(nlhs<=1)
-                        E = (T*)mxGetData(plhs[0]) + ib*m;
+                        E = lhs0 + ib*m;
                     else if(nd==3)
-                        E = (T*)mxGetData(plhs[1]) + ib*m;
+                        E = lhs1 + ib*m;
                     for(ii=0; ii<m; ii++) 
                         *(E+ii) = *(D+2*ii);
                     if(nlhs<=1)
-                        E = (T*)mxGetImagData(plhs[0]) + ib*m;
+                        E = ilhs0 + ib*m;
                     else if(nd==3)
-                        E = (T*)mxGetImagData(plhs[1]) + ib*m;
+                        E = ilhs1 + ib*m;
                     for(ii=0; ii<m; ii++) 
                         *(E+ii) = *(D+2*ii+1);
                 }

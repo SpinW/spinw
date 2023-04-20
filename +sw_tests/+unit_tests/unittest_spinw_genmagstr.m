@@ -392,7 +392,7 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
                 'k', k', ...
                 'nExt', nExt, ...
                 'F', [-1i 2 0 -2; 1 2i 0 -2i; 0 0 1 0]);
-             testCase.verify_obj(swobj.mag_str, expected_mag_str);
+            testCase.verify_obj(swobj.mag_str, expected_mag_str);
         end
         function test_helical_multiatom_multik_multin(testCase)
             swobj = copy(testCase.swobj);
@@ -536,8 +536,9 @@ classdef unittest_spinw_genmagstr < sw_tests.unit_tests.unittest_super
             swobj.addatom('r', [0.5 0.5 0], 'S', 1);
             S = cat(3, [1 0; 0 1; 0 0], [0 1; 0 0; 1 0]);
             k = 0.5*ones(size(S, 3), 3);
-            swobj.genmagstr('mode', 'tile', ...
-                              'S', S, 'k', k);
+            testCase.assertWarning(...
+                @() swobj.genmagstr('mode', 'tile', 'S', S, 'k', k), ...
+                'spinw:genmagstr:UnreadInput');
             expected_mag_str = testCase.default_mag_str;
             expected_mag_str.F = sqrt(2)/2*[1 1; 0 1; 1 0];
             testCase.verify_obj(swobj.mag_str, expected_mag_str);

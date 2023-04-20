@@ -90,6 +90,8 @@ classdef systemtest_spinwave_pcsmo < sw_tests.system_tests.systemtest_spinwave
                 testCase.verify_test_data({w0(1:numel(w1)) s0(1:numel(w1))}, {w1 s1});
                 testCase.generate_or_verify_generic({w0 s0}, 'data_horace');
             else
+                testCase.swobj.twin.rotc(3,3,2) = 0;  % Changed in code #85, but not in test .mat file
+                testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
                 spec = testCase.swobj.spinwave(qln, 'formfact', true, 'saveV', true, 'saveH', true, 'optmem', 2);
                 spec = sw_egrid(spec, 'Evect', linspace(0, 100, 200));
                 spec = sw_neutron(spec);

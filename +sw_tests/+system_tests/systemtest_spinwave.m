@@ -4,10 +4,11 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
     properties
         generate_reference_data = false;
         reference_data = [];
-        reference_data_dir = fullfile('.', 'test_data');
+        reference_data_dir = fullfile('.', 'test_data', 'system_tests');
         relToll = 0.01;
         absToll = 1e-6;
         swobj = [];
+        cleanup_warnings = {};
     end
 
     methods (TestClassSetup)
@@ -182,6 +183,11 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
             else
                 testCase.verify_test_data(data, testCase.reference_data.(fieldname));
             end
+        end
+        function disable_warnings(testCase, varargin)
+            testCase.cleanup_warnings = [testCase.cleanup_warnings, ...
+                {onCleanup(@(c) cellfun(@(c) warning('on', c), varargin))}];
+            cellfun(@(c) warning('off', c), varargin);
         end
     end
 

@@ -128,7 +128,9 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
         end
         
         function test_intmatrix_fitmode_true_DM_interaction(testCase)
-            testCase.swobj.addcoupling('mat', 'D', 'bond', 3, 'subIdx', 1);
+            testCase.verifyWarning( ...
+                @() testCase.swobj.addcoupling('mat', 'D', 'bond', 3, 'subIdx', 1), ...
+                'spinw:addcoupling:SymetryLowered');
             
             [SS, SI, RR] = testCase.swobj.intmatrix('fitmode', true);
             
@@ -142,6 +144,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
         
         function test_intmatrix_fitmode_false(testCase)
             % add all different types of interaction
+            testCase.disable_warnings('spinw:addcoupling:SymetryLowered');
             testCase.swobj.addmatrix('label','Janiso','value', ...
                                      diag([1,2,3]))
             for mat_name = {'D', 'gen', 'Janiso'}
@@ -171,7 +174,9 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
         
         function test_intmatrix_conjugate(testCase)
             % add coupling between two different atoms
-            testCase.swobj.addcoupling('mat', 'gen', 'bond', 3, 'subIdx', 1);
+            testCase.verifyWarning( ...
+                @() testCase.swobj.addcoupling('mat', 'gen', 'bond', 3, 'subIdx', 1), ...
+                'spinw:addcoupling:SymetryLowered');
             % zero other couplings for brevity (will be omitted by zeroC)
             testCase.swobj.addmatrix('label', 'J1', 'value', 0)
             testCase.swobj.addmatrix('label', 'J2', 'value', 0)
@@ -234,6 +239,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
         end
         
         function test_sortDM_reorders_bonds(testCase)
+            testCase.disable_warnings('spinw:addcoupling:SymetryLowered');
             testCase.swobj.addmatrix('label', 'J2', 'value', 0);
             % make face-centred to have bond order depend on  sortDM
             testCase.swobj.genlattice('sym', 'F m m m');
@@ -287,6 +293,7 @@ classdef unittest_spinw_intmatrix < sw_tests.unit_tests.unittest_super
         
         function symbolic_obj_with_fitmode_false(testCase)
             % add all different types of interaction
+            testCase.disable_warnings('spinw:addcoupling:SymetryLowered');
             testCase.swobj.addmatrix('label','Janiso','value', ...
                                      diag([1,2,3]))
             for mat_name = {'D', 'gen', 'Janiso'}

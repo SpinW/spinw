@@ -14,13 +14,14 @@ classdef unittest_sw_neutron < sw_tests.unit_tests.unittest_super
             testCase.swobj.gencoupling('maxDistance', 7);
             testCase.swobj.addmatrix('value', -eye(3), 'label', 'Ja');
             testCase.swobj.addcoupling('mat', 'Ja', 'bond', 1);
-            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'n', [1 0 0], 'S', [0; 1; 0]);
+            testCase.swobj.genmagstr('mode', 'direct', 'k', [0 0 0], 'S', [0; 1; 0]);
         end
     end
     methods (Test)
         function test_formfact(testCase)
             % Tests that the form factor calculation is applied correctly
             hkl = {[0 0 0] [10 0 0] 100};
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             % Runs calculation with/without formfactor
             spec_no_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', false));
             spec_ff = sw_neutron(testCase.swobj.spinwave(hkl, 'formfact', true));

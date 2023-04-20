@@ -125,6 +125,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         function test_optmagstr_tri_af_nExt_init(testCase)
             % Test that if a magnetic structure is initialised with nExt,
             % it is used in optmagstr
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             testCase.tri.genmagstr('mode', 'random', 'nExt', [3 1 1]);
             testCase.tri.optmagstr('func', @gm_planar, ...
                                    'xmin', [0 pi/2 pi 0 0 0 0 0], ...
@@ -195,6 +196,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         end
 
         function test_optmagstr_tri_af_epsilon(testCase)
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             % Test that large epsilon doesn't rotate spins
             testCase.tri.optmagstr('epsilon', 1.);
             expected_mag_str = testCase.opt_tri_mag_str;
@@ -235,19 +237,18 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
         end
 
         function test_optmagstr_optimisation_params(testCase, optparams)
-            % We could just mock optimset and check correct args are passed
-            % through, but Matlab doesn't allow mocking functions, and our
-            % mock_function doesn't support complex return values such as
-            % structs. So just check the output struct. O.
-            % We could also check for non-convergence but this is a bit
-            % flaky on different systems.
             xmin = [0 0  0 0 0 0 0];
             xmax = [pi/2 0 1/2 0 0 0 0];
-            out = testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
-                                         optparams{:});
-            % Test that params are in output struct
-            for i=1:2:length(optparams)
-                testCase.verifyEqual(out.param.(optparams{i}), optparams{i+1})
+            mock_optimset = sw_tests.utilities.mock_function('optimset', ...
+                optimset('Display', 'off', optparams{:}));
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
+            testCase.afc.optmagstr('xmin', xmin, 'xmax', xmax, ...
+                                   optparams{:});
+            testCase.assertEqual(mock_optimset.n_calls, 1);
+            argslower = cellfun(@(c) lower(c), mock_optimset.arguments{1}(1:2:end), 'UniformOutput', false);
+            for ii = find(ismember(argslower, optparams(1:2:end)))
+                jj = find(ismember(optparams(1:2:end), argslower{ii}));
+                testCase.verifyEqual(mock_optimset.arguments{1}{2*ii}, optparams{2*jj});
             end
         end
 
@@ -280,6 +281,7 @@ classdef unittest_spinw_optmagstr < sw_tests.unit_tests.unittest_super
             sq.addcoupling('mat', 'DM', 'bond', 1);
             sq.addmatrix('value', 1, 'label', 'J1');
             sq.addcoupling('mat', 'J1', 'bond', 2);
+            testCase.disable_warnings('spinw:genmagstr:SnParallel');
             % Sometimes fails to find min, run multiple times
             sq.optmagstr('func', @gm_spherical3d, ...
                          'xmin', [-pi/2 -pi -pi/2 -pi, 0 0 0, 0 0], ...

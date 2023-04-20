@@ -25,6 +25,9 @@ function result = run_tests(out_dir)
     import matlab.unittest.selectors.HasTag
     import matlab.unittest.plugins.XMLPlugin
 
+    % Suppress printing to make test output less verbose
+    pref = swpref;
+    pref.fid = 0;
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
     if ~sw_hassymtoolbox()
@@ -33,6 +36,9 @@ function result = run_tests(out_dir)
     end
     runner = TestRunner.withTextOutput;
 
+    % compile mex files
+    sw_mex('compile', true, 'test', false, 'swtest', false);
+    
     % Add coverage output
     cov_dirs = {'swfiles', 'external'};
     for i = 1:length(cov_dirs)
