@@ -474,13 +474,14 @@ if isfield(spectra,'omega')
     
     for tt = 1:nTwin
         for ii = 1:nConv
+            real_eigvals = real(omega{tt}(param.modeIdx, :));
             % find energy bin (cen) index coinciding with evals in omega
-            ien = discretize(real(omega{tt}(param.modeIdx, :)), ebin_edges);
+            ien = discretize(real_eigvals, ebin_edges);
             [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
             % NaN in ien implies eigvals not in extent of Evect
             % also include only nonzero eigenvalues (DSF can blow up at
             % zero energy)
-            ien_valid = abs(real(omega{tt}(:))) > 1e-10 &  ~isnan(ien(:));
+            ien_valid = abs(real_eigvals(:)) > 1e-10 &  ~isnan(ien(:));
             sw_conv_idx = [ien(ien_valid), ihkl(ien_valid)']; % index in swConv
             % sum intensities and pad energies above max eigval with 0
             swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ien_valid), [nE, nHkl]);
