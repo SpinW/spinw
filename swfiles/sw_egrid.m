@@ -480,8 +480,9 @@ if isfield(spectra,'omega')
             [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
             % NaN in ien implies eigvals not in extent of Evect
             % also include only nonzero eigenvalues (DSF can blow up at
-            % zero energy)
-            ien_valid = abs(real_eigvals(:)) > 1e-10 &  ~isnan(ien(:));
+            % zero energy) tolerance from test using AFM kagome tutorial 8
+            % systemtest_spinwave_incommensurate_and_supercell_consistency/test_AFM_kagome
+            ien_valid = abs(real_eigvals(:)) > 1e-6 &  ~isnan(ien(:));
             sw_conv_idx = [ien(ien_valid), ihkl(ien_valid)']; % index in swConv
             % sum intensities and pad energies above max eigval with 0
             swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ien_valid), [nE, nHkl]);
