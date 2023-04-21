@@ -477,10 +477,13 @@ if isfield(spectra,'omega')
             % find energy bin (cen) index coinciding with evals in omega
             ien = discretize(real(omega{tt}(param.modeIdx, :)), ebin_edges);
             [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
-            ifinite = ~isnan(ien(:));  % NaN in ien implies eigvals not in extent of Evect
-            sw_conv_idx = [ien(ifinite), ihkl(ifinite)']; % index in swConv
+            % NaN in ien implies eigvals not in extent of Evect
+            % also include only nonzero eigenvalues (DSF can blow up at
+            % zero energy)
+            ien_valid = abs(real(omega{tt}(:))) > 1e-10 &  ~isnan(ien(:));
+            sw_conv_idx = [ien(ien_valid), ihkl(ien_valid)']; % index in swConv
             % sum intensities and pad energies above max eigval with 0
-            swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ifinite), [nE, nHkl]);
+            swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ien_valid), [nE, nHkl]);
             % Multiply the intensities with the Bose factor.
             swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
             swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
