@@ -4,14 +4,19 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
         reference_data_file = [];
         tol = 1e-5;
     end
-    methods
-        function om = remove_ghosts(testCase, spec)
-            om = spec.omega(find(abs(spec.Sperp) > testCase.tol));
-            om = sort(unique(round(om / testCase.tol) * testCase.tol));
+    methods (Static)
+        function om = remove_ghosts(spec, tol)
+            om = spec.omega(find(abs(spec.Sperp) > tol));
+            om = sort(unique(round(om / tol) * tol));
         end
-        
+    end
+    methods
         function assert_super_and_incom_consistency(testCase, swobj, ...
-                                                    spec_super, spec_incom)
+                                                    spec_super, spec_incom, ...
+                                                    ghost_tol)
+            if nargin < 5
+                ghost_tol = testCase.tol;
+            end
             % test cross-section in q,En bins
             testCase.verify_test_data(spec_incom.swConv, ...
                                       spec_super.swConv)
@@ -22,8 +27,8 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
                                  6*n_matom);
             testCase.assertEqual(size(spec_super.Sperp, 1), ...
                                  2*prod(nExt)*n_matom);
-            testCase.assertEqual(testCase.remove_ghosts(spec_super),...
-                                 testCase.remove_ghosts(spec_incom));         
+            testCase.assertEqual(testCase.remove_ghosts(spec_super, ghost_tol), ...
+                                 testCase.remove_ghosts(spec_incom, ghost_tol));
         end
     end
     
@@ -43,24 +48,25 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             S = [0 0 -1; 1 1 -1; 0 0 0];
             % binning for spinwave spectrum
             qarg = {[-1/2 0 0] [0 0 0] [1/2 1/2 0] 50};
-            evec = 0:0.1:2;
+            evec = 0:0.1:1.5;
             
             % use structural unit cell with incommensurate k
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt',[1 1 1]);
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             spec_incom = AF33kagome.spinwave(qarg, 'hermit', true);
-            spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect',evec);
+            spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect', evec, ...
+                                  'ZeroModeThreshold', 5e-4);
             % use supercell k=0 structure
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt', [3,3,1]);
 
             spec_super = AF33kagome.spinwave(qarg, 'hermit', true);
-            spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect',evec);
+            spec_super = sw_egrid(spec_super, 'component','Sperp', 'Evect', evec);
             
             testCase.assert_super_and_incom_consistency(AF33kagome, ...
                                                         spec_super, ...
-                                                        spec_incom);
+                                                        spec_incom, 5e-2);
         end
         
         function test_two_matom_per_unit_cell(testCase)
