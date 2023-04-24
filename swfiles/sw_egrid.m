@@ -158,6 +158,10 @@ function spectra = sw_egrid(spectra, varargin)
 % `Evect`
 % : Input energy bin vector, defines the energy bin **edge** positions
 %   (converted from the given bin centers if necessary).
+%
+% `ZeroModeThreshold`
+% : Threshold on median of magnitude of energy eigenvalues used to idenitfy
+%   zero-energy mdoes for which the structure factor will be ignored
 % 
 % `param`
 % : All the input parameters.
@@ -199,10 +203,10 @@ inpForm.defval = {E0      T0    'Sperp'     true      zeros(1,0) 1e-5     };
 inpForm.size   = {[1 -1]  [1 1] [1 -2]      [1 1]     [1 -4]     [1 1]    };
 inpForm.soft   = {true    false false       false     false      false    };
 
-inpForm.fname  = [inpForm.fname  {'autoEmin' 'imagChk' 'binType'}];
-inpForm.defval = [inpForm.defval {false       true       'ebin'  }];
-inpForm.size   = [inpForm.size   {[1 1]      [1 1]      [1 -5]  }];
-inpForm.soft   = [inpForm.soft   {false      false      false   }];
+inpForm.fname  = [inpForm.fname  {'autoEmin' 'imagChk' 'binType' 'ZeroModeThreshold'}];
+inpForm.defval = [inpForm.defval {false       true       'ebin'  5e-4}];
+inpForm.size   = [inpForm.size   {[1 1]      [1 1]      [1 -5]   [1 1]}];
+inpForm.soft   = [inpForm.soft   {false      false      false    false}];
 
 param = sw_readparam(inpForm, varargin{:});
 
@@ -475,17 +479,18 @@ if isfield(spectra,'omega')
     for tt = 1:nTwin
         for ii = 1:nConv
             real_eigvals = real(omega{tt}(param.modeIdx, :));
+            % remove zero modes
+            inonzero_modes = mean(abs(real_eigvals),2) > param.ZeroModeThreshold;
+            real_eigvals = real_eigvals(inonzero_modes, :);
             % find energy bin (cen) index coinciding with evals in omega
             ien = discretize(real_eigvals, ebin_edges);
             [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
             % NaN in ien implies eigvals not in extent of Evect
-            % also include only nonzero eigenvalues (DSF can blow up at
-            % zero energy) tolerance from test using AFM kagome tutorial 8
-            % systemtest_spinwave_incommensurate_and_supercell_consistency/test_AFM_kagome
-            ien_valid = abs(real_eigvals(:)) > 1e-6 &  ~isnan(ien(:));
+            ien_valid =  ~isnan(ien(:)); 
             sw_conv_idx = [ien(ien_valid), ihkl(ien_valid)']; % index in swConv
             % sum intensities and pad energies above max eigval with 0
-            swConv{ii,tt} = accumarray(sw_conv_idx, DSF{ii,tt}(ien_valid), [nE, nHkl]);
+            DSF_valid = DSF{ii,tt}(param.modeIdx(inonzero_modes), :);
+            swConv{ii,tt} = accumarray(sw_conv_idx,DSF_valid(ien_valid), [nE, nHkl]);
             % Multiply the intensities with the Bose factor.
             swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
             swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
