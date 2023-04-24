@@ -342,6 +342,24 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                            'modeIdx', 2); 
             testCase.verify_obj(out, expected_out);
         end
+        function test_ZeroModeThreshold(testCase)
+            AF33kagome = spinw;
+            AF33kagome.genlattice('lat_const',[6 6 40], ...
+                                  'angled',[90 90 120], 'sym','P -3')
+            AF33kagome.addatom('r',[1/2 0 0],'S', 1, 'label','MCu1')
+            AF33kagome.gencoupling('maxDistance',7);
+            AF33kagome.addmatrix('label','J1','value',1)
+            AF33kagome.addcoupling('mat','J1','bond',1);
+            % sqrt3 x sqrt(3) magnetic structure 
+            AF33kagome.genmagstr('mode','helical','unit','lu', 'k', [-1/3 -1/3 0],...
+                                 'n',[0, 0, 1], 'S', [0 0 -1; 1 1 -1; 0 0 0], 'nExt',[1 1 1]);
+            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
+            spec = AF33kagome.spinwave({[-1/2 0 0] [0 0 0] [1/2 1/2 0] 50}, 'hermit', true);
+            spec = sw_egrid(spec, 'component','Sperp', 'Evect', 0:0.1:1.5, ...
+                            'ZeroModeThreshold', 5e-4);
+            % check zero mode DSF is not included
+            testCase.verify_val(spec.swConv(1321), 0.0);
+        end
     end
 
 end
