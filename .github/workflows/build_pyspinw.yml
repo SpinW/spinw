@@ -28,6 +28,8 @@ jobs:
   build_wheel:
     runs-on: ubuntu-latest
     needs: build_ctfs
+    permissions:
+      contents: write
     steps:
       - name: Checkout SpinW
         uses: actions/checkout@v3    
@@ -46,8 +48,15 @@ jobs:
           mkdir pyspinw/ctfs
           mv ctf/*.ctf pyspinw/ctfs
           python -m pip wheel --no-deps --wheel-dir build .
-      - name: Upload wheel
+      - name: Create wheel artifact
         uses: actions/upload-artifact@v3
         with:
           name: pySpinW Wheel
           path: ${{ github.workspace }}/python/build/*.whl        
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ github.workspace }}/python/build/*.whl
+          prerelease: true
+          replacesArtifacts: true
+          name: "pySpinW"
+          bodyFile: ${{ github.workspace }}/python/release_notes.md
