@@ -1,4 +1,4 @@
-name: SpinW Tests
+name: pySpinW
 
 on:
   push:
@@ -45,6 +45,7 @@ jobs:
       - name: Move and build
         run: |
           cd python
+          echo "PYSPINW_VERSION=$( cat pyproject.toml | grep "version = \"" | awk -F'"' '$0=$2' | sed 's/ //g' )" >> $GITHUB_ENV
           mkdir pyspinw/ctfs
           mv ctf/*.ctf pyspinw/ctfs
           python -m pip wheel --no-deps --wheel-dir build .
@@ -59,4 +60,5 @@ jobs:
           prerelease: true
           replacesArtifacts: true
           name: "pySpinW"
+          tag: ${{ env.PYSPINW_VERSION }}
           bodyFile: ${{ github.workspace }}/python/release_notes.md
