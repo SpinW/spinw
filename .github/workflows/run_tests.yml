@@ -43,6 +43,14 @@ jobs:
         with:
           name: Unit test results ${{ matrix.os }}
           path: junit_report*.xml
+      - name: Setup python
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-python@v4
+        with:
+            python-version: 3.8
+      - name: Run python test
+        if: matrix.os == 'ubuntu-latest'
+        run: python -c "import sys; print(sys.version)"
 
   publish-test-results:
     needs: test
