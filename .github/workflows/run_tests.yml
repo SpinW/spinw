@@ -50,7 +50,7 @@ jobs:
             python-version: 3.8
       - name: Run python test
         if: matrix.os == 'ubuntu-latest'
-        run: python -c "import sys; print(sys.version)"
+        run: python python/tests/test_spinwave_af33kagome.py
 
   publish-test-results:
     needs: test
