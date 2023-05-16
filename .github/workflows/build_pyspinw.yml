@@ -6,7 +6,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  compile_mex:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        matlab_version: [latest]
+        include:
+          - os: ubuntu-latest
+            matlab_version: R2020a
+          - os: macos-latest
+            INSTALL_DEPS: brew install llvm libomp
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out SpinW
+        uses: actions/checkout@v3
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        with:
+          release: ${{ matrix.matlab_version }}
+      - name: Remove old mex
+        run: |
+          rm ./**/*.mex*
+      - name: Run MEXing
+        uses: matlab-actions/run-command@v1
+        with:
+          command: "addpath(genpath('external')); sw_mex('compile', true, 'test', false, 'swtest', false);"
+      - name: Create TAR
+        run: |
+          cd ${{ github.workspace }}
+          tar -cvf mex.tar ./**/*.mex*
+      - name: Upload MEX results
+        uses: actions/upload-artifact@v3
+        with:
+          name: MEX
+          path: ${{ github.workspace }}/mex.tar
   build_ctfs:
+    needs: compile_mex
     strategy:
       matrix:
         matlab_version: [R2021a, R2021b, R2022a, R2022b, R2023a]
@@ -14,6 +50,14 @@ jobs:
     steps:
       - name: Check out SpinW
         uses: actions/checkout@v3
+      - name: Download MEX artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: MEX
+          path: ${{ github.workspace }}
+      - name: Extract MEX
+        run: |
+          ls
       - name: Build ctf
         run: |
           ls
