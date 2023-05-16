@@ -38,16 +38,11 @@ jobs:
         uses: matlab-actions/run-command@v1
         with:
           command: "addpath(genpath('swfiles')); addpath(genpath('external')); sw_mex('compile', true, 'test', false, 'swtest', false);"
-      - name: Create TAR
-        run: |
-          cd ${{ github.workspace }}
-          find ${{ github.workspace }}/external -name "*.mex*" -type f
-          find ${{ github.workspace }}/external -name "*.mex*" -type f -exec tar -rvf mex.tar {} +
       - name: Upload MEX results
         uses: actions/upload-artifact@v3
         with:
           name: MEX
-          path: ${{ github.workspace }}/mex.tar
+          path: ${{ github.workspace }}/external/**/*.mex*
 
   build_ctfs:
     needs: compile_mex
@@ -62,10 +57,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: MEX
-          path: ${{ github.workspace }}
-      - name: Extract MEX
-        run: |
-          ls
+          path: ${{ github.workspace }}/external
       - name: Build ctf
         run: |
           ls
