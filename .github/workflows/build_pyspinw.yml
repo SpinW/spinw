@@ -28,13 +28,11 @@ jobs:
       - name: Remove old mex
         run: |
           ls
-          cd ${{ github.workspace }}
-          ls
-          rm ./**/*.mex*
+          find -name "*.mex*" -type f -delete
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
         with:
-          command: "addpath(genpath('external')); sw_mex('compile', true, 'test', false, 'swtest', false);"
+          command: "addpath(genpath('swfiles')); addpath(genpath('external')); sw_mex('compile', true, 'test', false, 'swtest', false);"
       - name: Create TAR
         run: |
           cd ${{ github.workspace }}
