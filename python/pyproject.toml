@@ -21,7 +21,7 @@ repo = 'spinw'
 
 [tool.poetry]
 name = "pyspinw"
-version = "0.0.1"
+version = "0.0.2"
 description = "Python library for spin wave calculations"
 license = "BSD-3-Clause"
 authors = ["Duc Le", "Simon Ward", "Richard Waite"]
