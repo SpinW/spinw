@@ -40,18 +40,29 @@ packages = [ { include = "pyspinw" } ]
 python = ">=3.8,<=3.12"
 libpymcr = "^0.1.0"
 numpy = "^1.21.4"
+# Optional dependencies
+pytest = {version = "^7.0.0", optional = true}
+pytest-cov = {version = ">=3,<5", optional = true}
+codecov = {version = "^2.1.11", optional = true}
+flake8 = {version = "^5.0", optional = true}
+tox = {version = "^3.0", optional = true}
+tox-gh-actions = {version = ">=2.11,<4.0", optional = true}
+
+[tool.poetry.extras]
+test = ['pytest', 'pytest-cov', 'codecov', 'flake8', 'tox', 'tox-gh-actions']
 
 [tool.tox]
 legacy_tox_ini = """
 [tox]
 isolated_build = True
-envlist = py{38,39,310,311}
+envlist = py{38,39,310,311,312}
 [gh-actions]
 python =
     3.8: py38
     3.9: py39
     3.10: py310
     3.11: py311
+    3.12: py312
 [gh-actions:env]
 PLATFORM =
     ubuntu-latest: linux

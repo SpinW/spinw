@@ -1,6 +1,6 @@
 # pySpinW
 
-This is an itial release of pySpinW as a `pip` installable wheel for python >= 3.7 and MATLAB >= R2021a
+This is an intial release of pySpinW as a `pip` installable wheel for python >= 3.8 and MATLAB >= R2021a
 
 ## Installation 
 
@@ -11,7 +11,7 @@ pip install pyspinw*.whl
 ```
 
 This package can now be used in python if you have a version of MATLAB or MCR available on the machine. 
-The package will try to automatically detect your installation, however if it is in a non-standard location, the path and version will have to be especified.
+The package will try to automatically detect your installation, however if it is in a non-standard location, the path and version will have to be specified.
 
 ```python
 m = Matlab(matlab_version='R2023a', matlab_path='/usr/local/MATLAB/R2023a/')

@@ -16,21 +16,16 @@ jobs:
     steps:
       - name: Check out SpinW
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
         with:
           release: ${{ matrix.matlab_version }}
-      - name: Remove old mex # This is due to find not working :-/ # find ${{ github.workspace }} -name "*.mex*" -type f -delete
+      - name: Remove old mex files
+        shell: bash -l {0}
         run: |
-          rm external/chol_omp/chol_omp.mexa64
-          rm external/chol_omp/chol_omp.mexmaci64
-          rm external/chol_omp/chol_omp.mexw64
-          rm external/eig_omp/eig_omp.mexa64
-          rm external/eig_omp/eig_omp.mexmaci64
-          rm external/eig_omp/eig_omp.mexw64
-          rm external/mtimesx/sw_mtimesx.mexa64
-          rm external/mtimesx/sw_mtimesx.mexmaci64
-          rm external/mtimesx/sw_mtimesx.mexw64
+          find ${{ github.workspace }} -name "*.mex*" -type f -delete
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
         with:
@@ -50,6 +45,8 @@ jobs:
     steps:
       - name: Check out SpinW
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Download MEX artifacts
         uses: actions/download-artifact@v3
         with:
@@ -57,7 +54,6 @@ jobs:
           path: ${{ github.workspace }}/external
       - name: Build ctf
         run: |
-          ls
           cd python
           /Applications/MATLAB_${{ matrix.matlab_version }}.app/bin/matlab -nodisplay -r "build_ctf; exit"
       - name: Upload CTF results
