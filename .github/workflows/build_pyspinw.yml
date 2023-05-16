@@ -27,8 +27,7 @@ jobs:
           release: ${{ matrix.matlab_version }}
       - name: Remove old mex
         run: |
-          ls
-          find -name "*.mex*" -type f -delete
+          find ${{ github.workspace }} -name "*.mex*" -type f -delete
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
         with:
@@ -36,7 +35,7 @@ jobs:
       - name: Create TAR
         run: |
           cd ${{ github.workspace }}
-          tar -cvf mex.tar ./**/*.mex*
+          find ${{ github.workspace }} -name "*.mex*" -type f -exec tar -rvf mex.tar {} + 
       - name: Upload MEX results
         uses: actions/upload-artifact@v3
         with:
