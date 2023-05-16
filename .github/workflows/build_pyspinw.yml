@@ -27,6 +27,9 @@ jobs:
           release: ${{ matrix.matlab_version }}
       - name: Remove old mex
         run: |
+          ls
+          cd ${{ github.workspace }}
+          ls
           rm ./**/*.mex*
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
