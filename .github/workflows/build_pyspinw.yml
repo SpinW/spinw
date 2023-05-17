@@ -22,11 +22,18 @@ jobs:
         uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
         with:
           release: ${{ matrix.matlab_version }}
-      - name: Remove old mex files
-        shell: bash
+
+      - name: Remove old mex # This is due to find not working :-/ # find ${{ github.workspace }} -name "*.mex*" -type f -delete
         run: |
-          find -name "*.mex*" -type f
-          find -name "*.mex*" -type f -delete
+          rm external/chol_omp/chol_omp.mexa64
+          rm external/chol_omp/chol_omp.mexmaci64
+          rm external/chol_omp/chol_omp.mexw64
+          rm external/eig_omp/eig_omp.mexa64
+          rm external/eig_omp/eig_omp.mexmaci64
+          rm external/eig_omp/eig_omp.mexw64
+          rm external/mtimesx/sw_mtimesx.mexa64
+          rm external/mtimesx/sw_mtimesx.mexmaci64
+          rm external/mtimesx/sw_mtimesx.mexw64
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
         with:
