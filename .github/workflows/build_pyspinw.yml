@@ -87,12 +87,19 @@ jobs:
         uses: actions/setup-python@v4
         with:
             python-version: 3.8
-      - name: Move and build
+      - name: Move files
         run: |
           cd python
           echo "PYSPINW_VERSION=$( cat pyproject.toml | grep "version = \"" | awk -F'"' '$0=$2' | sed 's/ //g' )" >> $GITHUB_ENV
           mkdir pyspinw/ctfs
           mv ctf/*.ctf pyspinw/ctfs
+      - name: Update Versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pip install poetry
+          poetry version $(git describe --tags --abbrev=0)
+      - name: Build Wheel
+        run: |
           python -m pip wheel --no-deps --wheel-dir build .
       - name: Create wheel artifact
         uses: actions/upload-artifact@v3
