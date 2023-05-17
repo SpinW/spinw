@@ -23,9 +23,10 @@ jobs:
         with:
           release: ${{ matrix.matlab_version }}
       - name: Remove old mex files
-        shell: bash -l {0}
+        shell: bash
         run: |
-          find ${{ github.workspace }} -name "*.mex*" -type f -delete
+          find -name "*.mex*" -type f
+          find -name "*.mex*" -type f -delete
       - name: Run MEXing
         uses: matlab-actions/run-command@v1
         with:
