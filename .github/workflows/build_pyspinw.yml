@@ -97,9 +97,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           pip install poetry
+          cd ${{ github.workspace }}/python
           poetry version $(git describe --tags --abbrev=0)
       - name: Build Wheel
         run: |
+          cd ${{ github.workspace }}/python
           python -m pip wheel --no-deps --wheel-dir build .
       - name: Create wheel artifact
         uses: actions/upload-artifact@v3
