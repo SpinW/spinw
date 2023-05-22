@@ -103,6 +103,14 @@ jobs:
         run: |
           cd ${{ github.workspace }}/python
           python -m pip wheel --no-deps --wheel-dir build .
+      - name: Run python test
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pip install scipy
+          cd ${{ github.workspace }}/python
+          pip install build/*whl
+          cd tests
+          python -m unittest
       - name: Create wheel artifact
         uses: actions/upload-artifact@v3
         with:
