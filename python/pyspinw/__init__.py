@@ -32,6 +32,8 @@ class Matlab(libpymcr.Matlab):
         initialized = False
         if matlab_version is None:
             for version in _VERSIONS:
+                if initialized:
+                    break
                 try:
                     print(f"Trying MATLAB version: {version['version']} ({version['file']}))")
                     super().__init__(version['file'], mlPath=matlab_path)
