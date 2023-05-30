@@ -1,0 +1,32 @@
+name: Publish to PyPI
+
+on: workflow_dispatch
+
+jobs:
+  pypi-publish:
+    name: upload release to PyPI
+    runs-on: ubuntu-latest
+    #permissions:
+    #  # IMPORTANT: this permission is mandatory for trusted publishing
+    #  id-token: write
+    steps:
+      - name: Find latest pyspinw release
+        id: pyspinw_release
+        run: |
+          REL_ID=$(curl -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/spinw/spinw/releases \
+                    | jq 'map(select(.name | contains("pySpinW"))) | sort_by(.published_at) | .[-1] | .id')
+          echo "release_id=$RELID" >> "$GITHUB_OUTPUT"
+      - uses: robinraju/release-downloader@v1.8
+        with:
+          releaseId: ${{ steps.pyspinw_release.outputs.release_id }}
+      - run: |
+          ls -alh
+          ls -r *
+      - name: Setup tmate
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+      #- name: Publish package distributions to PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #  with:
+      #    packages-dir: python/dist
+      #    verbose: true
