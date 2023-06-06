@@ -13,6 +13,9 @@ m = Matlab()
 # An example of specifying the MATLAB version and path
 # m = Matlab(matlab_version='R2023a', matlab_path='/usr/local/MATLAB/R2023a/')
 
+# Suppress output to make it less verbose in CI output
+m.swpref().fid = 0
+
 # Create a spinw model, in this case a triangular antiferromagnet
 s = m.sw_model('triAF', 1)
 print(s)
