@@ -103,6 +103,10 @@ jobs:
         run: |
           cd ${{ github.workspace }}/python
           python -m pip wheel --no-deps --wheel-dir build .
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        with:
+          release: latest
       - name: Run python test
         run: |
           pip install scipy
