@@ -1,0 +1,87 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+^/foo.py  # exclude a file named foo.py in the root of the project (in addition to the defaults)
+'''
+
+[tool.coverage.run]
+source = ['pyspinw']
+
+[tool.github.info]
+organization = 'spinw'
+repo = 'spinw'
+
+[tool.poetry]
+name = "pyspinw"
+version = "0.0.2"
+description = "Python library for spin wave calculations"
+license = "BSD-3-Clause"
+authors = ["Duc Le", "Simon Ward", "Richard Waite"]
+readme = "../README.md"
+homepage = "https://spinw.org"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3 :: Only",
+]
+packages = [ { include = "pyspinw" } ]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<=3.12"
+libpymcr = "^0.1.0"
+numpy = "^1.21.4"
+# Optional dependencies
+pytest = {version = ">=7.0.0", optional = true}
+pytest-cov = {version = ">=3,<5", optional = true}
+codecov = {version = ">=2.1.11", optional = true}
+flake8 = {version = ">=5.0", optional = true}
+tox = {version = ">=3.0", optional = true}
+tox-gh-actions = {version = ">=2.11,<4.0", optional = true}
+
+[tool.poetry.extras]
+test = ['pytest', 'pytest-cov', 'codecov', 'flake8', 'tox', 'tox-gh-actions']
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = True
+envlist = py{38,39,310,311,312}
+[gh-actions]
+python =
+    3.8: py38
+    3.9: py39
+    3.10: py310
+    3.11: py311
+    3.12: py312
+[gh-actions:env]
+PLATFORM =
+    ubuntu-latest: linux
+    macos-latest: macos
+    windows-latest: windows
+[testenv]
+passenv =
+    CI
+    GITHUB_ACTIONS
+    GITHUB_ACTION
+    GITHUB_REF
+    GITHUB_REPOSITORY
+    GITHUB_HEAD_REF
+    GITHUB_RUN_ID
+    GITHUB_SHA
+    COVERAGE_FILE
+deps = coverage
+whitelist_externals = poetry
+commands =
+    pip install '.[test]'
+    pytest --cov --cov-report=xml
+"""
