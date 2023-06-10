@@ -236,9 +236,6 @@ if isempty(param.Evect)
         param.Evect = [-1 1];
         eBin = true;
     end
-else
-    % Make sure Evect is a *row* vector
-    if size(param.Evect, 1) ~= 1, param.Evect = transpose(param.Evect); end
 end
 
 % parse the component string

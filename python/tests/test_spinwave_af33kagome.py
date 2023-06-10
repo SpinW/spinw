@@ -19,15 +19,13 @@ class AF33kagomeTest(SystemTest_Spinwave):
         cls.swobj = af33kagome
         cls.relToll = 0.027
         cls.absToll = 1.2e-5
-        # For some reason had to increase this tolerance to 25% from 5% for test to pass...
-        # Something funky going on with the Sab / eigenvectors calculations (weird permutations of columns)
-        cls.tolSab = 0.25
 
 
     def test_spinwave_calc(self):
         self.load_ref_dat('systemstest_spinwave_af33kagome.mat')
         af33kagome = self.swobj
-        S0 = np.array([[0, 0, -1], [1, 1, -1], [0, 0, 0]], dtype=float)  # doesn't work for lists
+        # Syntax for S0/evect below needs libpymcr 0.1.3 or newer; else must make S0 a 2D np array and evect a list
+        S0 = [[0, 0, -1], [1, 1, -1], [0, 0, 0]]
         af33kagome.genmagstr('mode','helical','k',[-1/3, -1/3, 0],'n',[0, 0, 1],'unit','lu','S',S0,'nExt',[1, 1, 1])
         kag33spec = af33kagome.spinwave([[-1/2, 0, 0], [0, 0, 0], [1/2, 1/2, 0], 100],'hermit',False,'saveSabp',True)
         evect = np.linspace(0, 3, 100)

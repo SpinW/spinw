@@ -130,10 +130,8 @@ class SystemTest_Spinwave(unittest.TestCase):
         return actual, expected
 
 
-    def verify(self, spec, pars, extrafields=None, approxSab=False, tolSab=None):
+    def verify(self, spec, pars, extrafields=None, approxSab=False):
         # This is the Matlab `generate_or_verify` method without the reference data generation code
-        if tolSab is None:
-            tolSab = self.tolSab
         ref_data = self.reference_data[self.get_fieldname(pars)]
         # There are some type-mismatch (strings/np.str_ and ints/floats) in the input data, ignore for now
         ref_data.pop('input')
@@ -151,6 +149,7 @@ class SystemTest_Spinwave(unittest.TestCase):
         if extrafields is not None:
             test_data.update(extrafields)
         if approxSab:
+            tolSab = approxSab if isinstance(approxSab, float) else self.tolSab
             test_data['spec'][1] = self.approxMatrix(spec['Sab'], ref_data['spec'][1], tolSab)
             if len(test_data) == 4:
                 test_data['spec'][3] = self.approxMatrix(spec['swInt'], ref_data['spec'][3], tolSab)
