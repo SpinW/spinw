@@ -1,6 +1,9 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = [
+    "poetry-core",
+    "poetry-dynamic-versioning",
+]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 88
@@ -19,13 +22,18 @@ source = ['pyspinw']
 organization = 'spinw'
 repo = 'spinw'
 
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+
 [tool.poetry]
-name = "pyspinw"
-version = "0.0.2"
+name = "spinw"
+version = "0.0.0"
 description = "Python library for spin wave calculations"
 license = "BSD-3-Clause"
-authors = ["Duc Le", "Simon Ward", "Richard Waite"]
-readme = "../README.md"
+authors = ["Sándor Tóth", "Duc Le", "Simon Ward", "Becky Fair", "Richard Waite"]
+readme = "README.md"
 homepage = "https://spinw.org"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -35,6 +43,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 packages = [ { include = "pyspinw" } ]
+include = [ { path = "pyspinw/ctfs/*" } ]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<=3.12"

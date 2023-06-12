@@ -28,6 +28,10 @@ dev/standalone/MacOS/Source/
 python/ctf
 .idea/
 **/*.pyc
-python/ctf
-.idea/
-**/*.pyc
+python/build/
+python/pyspinw/ctfs/
+
+includedSupportPackages.txt
+mccExcludedFiles.log
+requiredMCRProducts.txt
+unresolvedSymbols.txt

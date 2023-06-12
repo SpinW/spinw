@@ -1,6 +1,12 @@
 name: pySpinW
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master, development]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
 
 jobs:
   compile_mex:
@@ -93,12 +99,6 @@ jobs:
           echo "PYSPINW_VERSION=$( cat pyproject.toml | grep "version = \"" | awk -F'"' '$0=$2' | sed 's/ //g' )" >> $GITHUB_ENV
           mkdir pyspinw/ctfs
           mv ctf/*.ctf pyspinw/ctfs
-      - name: Update Versions
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          pip install poetry
-          cd ${{ github.workspace }}/python
-          poetry version $(git describe --tags --abbrev=0)
       - name: Build Wheel
         run: |
           cd ${{ github.workspace }}/python
@@ -119,11 +119,8 @@ jobs:
         with:
           name: pySpinW Wheel
           path: ${{ github.workspace }}/python/build/*.whl        
-      - uses: ncipollo/release-action@v1
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          artifacts: ${{ github.workspace }}/python/build/*.whl
-          prerelease: true
-          replacesArtifacts: true
-          name: "pySpinW"
-          bodyFile: ${{ github.workspace }}/python/release_notes.md
+      - name: Upload release wheels
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          pip3 install requests
+          python3 release.py --notest --github --token=${{ secrets.GH_TOKEN }}
