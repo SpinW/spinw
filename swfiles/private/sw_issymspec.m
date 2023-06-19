@@ -25,6 +25,9 @@ end
 if ~isfield(spectra, 'ham')
     if isfield(spectra, 'omega')
         symobj = spectra.omega;
+    elseif size(spectra.hklA, 1) == 1  % Is a powder spectra
+        issym = false;
+        return
     else
         error('sw_issymspec:WrongInput', 'Invalid input spectra structure');
     end
