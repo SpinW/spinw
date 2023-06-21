@@ -115,6 +115,11 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                 @() sw_egrid(testCase.spectrum, 'component', 'Sab'), ...
                 'sw_parstr:WrongString');
         end
+        function test_epsilon_deprecated_warning(testCase)
+            testCase.verifyWarning(...
+                @() sw_egrid(testCase.spectrum, 'epsilon', 1e-5), ...
+                'sw_egrid:DeprecationWarning');
+        end
         function test_defaults(testCase)
             out = sw_egrid(testCase.spectrum);
             testCase.verify_obj(out, testCase.sw_egrid_out_sperp);
@@ -302,18 +307,6 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
                 @() sw_egrid(testCase.spectrum, ...
                             'Evect', 0:dE:4, 'imagChk', true), ...
                 'egrid:BadSolution');
-        end
-        function test_epsilon_tolerance_on_unequal_bins(testCase)
-            epsilon = 1e-5;
-            Evect = testCase.sw_egrid_out.Evect;
-            Evect(end) = Evect(end) + 2*epsilon;
-            component = 'Sxx';
-            expected_out = testCase.sw_egrid_out;
-            expected_out.component = component;
-            expected_out.Evect = Evect;
-            out = sw_egrid(testCase.spectrum, 'component', component, ...
-                           'Evect', Evect, 'epsilon', epsilon);
-            testCase.verify_obj(out, expected_out);
         end
         function test_autoEmin(testCase)
             imag_omega = 0 + 1i*1e-8;

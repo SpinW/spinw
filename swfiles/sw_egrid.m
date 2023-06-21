@@ -113,8 +113,9 @@ function spectra = sw_egrid(spectra, varargin)
 %   include all modes.
 % 
 % `'epsilon'`
-% : Error limit, used to determine whether a given energy bin is
-%   uniform or not. Default value is $10^{-5}$.
+% : DEPRECATED (previously the error limit, used to determine whether a 
+%   given energy bin is uniform or not. Default value is $10^{-5}$). This
+%   parameter is no longer relevant and is ignored.
 % 
 % `'autoEmin'`
 % : Due to the finite numerical precision, the spin wave energies
@@ -199,7 +200,7 @@ else
 end
 
 inpForm.fname  = {'Evect' 'T'   'component' 'sumtwin' 'modeIdx'  'epsilon'};
-inpForm.defval = {E0      T0    'Sperp'     true      zeros(1,0) 1e-5     };
+inpForm.defval = {E0      T0    'Sperp'     true      zeros(1,0) NaN     };
 inpForm.size   = {[1 -1]  [1 1] [1 -2]      [1 1]     [1 -4]     [1 1]    };
 inpForm.soft   = {true    false false       false     false      false    };
 
@@ -209,6 +210,12 @@ inpForm.size   = [inpForm.size   {[1 1]      [1 1]      [1 -5]   [1 1]}];
 inpForm.soft   = [inpForm.soft   {false      false      false    false}];
 
 param = sw_readparam(inpForm, varargin{:});
+
+if ~isnan(param.epsilon)
+    % non default value of epsilon
+    warning('sw_egrid:DeprecationWarning', ...
+            'epsilon is deprecated - it is not relevant and will be ignored.');
+end
 
 switch param.binType
     case 'ebin'
