@@ -66,7 +66,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             testCase.sw_egrid_out.T = 0;
             testCase.sw_egrid_out.Evect = linspace(0, 4.4, 501);
             testCase.sw_egrid_out.swConv = zeros(500, 5);
-            testCase.sw_egrid_out.swConv([1, 728, 1455, 1728, 2001]) = 0.5;
+            testCase.sw_egrid_out.swConv([728, 1455, 1728]) = 0.5;
             testCase.sw_egrid_out.swInt = 0.5*ones(2, 5);
             testCase.sw_egrid_out.component = 'Sperp';
 
@@ -225,7 +225,6 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         function test_temp(testCase)
             temp = 300;
             expected_out = testCase.sw_egrid_out_sperp;
-            expected_out.swConv([1, 2001]) = 2937.97696163773;
             expected_out.swConv([728, 1728]) = 6.70976913583173;
             expected_out.swConv(1455) = 3.48826657260066;
             expected_out.T = temp;
@@ -240,7 +239,6 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             spectrum.obj.single_ion.T = temp;
             expected_out = testCase.sw_egrid_out_sperp;
             expected_out.obj = spectrum.obj;
-            expected_out.swConv([1, 2001]) = 2937.97696163773;
             expected_out.swConv([728, 1728]) = 6.70976913583173;
             expected_out.swConv(1455) = 3.48826657260066;
             expected_out.T = temp;
@@ -261,8 +259,7 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             expected_out.Sab = spectrum.Sab;
             expected_out.param.notwin = false;
             expected_out.swConv = zeros(500, 5);
-            expected_out.swConv(1) = 0.78125;
-            expected_out.swConv([728, 1455, 1728, 2001]) = 0.125;
+            expected_out.swConv([728, 1455, 1728]) = 0.125;
             expected_out.swConv([567, 1228, 1888, 2455]) = 0.65625;
             expected_out.swInt = 0.78125*ones(2, 5);
             expected_out.intP = cell(1,3);
@@ -336,29 +333,30 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             component = 'Sxx';
             expected_out = testCase.sw_egrid_out;
             expected_out.component = component;
-            expected_out.swConv = zeros(500, 5);
-            expected_out.swConv(2001) = 0.5; % eigval = 0 is in Evect
-            out = sw_egrid(testCase.spectrum, 'component', component, ...
-                           'modeIdx', 2); 
+            for modeIdx = 1:2
+                out = sw_egrid(testCase.spectrum, 'component', component, ...
+                           'modeIdx', modeIdx);
+                if modeIdx == 2
+                    % only consisder -ve  mode (magnon anhillation/energy gain)
+                    % which is not in range of default energy bins
+                    expected_out.swConv = zeros(500, 5);
+                end
+                testCase.verify_obj(out, expected_out);
+            end
+        end
+        function test_zeroEnergyTol(testCase)
+            % set zeroEnergyTol > max energy to prodcuce zero intensity
+            out = sw_egrid(testCase.spectrum, ...
+                           'binType', 'ebin' , 'zeroEnergyTol', 5);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv = zeros(size(expected_out.swConv));
             testCase.verify_obj(out, expected_out);
         end
-        function test_ZeroModeThreshold(testCase)
-            AF33kagome = spinw;
-            AF33kagome.genlattice('lat_const',[6 6 40], ...
-                                  'angled',[90 90 120], 'sym','P -3')
-            AF33kagome.addatom('r',[1/2 0 0],'S', 1, 'label','MCu1')
-            AF33kagome.gencoupling('maxDistance',7);
-            AF33kagome.addmatrix('label','J1','value',1)
-            AF33kagome.addcoupling('mat','J1','bond',1);
-            % sqrt3 x sqrt(3) magnetic structure 
-            AF33kagome.genmagstr('mode','helical','unit','lu', 'k', [-1/3 -1/3 0],...
-                                 'n',[0, 0, 1], 'S', [0 0 -1; 1 1 -1; 0 0 0], 'nExt',[1 1 1]);
-            testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
-            spec = AF33kagome.spinwave({[-1/2 0 0] [0 0 0] [1/2 1/2 0] 50}, 'hermit', true);
-            spec = sw_egrid(spec, 'component','Sperp', 'Evect', 0:0.1:1.5, ...
-                            'ZeroModeThreshold', 5e-4);
-            % check zero mode DSF is not included
-            testCase.verify_val(spec.swConv(1321), 0.0);
+        function test_negative_zeroEnergyTol(testCase)
+            out = sw_egrid(testCase.spectrum, 'zeroEnergyTol', -1);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv([1,2001]) = 0.5; % intensity at zero energy
+            testCase.verify_obj(out, expected_out);
         end
     end
 
