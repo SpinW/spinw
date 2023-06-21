@@ -465,12 +465,14 @@ if isfield(spectra,'omega')
         end
     end
     
-    if param.autoEmin && abs(ebin_edges(1))<param.epsilon
+    if param.autoEmin
         if ~exist('ioMax','var')
             ioMax = max(abs(imag(omega{1}(:))));
         end
-        ebin_cens(1) = ebin_cens(1)+ioMax+2*param.epsilon;
-        ebin_edges(1)= ebin_edges(1)+ioMax+2*param.epsilon;
+        if abs(ebin_edges(1)) < ioMax
+            ebin_edges(1) = ebin_edges(1)+ioMax;
+            ebin_cens(1) = ebin_cens(1)+ioMax/2;
+        end
     end
     
     % Calculate Bose temperature factor for magnons
