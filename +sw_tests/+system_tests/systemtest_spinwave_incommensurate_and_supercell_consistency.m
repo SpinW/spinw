@@ -56,7 +56,7 @@ classdef systemtest_spinwave_incommensurate_and_supercell_consistency < sw_tests
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             spec_incom = AF33kagome.spinwave(qarg, 'hermit', true);
             spec_incom = sw_egrid(spec_incom, 'component','Sperp', 'Evect', evec, ...
-                                  'ZeroModeThreshold', 5e-4);
+                                  'zeroEnergyTol', 1e-2);
             % use supercell k=0 structure
             AF33kagome.genmagstr('mode','helical','unit','lu', 'k', k,...
                                  'n',n, 'S', S, 'nExt', [3,3,1]);
