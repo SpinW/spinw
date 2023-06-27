@@ -92,3 +92,5 @@ Bug Fixes
   ``[1 1 1]`` is used. This has also been clarified in the docstring.
 - Fix bug where powder spectra was not recognised in ``sw_plotspec``,
   introduced by a previous update to provide more helpful error messages.
+- ``sw_instrument`` now calculates the limits for thetaMax, before it was
+  using the continuation of the thetaMin line to high Q which is incorrect.
