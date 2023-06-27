@@ -90,3 +90,5 @@ Bug Fixes
 - No longer require a magnetic structure be initialised with ``genmagstr``
   before using ``optmagstr``. If not intialised, a default ``nExt`` of
   ``[1 1 1]`` is used. This has also been clarified in the docstring.
+- Fix bug where powder spectra was not recognised in ``sw_plotspec``,
+  introduced by a previous update to provide more helpful error messages.
