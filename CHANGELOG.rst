@@ -90,3 +90,5 @@ Bug Fixes
 - No longer require a magnetic structure be initialised with ``genmagstr``
   before using ``optmagstr``. If not intialised, a default ``nExt`` of
   ``[1 1 1]`` is used. This has also been clarified in the docstring.
+- ``sw_instrument`` now calculates the limits for thetaMax, before it was
+  using the continuation of the thetaMin line to high Q which is incorrect.

@@ -57,6 +57,10 @@ function spectra = sw_instrument(spectra, varargin)
 % : Minimum scattering angle in \\deg, default value is 0. Can be only
 %   applied if one of the `ki`, `Ei`, `kf` or `Ef` parameters is defined.
 % 
+% `'thetaMax'`
+% : Maximum scattering angle in \\deg, default value is 135. Can be only
+%   applied if one of the `ki`, `Ei`, `kf` or `Ef` parameters is defined.
+%
 % `'plot'`
 % : If the resolution is read from file and plot option is
 %   true, the energy dependent resolution values together with the
@@ -273,7 +277,7 @@ switch FX
 end
 
 if FX > 0
-    k0 = param.k;
+    kfix = param.k;
     cosTMin = cosd(param.thetaMin);
     sinTMin = sind(param.thetaMin);
     cosTMax = cosd(param.thetaMax);
@@ -286,16 +290,16 @@ if FX > 0
                 % Ross Stewart, 9/2/23 - get proper trajectories based on thetamin *and* thetamax
                 Emax = Q*0;
                 Emin = Q*0;
-                ii = find(Q < k0);
-                Emax(ii) = (k0^2-(k0*cosTMin-sqrt(Q(ii).^2-k0^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
-                Emin(ii) = (k0^2-(k0*cosTMin+sqrt(Q(ii).^2-k0^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
-                ii = find(Q > k0);
-                Emax(ii) = (k0^2-(k0*cosTMax+sqrt(Q(ii).^2-k0^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
-                Emin(ii) = (k0^2-(k0*cosTMax-sqrt(Q(ii).^2-k0^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
+                ii = find(Q < kfix);
+                Emax(ii) = (kfix^2-(kfix*cosTMin-sqrt(Q(ii).^2-kfix^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
+                Emin(ii) = (kfix^2-(kfix*cosTMin+sqrt(Q(ii).^2-kfix^2*sinTMin^2)).^2) * sw_converter(1,'k','meV');
+                ii = find(Q > kfix);
+                Emax(ii) = (kfix^2-(kfix*cosTMax+sqrt(Q(ii).^2-kfix^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
+                Emin(ii) = (kfix^2-(kfix*cosTMax-sqrt(Q(ii).^2-kfix^2*sinTMax^2)).^2) * sw_converter(1,'k','meV');
             case 2
                 % fix kf
-                Emax = -(k0^2-(k0*cosT+sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
-                Emin = -(k0^2-(k0*cosT-sqrt(Q.^2-k0^2*sinT^2)).^2) * sw_converter(1,'k','meV');
+                Emax = -(kfix^2-(kfix*cosT+sqrt(Q.^2-kfix^2*sinT^2)).^2) * sw_converter(1,'k','meV');
+                Emin = -(kfix^2-(kfix*cosT-sqrt(Q.^2-kfix^2*sinT^2)).^2) * sw_converter(1,'k','meV');
         end
 
         Emax(abs(imag(Emax))>0) = 0;
@@ -311,7 +315,7 @@ if FX > 0
         swConv(idx) = NaN;
         spectra.swConv{jj} = swConv;
     end
-    fprintf0(fid,'Energy transfer is limited to instrument, using %s=%5.3f A-1.\n',kstr,k0);
+    fprintf0(fid,'Energy transfer is limited to instrument, using %s=%5.3f A-1.\n',kstr,kfix);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
