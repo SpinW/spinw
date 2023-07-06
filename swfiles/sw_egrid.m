@@ -209,6 +209,11 @@ inpForm.defval = [inpForm.defval {false       true       'ebin'  5e-4}];
 inpForm.size   = [inpForm.size   {[1 1]      [1 1]      [1 -5]   [1 1]}];
 inpForm.soft   = [inpForm.soft   {false      false      false    false}];
 
+inpForm.fname  = [inpForm.fname  {'maxDSF'}];
+inpForm.defval = [inpForm.defval {1e6}];
+inpForm.size   = [inpForm.size   {[1 1]}];
+inpForm.soft   = [inpForm.soft   {false}];
+
 param = sw_readparam(inpForm, varargin{:});
 
 if ~isnan(param.epsilon)
@@ -499,6 +504,7 @@ if isfield(spectra,'omega')
             if ~isempty(sw_conv_idx)
                 % sum intensities and pad energies above max eigval with 0
                 DSF_valid = DSF{ii,tt}(param.modeIdx, :);
+                DSF_valid(DSF_valid > param.maxDSF) = 0;
                 swConv{ii,tt} = accumarray(sw_conv_idx, DSF_valid(ien_valid), [nE, nHkl]);
                 % Multiply the intensities with the Bose factor.
                 swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');

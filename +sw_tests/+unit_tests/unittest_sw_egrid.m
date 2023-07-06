@@ -360,6 +360,14 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             expected_out.swConv([1,2001]) = 0.5; % intensity at zero energy
             testCase.verify_obj(out, expected_out);
         end
+        function test_maxDSF(testCase)
+            % set maxDSF low to zero all intensity
+            out = sw_egrid(testCase.spectrum, ...
+                           'binType', 'ebin' , 'maxDSF', 1e-2);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv = zeros(size(expected_out.swConv));
+            testCase.verify_obj(out, expected_out);
+        end
     end
 
 end
