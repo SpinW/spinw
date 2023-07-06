@@ -462,18 +462,13 @@ if isfield(spectra,'omega')
             error('egrid:BadSolution',['The imaginary part of the spin '...
                 'wave energes is larger than the bin size! Improve '...
                 'your calculation or disable imagChk option!']);
+        elseif param.autoEmin
+            if abs(ebin_edges(1)) < ioMax
+                ebin_edges(1) = ebin_edges(1)+ioMax;
+                ebin_cens(1) = ebin_cens(1)+ioMax/2;
+            end
         end
-    end
-    
-    if param.autoEmin
-        if ~exist('ioMax','var')
-            ioMax = max(abs(imag(omega{1}(:))));
-        end
-        if abs(ebin_edges(1)) < ioMax
-            ebin_edges(1) = ebin_edges(1)+ioMax;
-            ebin_cens(1) = ebin_cens(1)+ioMax/2;
-        end
-    end
+    end    
     
     % Calculate Bose temperature factor for magnons
     if param.T==0
