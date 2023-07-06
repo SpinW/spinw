@@ -202,13 +202,21 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
         end
 
         function test_fName_component(testCase)
-            % BUG??
-            component = 'fName';
+            % add field to spectrum
+            component = 'Sperp';
             spectrum = testCase.spectrum;
-            spectrum.(component) = ones(3, 5);
-            testCase.verifyError(...
-                @() sw_egrid(spectrum, 'component', component), ...
-                'sw_parstr:WrongString');
+            spectrum.(component) = ones(2,5);  % double actual
+            
+            % note do not add fields normally added to output when Sperp
+            expected_out = testCase.sw_egrid_out;
+            expected_out.component = component;
+            expected_out.(component) = spectrum.(component);
+            expected_out.swInt = 2*expected_out.swInt;
+            expected_out.swConv = 2*expected_out.swConv;
+
+            out = sw_egrid(spectrum, 'component', component);
+
+            testCase.verify_obj(out, expected_out);
         end
         function test_Evect(testCase)
             Evect = linspace(1, 3, 201);
