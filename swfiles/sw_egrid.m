@@ -396,7 +396,7 @@ for ii = 1:nTwin
     end
     
     if ~isempty(intP{1})
-        intP{ii}   = reshape(intP{ii},3,3,nMode,[]);
+        intP{ii}   = reshape(intP{ii},3,nMode,[]);
     end
     if ~isempty(Pab{1})
         Pab{ii}   = reshape(Pab{ii},3,3,nMode,[]);

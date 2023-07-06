@@ -191,13 +191,14 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             out = sw_egrid(neutron_out, 'component', component);
             testCase.verify_obj(out, expected_out);
         end
+
         function test_Px(testCase)
-            % BUG??
             component = 'Px';
+            expected_out = testCase.sw_egrid_out_pol;
+            expected_out.component = component;
             neutron_out = sw_neutron(testCase.spectrum, 'pol', true);
-            testCase.verifyError(...
-                @() sw_egrid(neutron_out, 'component', component), ...
-                'MATLAB:getReshapeDims:notDivisible');
+            out = sw_egrid(neutron_out, 'component', component);
+            testCase.verify_obj(out, expected_out);
         end
 
         function test_fName_component(testCase)
