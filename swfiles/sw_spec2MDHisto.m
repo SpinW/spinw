@@ -51,8 +51,8 @@ if exist(filename,'file')
     delete(filename)
 end
 
-h5createnwrite(filename,'/MDHistoWorkspace/coordinate_system',3); %  None = 0, QLab = 1, QSample = 2, HKL = 3 
-h5createnwrite(filename,'/MDHistoWorkspace/visual_normalization',0);
+h5createnwrite(filename,'/MDHistoWorkspace/coordinate_system',3,0); %  None = 0, QLab = 1, QSample = 2, HKL = 3 
+h5createnwrite(filename,'/MDHistoWorkspace/visual_normalization',0,0);
 h5writeatt(filename,'/MDHistoWorkspace','NX_class','NXentry');
 h5writeatt(filename,'/MDHistoWorkspace','Qconvention','Inelastic');
 h5writeatt(filename,'/MDHistoWorkspace','SaveMDVersion', 2);
@@ -78,11 +78,12 @@ for idx=1:length(D)
     end
 end
 %write signal
-signal = reshape(dat,Dszs); % change signal array dimensions to match the number of changing dimensions
-h5createnwrite(filename,strcat(rtpth,'/signal'),signal);
-h5createnwrite(filename,strcat(rtpth,'/errors_squared'),zeros(size(signal)));
-h5createnwrite(filename,strcat(rtpth,'/num_events'),zeros(size(signal)));
-h5createnwrite(filename,strcat(rtpth,'/mask'),zeros(size(signal),'int8'));
+fDszs = flip(Dszs);
+signal = reshape(dat,fDszs); % change signal array dimensions to match the number of changing dimensions
+h5createnwrite(filename,strcat(rtpth,'/signal'),signal,fDszs);
+h5createnwrite(filename,strcat(rtpth,'/errors_squared'),zeros(fDszs),fDszs);
+h5createnwrite(filename,strcat(rtpth,'/num_events'),zeros(fDszs),fDszs);
+h5createnwrite(filename,strcat(rtpth,'/mask'),zeros(fDszs,'int8'),fDszs);
 axesstr='';
 for idx=1:length(Dstrcell)
     if idx<length(Dstrcell)
@@ -132,16 +133,19 @@ for idx=1:length(u_parm_names)
 end 
 %write orientation matrix
 om_path =strcat(OL_pth,'/orientation_matrix');
-h5createnwrite(filename,om_path,Bmat);
+h5createnwrite(filename,om_path,Bmat,0);
 %write instrument
 instr_pth = NXScreategroup(filename,exppth,'instrument','NXinstrument');
 h5writeatt(filename,instr_pth,'version',int32(1))
 h5createnwritevec(filename,instr_pth,'name','SEQUOIA');
 end
 
-function h5createnwrite(filename,path,val)
+function h5createnwrite(filename,path,val,shp)
 dtyp = class(val);
-h5create(filename,path,size(val),'Datatype',dtyp);
+if shp ==0 
+    shp = size(val)
+end
+h5create(filename,path,shp,'Datatype',dtyp);
 h5write(filename,path,val);
 end
 
@@ -247,14 +251,17 @@ function [latt_parms,Bmat,proj_out,D,signal,proj,name] = read_struct(dstruct,pro
     hkls = dstruct.hkl;
     hkls_sz = size(hkls);
     dir_vec = hkls(:,hkls_sz(2))-hkls(:,1);
+    dir_vec = dir_vec/norm(dir_vec);
     %qout = hkls'/dir_vec';
     D={};
+    
     for idx=1:3
-        procjv = proj(:,idx)/norm(proj(:,idx));
+        qidx = idx; 
+        procjv = proj(:,qidx)/norm(proj(:,qidx));
           
        if abs(norm(cross(dir_vec,procjv)))> 1e-6
            dtmp = dot(hkls(:,2),procjv);
-           D{idx} = dtmp+dproj(idx)/2.*[-1 1]; 
+           D{idx} = dtmp+dproj(qidx)/2.*[-1 1]; 
        else
            hkl_proj = hkls'/dir_vec';
            dhkl = hkl_proj(2)-hkl_proj(1); % get the spacing along the q axis
@@ -262,11 +269,10 @@ function [latt_parms,Bmat,proj_out,D,signal,proj,name] = read_struct(dstruct,pro
            D{idx} = zeros([1,length(hkl_proj)+1]);
            D{idx}(1:length(hkl_proj)) = hkl_proj-dhkl/2;
            D{idx}(length(D{idx})) = hkl_proj(length(hkl_proj))+dhkl/2;% change to bin boundaries
-           proj(:,idx) = dir_vec; %set varying projection vector to spectra object 
+           proj(:,qidx) = dir_vec; %set varying projection vector to spectra object 
        end  
     end
     D{4}=dstruct.Evect;
-    
     signal = dstruct.swConv;
     proj_out = proj(:);
 end
