@@ -106,7 +106,7 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
         with:
-          release: latest
+          release: R2023a
       - name: Run python test
         run: |
           pip install scipy
