@@ -54,7 +54,7 @@ jobs:
     needs: compile_mex
     strategy:
       matrix:
-        matlab_version: [R2021a, R2021b, R2022a, R2022b, R2023a]
+        matlab_version: [R2021b, R2022a, R2022b, R2023a, R2023b]
     runs-on: self-hosted
     steps:
       - name: Check out SpinW
