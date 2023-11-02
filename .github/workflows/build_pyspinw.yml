@@ -69,7 +69,7 @@ jobs:
       - name: Build ctf
         run: |
           cd python
-          /Applications/MATLAB_${{ matrix.matlab_version }}.app/bin/matlab -nodisplay -r "build_ctf; exit"
+          matlab -nodisplay -r "build_ctf; exit"
       - name: Upload CTF results
         uses: actions/upload-artifact@v3
         with:
