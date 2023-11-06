@@ -67,9 +67,9 @@ jobs:
           name: MEX
           path: ${{ github.workspace }}/external
       - name: Build ctf
-        uses: matlab-actions/run-command@v1
-        with:
-          command: "cd python; run build_ctf.m"
+        run: |
+          cd python
+          /Applications/MATLAB_${{ matrix.matlab_version }}.app/bin/matlab -nodisplay -r "build_ctf; exit"
       - name: Upload CTF results
         uses: actions/upload-artifact@v3
         with:
