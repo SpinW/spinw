@@ -53,6 +53,13 @@ class SuperCellSimple:
         self.abc = np.sqrt(np.sum(self.basis_vec**2, axis=1))
         self.cell_scale_abc_to_xyz = min(self.abc)
         self.supercell_scale_abc_to_xyz = min(self.abc*self.extent)
+        self.bond_width = 5
+        self.spin_scale = 1
+        self.arrow_width = 8
+        self.arrow_head_size = 5
+        self.font_size = 30
+        self.axes_font_size = 50
+        self.atom_alpha = 0.5
 
     def transform_points_abc_to_xyz(self, points):
         return points @ self.basis_vec
@@ -79,14 +86,14 @@ class SuperCellSimple:
         pos, colors, sizes, labels, iremove = self.get_atomic_positions_xyz_in_supercell()
         if self.do_plot_cell:
             self.plot_unit_cell_box(view.scene)  # plot girdlines for unit cell boundaries
+        if self.do_plot_mag:
+            self.plot_magnetic_structure(view.scene, pos, colors, iremove)
         if self.do_plot_atoms:
             self.plot_atoms(view.scene, pos, colors, sizes, labels)
         if self.do_plot_bonds:
             self.plot_bonds(view.scene)
-        if self.do_plot_mag:
-            self.plot_magnetic_structure(view.scene, pos, colors, iremove)
-        # plot axes
-        self.plot_cartesian_axes(view.scene)
+        if self.do_plot_axes:
+            self.plot_cartesian_axes(view.scene)
         # display
         view.camera.set_range()  # centers camera on middle of data and auto-scales extent
         canvas.app.run()
@@ -109,22 +116,22 @@ class SuperCellSimple:
                     width=3., antialias=True, arrow_color=arrow_color,
                     color=line_color)
         scene.visuals.Text(pos=self.transform_points_abc_to_xyz(0.7*np.eye(3)-0.5), parent=canvas_scene, text=["a", "b", "c"], color=arrow_color, 
-                           font_size=50*self.supercell_scale_abc_to_xyz)
+                           font_size=self.axes_font_size*self.supercell_scale_abc_to_xyz)
 
 
     def plot_unit_cell_box(self, canvas_scene):
         for zcen in range(self.int_extent[2]):
             for ycen in range(self.int_extent[1]):
                     scene.visuals.Line(pos = self.transform_points_abc_to_xyz(np.array([[0, ycen, zcen], [np.ceil(self.extent[0]), ycen, zcen]])),
-                                       parent=canvas_scene) # , method="gl")
+                                       parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
         for xcen in range(self.int_extent[0]):
             for ycen in range(self.int_extent[1]):
                     scene.visuals.Line(pos = self.transform_points_abc_to_xyz(np.array([[xcen, ycen, 0], [xcen, ycen, np.ceil(self.extent[2])]])),
-                                       parent=canvas_scene) # , method="gl")
+                                       parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
         for xcen in range(self.int_extent[0]):
             for zcen in range(self.int_extent[2]):
                     scene.visuals.Line(pos = self.transform_points_abc_to_xyz(np.array([[xcen, 0, zcen], [xcen, np.ceil(self.extent[1]), zcen]])),
-                                       parent=canvas_scene) # , method="gl")
+                                       parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
 
     def get_atomic_positions_xyz_in_supercell(self):
         pos = np.array([atom._pos + cell._origin for cell in self.unit_cells for atom in cell.atoms])
@@ -143,11 +150,11 @@ class SuperCellSimple:
         
     def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
         mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
-        mj = np.delete(mj, iremove, axis=0)
+        mj = self.spin_scale*np.delete(mj, iremove, axis=0)
         verts = np.c_[pos, pos+mj]  # natom x 6
         scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
-            arrows=verts, arrow_size=4,
-            width=4, antialias=True, 
+            arrows=verts, arrow_size=self.arrow_head_size,
+            width=self.arrow_width, antialias=True, 
             arrow_type='triangle_60',
             color=np.repeat(colors, 2, axis=0).tolist(),
             arrow_color= colors.tolist())
@@ -162,10 +169,10 @@ class SuperCellSimple:
                     edge_width=0,
                     scaling=True,
                     spherical=True,
-                    alpha=0.6,
+                    alpha=self.atom_alpha,
                     parent=canvas_scene)
         # labels
-        scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=50*self.cell_scale_abc_to_xyz)
+        scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=self.font_size*self.cell_scale_abc_to_xyz)
 
     def plot_bonds(self, canvas_scene):
         for bond_name in self.unit_cells[0].bonds:
@@ -174,7 +181,7 @@ class SuperCellSimple:
             verts, _ = self._remove_vertices_outside_extent(verts)
             verts = self.transform_points_abc_to_xyz(verts)
             scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
-                               width=2, color=color)
+                               width=self.bond_width, color=color)
 
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
