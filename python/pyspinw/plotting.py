@@ -25,12 +25,14 @@ class SuperCellSimple:
                 S = swobj.matom()['S'].flat[imatom]
             else:
                 S = None
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, label=swobj.unit_cell['label'][iatom]))
+            # get color
+            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,iatom], label=swobj.unit_cell['label'][iatom]))
         # only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
             i_dl = np.squeeze(bond_idx==ibond)
-            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl], color='b')
+            mat_idx = swobj.coupling['mat_idx'][0, np.argmax(i_dl)] - 1
+            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl], color=swobj.matrix['color'][:,mat_idx]/365)
         
         # generate unit cells in supercell
         self.unit_cells = []
@@ -75,7 +77,6 @@ class SuperCellSimple:
         view.camera = scene.cameras.TurntableCamera() # fov=5)
         
         pos, colors, sizes, labels, iremove = self.get_atomic_positions_xyz_in_supercell()
-
         if self.do_plot_cell:
             self.plot_unit_cell_box(view.scene)  # plot girdlines for unit cell boundaries
         if self.do_plot_atoms:
@@ -128,17 +129,17 @@ class SuperCellSimple:
     def get_atomic_positions_xyz_in_supercell(self):
         pos = np.array([atom._pos + cell._origin for cell in self.unit_cells for atom in cell.atoms])
         sizes = np.array([atom._size for cell in self.unit_cells for atom in cell.atoms])
-        colors = [atom._color for cell in self.unit_cells for atom in cell.atoms]
+        colors = np.array([atom._color for cell in self.unit_cells for atom in cell.atoms]).reshape(-1,3)
         # remove points and vertices beyond extent
         pos, iremove = self._remove_points_outside_extent(pos)
         sizes = np.delete(sizes, iremove)
-        colors = np.delete(colors, iremove).tolist()
+        colors = np.delete(colors, iremove, axis=0)
         # transfrom to xyz
         pos = self.transform_points_abc_to_xyz(pos)
         # get atomic labels
         labels = [atom.label for cell in self.unit_cells for atom in cell.atoms]
         labels = np.delete(labels, iremove).tolist()
-        return pos, colors, sizes, labels, iremove
+        return pos, colors/365, sizes, labels, iremove
         
     def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
         mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
@@ -146,9 +147,10 @@ class SuperCellSimple:
         verts = np.c_[pos, pos+mj]  # natom x 6
         scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
             arrows=verts, arrow_size=4,
-            width=4, antialias=True, arrow_color= colors, 
+            width=4, antialias=True, 
             arrow_type='triangle_60',
-            color=np.repeat(colors, 2).tolist())
+            color=np.repeat(colors, 2, axis=0).tolist(),
+            arrow_color= colors.tolist())
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
         scene.visuals.Markers(
@@ -172,7 +174,7 @@ class SuperCellSimple:
             verts, _ = self._remove_vertices_outside_extent(verts)
             verts = self.transform_points_abc_to_xyz(verts)
             scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
-                               width=2, color=color_array.Color(color=color, alpha=0.5))
+                               width=2, color=color)
 
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
