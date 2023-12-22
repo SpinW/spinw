@@ -5,6 +5,7 @@ __version__ = "0.0.0"
 
 import os
 import libpymcr
+from . import plotting
 
 
 # Generate a list of all the MATLAB versions available
