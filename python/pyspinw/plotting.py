@@ -28,13 +28,14 @@ class SuperCellSimple:
             else:
                 S = None
             # get color
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,iatom]/365, label=swobj.unit_cell['label'][iatom]))
+            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,atom_idx-1]/255, label=swobj.unit_cell['label'][atom_idx-1]))
+            
         # only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
             i_dl = np.squeeze(bond_idx==ibond)
             mat_idx = swobj.coupling['mat_idx'][0, np.argmax(i_dl)] - 1
-            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl], color=swobj.matrix['color'][:,mat_idx]/365)
+            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl], color=swobj.matrix['color'][:,mat_idx]/255)
         
         # generate unit cells in supercell
         self.unit_cells = []
