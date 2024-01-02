@@ -5,16 +5,18 @@ from itertools import chain
 from vispy.visuals.filters import ShadingFilter, WireframeFilter
 from vispy.geometry import create_sphere
 import copy
+from scipy.spatial.transform import Rotation
 
 
 class SuperCellSimple:
-    def __init__(self, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True):
+    def __init__(self, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True):
         # init with sw obj - could get NExt from object if not explicitly provide (i.e. make default None)
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
         self.do_plot_atoms=plot_atoms
         self.do_plot_cell=plot_cell
         self.do_plot_axes=plot_axes
+        self.do_plot_plane=plot_plane
         
         # get properties from swobj
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
@@ -26,7 +28,7 @@ class SuperCellSimple:
             else:
                 S = None
             # get color
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,iatom], label=swobj.unit_cell['label'][iatom]))
+            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,iatom]/365, label=swobj.unit_cell['label'][iatom]))
         # only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
@@ -44,6 +46,7 @@ class SuperCellSimple:
                     self.unit_cells.append(unit_cell.translate_by([xcen, ycen, zcen]))
                     
         # get magnetic structure for all spins in supercell
+        self.n = np.zeros(3)
         self.apply_magnetic_structure(swobj)
         
         # transforms
@@ -60,15 +63,18 @@ class SuperCellSimple:
         self.font_size = 30
         self.axes_font_size = 50
         self.atom_alpha = 0.5
+        self.rotation_plane_radius = 0.3*self.cell_scale_abc_to_xyz
 
     def transform_points_abc_to_xyz(self, points):
         return points @ self.basis_vec
         
     def apply_magnetic_structure(self, swobj):
-        mj = swobj.magstr('NExt', [int(ext) for ext in self.int_extent])['S']
+        magstr = swobj.magstr('NExt', [int(ext) for ext in self.int_extent])
+        mj = magstr['S']
         if not np.any(mj):
             print('No magnetic structure defined')
-            self.plot_mag = False
+            self.do_plot_mag = False
+            self.do_plot_plane = False
             return
         icol = 0
         for uc in self.unit_cells:
@@ -77,6 +83,7 @@ class SuperCellSimple:
                 if atom.S is not None:
                     atom.moment = mj[:,icol]
                     icol+=1
+        self.n = np.asarray(magstr['n'])  # plane of rotation of moment
 
     def plot(self):
         canvas = scene.SceneCanvas(bgcolor='white',  show=True) # size=(600, 600),
@@ -84,6 +91,7 @@ class SuperCellSimple:
         view.camera = scene.cameras.TurntableCamera() # fov=5)
         
         pos, colors, sizes, labels, iremove = self.get_atomic_positions_xyz_in_supercell()
+        subvisuals = []
         if self.do_plot_cell:
             self.plot_unit_cell_box(view.scene)  # plot girdlines for unit cell boundaries
         if self.do_plot_mag:
@@ -94,7 +102,11 @@ class SuperCellSimple:
             self.plot_bonds(view.scene)
         if self.do_plot_axes:
             self.plot_cartesian_axes(view.scene)
+        if self.do_plot_plane:
+            subvisuals.extend(self.make_rotation_plane_visuals())
         # display
+        if subvisuals:
+            scene.Compound(subvisuals=subvisuals, parent=view.scene)
         view.camera.set_range()  # centers camera on middle of data and auto-scales extent
         canvas.app.run()
         return canvas, view.scene
@@ -112,8 +124,8 @@ class SuperCellSimple:
         arrow_color = ['red', 'green', 'blue']
 
         scene.visuals.Arrow(pos=pos, parent=canvas_scene, connect='segments',
-                    arrows=arrows, arrow_type='triangle_60', arrow_size=3.,
-                    width=3., antialias=True, arrow_color=arrow_color,
+                    arrows=arrows, arrow_type='angle_60', arrow_size=3.,
+                    width=3., antialias=False, arrow_color=arrow_color,
                     color=line_color)
         scene.visuals.Text(pos=self.transform_points_abc_to_xyz(0.7*np.eye(3)-0.5), parent=canvas_scene, text=["a", "b", "c"], color=arrow_color, 
                            font_size=self.axes_font_size*self.supercell_scale_abc_to_xyz)
@@ -134,9 +146,9 @@ class SuperCellSimple:
                                        parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
 
     def get_atomic_positions_xyz_in_supercell(self):
-        pos = np.array([atom._pos + cell._origin for cell in self.unit_cells for atom in cell.atoms])
-        sizes = np.array([atom._size for cell in self.unit_cells for atom in cell.atoms])
-        colors = np.array([atom._color for cell in self.unit_cells for atom in cell.atoms]).reshape(-1,3)
+        pos = np.array([atom.pos + cell.origin for cell in self.unit_cells for atom in cell.atoms])
+        sizes = np.array([atom.size for cell in self.unit_cells for atom in cell.atoms])
+        colors = np.array([atom.color for cell in self.unit_cells for atom in cell.atoms]).reshape(-1,3)
         # remove points and vertices beyond extent
         pos, iremove = self._remove_points_outside_extent(pos)
         sizes = np.delete(sizes, iremove)
@@ -146,7 +158,7 @@ class SuperCellSimple:
         # get atomic labels
         labels = [atom.label for cell in self.unit_cells for atom in cell.atoms]
         labels = np.delete(labels, iremove).tolist()
-        return pos, colors/365, sizes, labels, iremove
+        return pos, colors, sizes, labels, iremove
         
     def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
         mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
@@ -158,6 +170,32 @@ class SuperCellSimple:
             arrow_type='triangle_60',
             color=np.repeat(colors, 2, axis=0).tolist(),
             arrow_color= colors.tolist())
+    
+    def make_rotation_plane_visuals(self, npts=15):
+        # generate vertices of disc with normal // [0,0,1]
+        theta = np.linspace(0, 2*np.pi,npts-1)
+        disc_verts = np.zeros((npts, 3))
+        disc_faces = np.zeros((npts-2, 3), dtype=int)
+        disc_verts[1:,0] = self.rotation_plane_radius*np.cos(theta)
+        disc_verts[1:,1] = self.rotation_plane_radius*np.sin(theta)
+        # rotate given normal
+        rot_mat = get_rotation_matrix(self.n)
+        disc_verts = rot_mat.dot(disc_verts.T).T
+        # label faces
+        disc_faces[:,1] = np.arange(1,npts-1)
+        disc_faces[:,2] = np.arange(2,npts)
+        disc_visuals = []
+        for cell in self.unit_cells:
+            for atom in cell.atoms:
+                if atom.S is not None and atom.S > 0:
+                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
+                    centre, _ = self._remove_points_outside_extent(centre)
+                    if centre.size > 0:
+                        # atom in extents
+                        centre = self.transform_points_abc_to_xyz(centre)
+                        mesh = scene.visuals.Mesh(vertices=disc_verts + centre, faces=disc_faces, color=color_array.Color(color=atom.color, alpha=0.25))
+                        disc_visuals.append(mesh)
+        return disc_visuals
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
         scene.visuals.Markers(
@@ -202,7 +240,7 @@ class UnitCellSimple:
     def __init__(self, atoms_list=[], bonds={}, origin=np.array([0,0,0]), basis_vec=np.eye(3)):
         self.atoms = atoms_list
         self.bonds = bonds
-        self._origin = np.array(origin)
+        self.origin = np.array(origin)
         self.basis_vec = basis_vec  # each col is a basis vector
     
     def add_atom(self, atom):
@@ -210,35 +248,45 @@ class UnitCellSimple:
 
     def add_bond_vertices(self, name, atom1_idx, atom2_idx, dl, color):
         # store tuple of vertices in same way as spins returned
-        self.bonds[name] = {'verts': np.array([(self.atoms[atom1_idx[ibond]]._pos, 
-                                                self.atoms[atom2_idx[ibond]]._pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
+        self.bonds[name] = {'verts': np.array([(self.atoms[atom1_idx[ibond]].pos, 
+                                                self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
         self.bonds[name]['color'] = color
 
     def translate_by(self, origin):
         return UnitCellSimple(copy.deepcopy(self.atoms), self.bonds, origin, basis_vec=self.basis_vec)
 
     def get_bond_vertices(self, bond_name):
-        return self.bonds[bond_name]['verts'] + self._origin
+        return self.bonds[bond_name]['verts'] + self.origin
 
     def get_bond_color(self, bond_name):
         return self.bonds[bond_name]['color']
 
 
 class AtomSimple:
-    def __init__(self, position, S=None, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, n=None, label='atom', color="blue"):
-        self._pos = np.asarray(position)
+    def __init__(self, position, S=None, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
+        self.pos = np.asarray(position)
         self.S = S
         self.moment=moment
-        self._gtensor = gtensor_mat
-        self._aniso = aniso_mat
-        self._n = np.asarray(n)
-        self._size = size
-        self._color = color
+        self.gtensor = gtensor_mat
+        self.aniso = aniso_mat
+        self.size = size
+        self.color = color
         self.label = label
         self.spin_scale = 0.3
         
     def get_transform(self, tensor='aniso'):
         if tensor=="aniso":
-            return self._aniso
+            return self.aniso
         else:
-            return self._gtensor
+            return self.gtensor
+
+
+def get_rotation_matrix(vec2, vec1=np.array([0,0,1])):
+    vec1 = vec1/np.linalg.norm(vec1)  # unit vectors
+    vec2 = vec2/np.linalg.norm(vec2)
+    if np.arccos(np.clip(np.dot(vec1.flat, vec2.flat), -1.0, 1.0)) > 1e-5:
+        r = Rotation.align_vectors(vec2.reshape(1,-1), vec1.reshape(1,-1))  # matrix to rotate vec1 onto vec2
+        return r[0].as_matrix()
+    else:
+        # too small a difference for above algorithm, just return identity
+        return np.eye(3)
