@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation
 
 
 class SuperCellSimple:
-    def __init__(self, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True):
+    def __init__(self, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None):
         # init with sw obj - could get NExt from object if not explicitly provide (i.e. make default None)
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
@@ -17,20 +17,25 @@ class SuperCellSimple:
         self.do_plot_cell=plot_cell
         self.do_plot_axes=plot_axes
         self.do_plot_plane=plot_plane
-        
+        self.do_plot_ion = ion_type is not None
+        self.ion_type = ion_type  # "aniso" or "g"
+
         # get properties from swobj
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
         # add atoms
+        _, single_ion = swobj.intmatrix('plotmode', True,'extend',False,'sortDM',False,'zeroC',False,'nExt',[1, 1, 1])
         for iatom, atom_idx in enumerate(swobj.atom()['idx'].flatten().astype(int)):
             imatom = np.flatnonzero(swobj.matom()['idx'].flatten().astype(int)== atom_idx)
             if len(imatom) > 0:
                 S = swobj.matom()['S'].flat[imatom]
             else:
                 S = None
-            # get color
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=swobj.unit_cell['color'][:,atom_idx-1]/255, label=swobj.unit_cell['label'][atom_idx-1]))
+            color = swobj.unit_cell['color'][:,atom_idx-1]/255
+            label = swobj.unit_cell['label'][atom_idx-1]
+            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=color, label=label,
+                                          gtensor_mat=single_ion['g'][:,:,iatom], aniso_mat=single_ion['aniso'][:,:,iatom]))
             
-        # only plot bonds for which there is a mat_idx
+        # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
             i_dl = np.squeeze(bond_idx==ibond)
@@ -65,6 +70,7 @@ class SuperCellSimple:
         self.axes_font_size = 50
         self.atom_alpha = 0.5
         self.rotation_plane_radius = 0.3*self.cell_scale_abc_to_xyz
+        self.ion_radius = 0.3*self.cell_scale_abc_to_xyz
 
     def transform_points_abc_to_xyz(self, points):
         return points @ self.basis_vec
@@ -105,6 +111,8 @@ class SuperCellSimple:
             self.plot_cartesian_axes(view.scene)
         if self.do_plot_plane:
             subvisuals.extend(self.make_rotation_plane_visuals())
+        if self.do_plot_ion:
+            subvisuals.extend(self.make_ion_visuals())
         # display
         if subvisuals:
             scene.Compound(subvisuals=subvisuals, parent=view.scene)
@@ -160,7 +168,7 @@ class SuperCellSimple:
         labels = [atom.label for cell in self.unit_cells for atom in cell.atoms]
         labels = np.delete(labels, iremove).tolist()
         return pos, colors, sizes, labels, iremove
-        
+    
     def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
         mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
         mj = self.spin_scale*np.delete(mj, iremove, axis=0)
@@ -197,6 +205,28 @@ class SuperCellSimple:
                         mesh = scene.visuals.Mesh(vertices=disc_verts + centre, faces=disc_faces, color=color_array.Color(color=atom.color, alpha=0.25))
                         disc_visuals.append(mesh)
         return disc_visuals
+    
+    def make_ion_visuals(self, npts=7):
+        # get mesh for a sphere
+        meshdata = create_sphere(radius=self.ion_radius, rows=npts, cols=npts)
+        verts = meshdata.get_vertices()
+        faces = meshdata.get_faces()
+        ellips_visuals = []
+        for cell in self.unit_cells:
+            for atom in cell.atoms:
+                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
+                    centre, _ = self._remove_points_outside_extent(centre)
+                    if centre.size > 0:
+                        # atom in extents
+                        transform = atom.get_transform(tensor=self.ion_type)
+                        if np.any(transform>0):
+                            centre = self.transform_points_abc_to_xyz(centre)
+                            this_verts = verts @ transform + centre
+                            mesh = scene.visuals.Mesh(vertices=this_verts, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
+                            wireframe_filter = WireframeFilter(color=3*[0.7])
+                            mesh.attach(wireframe_filter)
+                            ellips_visuals.append(mesh)
+        return ellips_visuals
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
         scene.visuals.Markers(
@@ -277,9 +307,17 @@ class AtomSimple:
         
     def get_transform(self, tensor='aniso'):
         if tensor=="aniso":
-            return self.aniso
+            mat = self.aniso
         else:
-            return self.gtensor
+            mat = self.gtensor
+        # diagonalise so can normalise eigenvalues 
+        evals, evecs = np.linalg.eig(mat)
+        if tensor=="aniso":
+            # take inverse of eigenvals as large number should produce a samll axis
+            evals = 1/evals
+        # scale such that max eigval is 1
+        evals = evals/np.max(abs(evals))
+        return evecs @ np.diag(evals) @ np.linalg.inv(evecs)
 
 
 def get_rotation_matrix(vec2, vec1=np.array([0,0,1])):
