@@ -24,6 +24,8 @@ class SuperCellSimple:
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
         # add atoms
         _, single_ion = swobj.intmatrix('plotmode', True,'extend',False,'sortDM',False,'zeroC',False,'nExt',[1, 1, 1])
+        aniso_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
+        g_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
         for iatom, atom_idx in enumerate(swobj.atom()['idx'].flatten().astype(int)):
             imatom = np.flatnonzero(swobj.matom()['idx'].flatten().astype(int)== atom_idx)
             if len(imatom) > 0:
@@ -33,7 +35,7 @@ class SuperCellSimple:
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=color, label=label,
-                                          gtensor_mat=single_ion['g'][:,:,iatom], aniso_mat=single_ion['aniso'][:,:,iatom]))
+                                          gtensor_mat=g_mats[:,:,iatom], aniso_mat=aniso_mats[:,:,iatom]))
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
@@ -312,12 +314,16 @@ class AtomSimple:
             mat = self.gtensor
         # diagonalise so can normalise eigenvalues 
         evals, evecs = np.linalg.eig(mat)
-        if tensor=="aniso":
-            # take inverse of eigenvals as large number should produce a samll axis
-            evals = 1/evals
-        # scale such that max eigval is 1
-        evals = evals/np.max(abs(evals))
-        return evecs @ np.diag(evals) @ np.linalg.inv(evecs)
+        if not evals.all():
+            print(f"Singular {tensor} matrix on atom {self.label}")
+            return np.zeros(mat.shape)  # transform will be ignored
+        else:
+            if tensor=="aniso":
+                # take inverse of eigenvals as large number should produce a small axis
+                evals = 1/evals
+            # scale such that max eigval is 1
+            evals = evals/np.max(abs(evals))
+            return evecs @ np.diag(evals) @ np.linalg.inv(evecs)
 
 
 def get_rotation_matrix(vec2, vec1=np.array([0,0,1])):
