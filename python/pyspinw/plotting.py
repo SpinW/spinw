@@ -42,9 +42,10 @@ class SuperCellSimple:
         bond_matrices = swobj.matrix['mat'].reshape(3,3,-1)
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
             i_dl = np.squeeze(bond_idx==ibond)
-            mat_idx = swobj.coupling['mat_idx'][0, np.argmax(i_dl)] - 1
-            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl],
-                                        bond_matrices[:,:,mat_idx], color=swobj.matrix['color'][:,mat_idx]/255)
+            for mat_idx in swobj.coupling['mat_idx'][:, np.argmax(i_dl)]:
+                if mat_idx > 0:
+                    unit_cell.add_bond_vertices(f"bond{ibond}_mat{mat_idx}", np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl],
+                                                bond_matrices[:,:,mat_idx-1], color=swobj.matrix['color'][:,mat_idx-1]/255)
         
         # generate unit cells in supercell
         self.unit_cells = []
