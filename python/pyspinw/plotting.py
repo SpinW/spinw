@@ -76,6 +76,7 @@ class SuperCellSimple:
         self.atom_alpha = 0.5
         self.rotation_plane_radius = 0.3*self.cell_scale_abc_to_xyz
         self.ion_radius = 0.3*self.cell_scale_abc_to_xyz
+        self.dm_arrow_scale = 0.2*self.cell_scale_abc_to_xyz
 
     def transform_points_abc_to_xyz(self, points):
         return points @ self.basis_vec
@@ -219,18 +220,18 @@ class SuperCellSimple:
         ellips_visuals = []
         for cell in self.unit_cells:
             for atom in cell.atoms:
-                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
-                    centre, _ = self._remove_points_outside_extent(centre)
-                    if centre.size > 0:
-                        # atom in extents
-                        transform = atom.get_transform(tensor=self.ion_type)
-                        if np.any(transform>0):
-                            centre = self.transform_points_abc_to_xyz(centre)
-                            this_verts = verts @ transform + centre
-                            mesh = scene.visuals.Mesh(vertices=this_verts, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
-                            wireframe_filter = WireframeFilter(color=3*[0.7])
-                            mesh.attach(wireframe_filter)
-                            ellips_visuals.append(mesh)
+                centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
+                centre, _ = self._remove_points_outside_extent(centre)
+                if centre.size > 0:
+                    # atom in extents
+                    transform = atom.get_transform(tensor=self.ion_type)
+                    if np.any(transform>0):
+                        centre = self.transform_points_abc_to_xyz(centre)
+                        this_verts = verts @ transform + centre
+                        mesh = scene.visuals.Mesh(vertices=this_verts, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
+                        wireframe_filter = WireframeFilter(color=3*[0.7])
+                        mesh.attach(wireframe_filter)
+                        ellips_visuals.append(mesh)
         return ellips_visuals
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
@@ -249,6 +250,7 @@ class SuperCellSimple:
         scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=self.font_size*self.cell_scale_abc_to_xyz)
 
     def plot_bonds(self, canvas_scene):
+        max_dm_norm = self.unit_cells[0].get_max_DM_vec_norm()
         for bond_name in self.unit_cells[0].bonds:
             color = self.unit_cells[0].get_bond_color(bond_name)
             verts = np.array([unit_cell.get_bond_vertices(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
@@ -265,7 +267,7 @@ class SuperCellSimple:
                 mid_points, _ = self._remove_points_outside_extent(mid_points)
                 mid_points = self.transform_points_abc_to_xyz(mid_points)
                 # generate verts of DM arrows at bond mid-points (note DM vector in xyz)
-                dm_vec = self.unit_cells[0].get_bond_DM_vec(bond_name)
+                dm_vec = self.dm_arrow_scale*self.unit_cells[0].get_bond_DM_vec(bond_name)/max_dm_norm
                 dm_verts = np.c_[mid_points, mid_points + dm_vec]
                 verts = np.r_[verts, dm_verts]
                 scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
@@ -327,6 +329,13 @@ class UnitCellSimple:
         
     def is_bond_symmetric(self, bond_name):
         return self.bonds[bond_name]['is_sym']
+        
+    def get_max_DM_vec_norm(self):
+        max_norm = 0
+        for bond_name in self.bonds:
+            if self.bonds[bond_name]['DM_vec'] is not None:
+                max_norm = max(max_norm, np.linalg.norm(self.bonds[bond_name]['DM_vec']))
+        return max_norm
 
 
 class AtomSimple:
