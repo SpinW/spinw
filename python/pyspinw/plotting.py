@@ -261,8 +261,7 @@ class SuperCellSimple:
                 scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
                                    width=self.bond_width, color=color)
             else:
-                # DM bond - reshape verts to be compatible with Arrow
-                verts = verts.reshape(-1,6)  # start and end points on each row
+                # DM bond
                 # get mid-point of bond (origin of DM arrow)
                 mid_points = np.array([unit_cell.get_bond_midpoints(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
                 mid_points, _ = self._remove_points_outside_extent(mid_points)
@@ -270,9 +269,10 @@ class SuperCellSimple:
                 # generate verts of DM arrows at bond mid-points (note DM vector in xyz)
                 dm_vec = self.dm_arrow_scale*self.unit_cells[0].get_bond_DM_vec(bond_name)/max_dm_norm
                 dm_verts = np.c_[mid_points, mid_points + dm_vec]
-                verts = np.r_[verts, dm_verts]
-                scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
-                                    arrows=verts, arrow_size=self.arrow_head_size,
+                arrow_verts = np.r_[np.c_[verts[::2], mid_points], dm_verts]  # draw arrow at mid-point of line as well as DM vec
+                line_verts = np.r_[verts, dm_verts.reshape(-1,3)]
+                scene.visuals.Arrow(pos=line_verts, parent=canvas_scene, connect='segments',
+                                    arrows=arrow_verts, arrow_size=self.arrow_head_size,
                                     width=self.arrow_width, antialias=True, 
                                     arrow_type='triangle_60',
                                     color=color,
