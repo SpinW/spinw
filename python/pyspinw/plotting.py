@@ -39,10 +39,12 @@ class SuperCellSimple:
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
+        bond_matrices = swobj.matrix['mat'].reshape(3,3,-1)
         for ibond in np.unique(bond_idx[np.any(swobj.coupling['mat_idx'], axis=0)]):
             i_dl = np.squeeze(bond_idx==ibond)
             mat_idx = swobj.coupling['mat_idx'][0, np.argmax(i_dl)] - 1
-            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl], color=swobj.matrix['color'][:,mat_idx]/255)
+            unit_cell.add_bond_vertices(ibond, np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl],
+                                        bond_matrices[:,:,mat_idx], color=swobj.matrix['color'][:,mat_idx]/255)
         
         # generate unit cells in supercell
         self.unit_cells = []
@@ -251,8 +253,27 @@ class SuperCellSimple:
             verts = np.array([unit_cell.get_bond_vertices(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
             verts, _ = self._remove_vertices_outside_extent(verts)
             verts = self.transform_points_abc_to_xyz(verts)
-            scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
-                               width=self.bond_width, color=color)
+            if self.unit_cells[0].is_bond_symmetric(bond_name):
+                scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
+                                   width=self.bond_width, color=color)
+            else:
+                # DM bond - reshape verts to be compatible with Arrow
+                verts = verts.reshape(-1,6)  # start and end points on each row
+                # get mid-point of bond (origin of DM arrow)
+                mid_points = np.array([unit_cell.get_bond_midpoints(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
+                mid_points, _ = self._remove_points_outside_extent(mid_points)
+                mid_points = self.transform_points_abc_to_xyz(mid_points)
+                # generate verts of DM arrows at bond mid-points (note DM vector in xyz)
+                dm_vec = self.unit_cells[0].get_bond_DM_vec(bond_name)
+                dm_verts = np.c_[mid_points, mid_points + dm_vec]
+                verts = np.r_[verts, dm_verts]
+                scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
+                                    arrows=verts, arrow_size=self.arrow_head_size,
+                                    width=self.arrow_width, antialias=True, 
+                                    arrow_type='triangle_60',
+                                    color=color, # np.repeat(colors, 2, axis=0).tolist(),
+                                    arrow_color=color) #  colors.tolist())
+
 
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
@@ -279,10 +300,13 @@ class UnitCellSimple:
     def add_atom(self, atom):
         self.atoms.append(atom)
 
-    def add_bond_vertices(self, name, atom1_idx, atom2_idx, dl, color):
-        # store tuple of vertices in same way as spins returned
+    def add_bond_vertices(self, name, atom1_idx, atom2_idx, dl, mat, color):
+        # get type of interaction from matrix
         self.bonds[name] = {'verts': np.array([(self.atoms[atom1_idx[ibond]].pos, 
-                                                self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
+                           self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
+        self.bonds[name]['is_sym'] = np.allclose(mat, mat.T)
+        self.bonds[name]['mid_points'] = self.bonds[name]['verts'].reshape(-1,2,3).sum(axis=1)/2 if not self.bonds[name]['is_sym'] else None
+        self.bonds[name]['DM_vec'] = np.array([mat[1,2], mat[2,0], mat[0,1]]) if not self.bonds[name]['is_sym'] else None
         self.bonds[name]['color'] = color
 
     def translate_by(self, origin):
@@ -290,9 +314,18 @@ class UnitCellSimple:
 
     def get_bond_vertices(self, bond_name):
         return self.bonds[bond_name]['verts'] + self.origin
+        
+    def get_bond_midpoints(self, bond_name):
+        return self.bonds[bond_name]['mid_points'] + self.origin
 
+    def get_bond_DM_vec(self, bond_name):
+        return self.bonds[bond_name]['DM_vec']
+    
     def get_bond_color(self, bond_name):
         return self.bonds[bond_name]['color']
+        
+    def is_bond_symmetric(self, bond_name):
+        return self.bonds[bond_name]['is_sym']
 
 
 class AtomSimple:
