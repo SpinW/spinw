@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation
 
 
 class SuperCellSimple:
-    def __init__(self, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None):
+    def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None):
         # init with sw obj - could get NExt from object if not explicitly provide (i.e. make default None)
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
@@ -34,8 +34,9 @@ class SuperCellSimple:
                 S = None
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=0.35, color=color, label=label,
-                                          gtensor_mat=g_mats[:,:,iatom], aniso_mat=aniso_mats[:,:,iatom]))
+            size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
+            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=size, color=color, label=label,
+                                          gtensor_mat=g_mats[:,:,atom_idx-1], aniso_mat=aniso_mats[:,:,atom_idx-1]))
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
@@ -71,7 +72,7 @@ class SuperCellSimple:
         self.spin_scale = 1
         self.arrow_width = 8
         self.arrow_head_size = 5
-        self.font_size = 30
+        self.font_size = 20
         self.axes_font_size = 50
         self.atom_alpha = 0.5
         self.rotation_plane_radius = 0.3*self.cell_scale_abc_to_xyz
@@ -237,7 +238,7 @@ class SuperCellSimple:
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
         scene.visuals.Markers(
                     pos=pos,
-                    size=sizes*self.cell_scale_abc_to_xyz,
+                    size=sizes,
                     antialias=0,
                     face_color= colors,
                     edge_color='white',
@@ -274,8 +275,8 @@ class SuperCellSimple:
                                     arrows=verts, arrow_size=self.arrow_head_size,
                                     width=self.arrow_width, antialias=True, 
                                     arrow_type='triangle_60',
-                                    color=color, # np.repeat(colors, 2, axis=0).tolist(),
-                                    arrow_color=color) #  colors.tolist())
+                                    color=color,
+                                    arrow_color=color)
 
 
     def _remove_vertices_outside_extent(self, verts):
@@ -306,7 +307,7 @@ class UnitCellSimple:
     def add_bond_vertices(self, name, atom1_idx, atom2_idx, dl, mat, color):
         # get type of interaction from matrix
         self.bonds[name] = {'verts': np.array([(self.atoms[atom1_idx[ibond]].pos, 
-                           self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
+                            self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
         self.bonds[name]['is_sym'] = np.allclose(mat, mat.T)
         self.bonds[name]['mid_points'] = self.bonds[name]['verts'].reshape(-1,2,3).sum(axis=1)/2 if not self.bonds[name]['is_sym'] else None
         self.bonds[name]['DM_vec'] = np.array([mat[1,2], mat[2,0], mat[0,1]]) if not self.bonds[name]['is_sym'] else None
