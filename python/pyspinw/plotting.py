@@ -26,17 +26,27 @@ class SuperCellSimple:
         _, single_ion = swobj.intmatrix('plotmode', True,'extend',False,'sortDM',False,'zeroC',False,'nExt',[1, 1, 1])
         aniso_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
         g_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
+        imat = -1  # index of aniso and g matrices
+        atoms_mag = np.array(swobj.atom()['mag']).reshape(-1)  # handles case when only 1 atom and swobj.atom()['mag'] is bool not list
         for iatom, atom_idx in enumerate(swobj.atom()['idx'].flatten().astype(int)):
-            imatom = np.flatnonzero(swobj.matom()['idx'].flatten().astype(int)== atom_idx)
-            if len(imatom) > 0:
+            # get spin magnitude if magnetic
+            if atoms_mag[iatom]:
+                # get S
+                imatom = np.argmax(swobj.matom()['idx'].flatten().astype(int)== atom_idx)
                 S = swobj.matom()['S'].flat[imatom]
+                # get single-ion matrices
+                imat += 1
+                g_mat = g_mats[:,:,imat]
+                aniso_mat = aniso_mats[:,:,imat]
             else:
                 S = None
+                g_mat = None
+                aniso_mat = None
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
             unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=size, color=color, label=label,
-                                          gtensor_mat=g_mats[:,:,atom_idx-1], aniso_mat=aniso_mats[:,:,atom_idx-1]))
+                                          gtensor_mat=g_mat, aniso_mat=aniso_mat))
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
@@ -221,12 +231,12 @@ class SuperCellSimple:
         ellips_visuals = []
         for cell in self.unit_cells:
             for atom in cell.atoms:
-                centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
-                centre, _ = self._remove_points_outside_extent(centre)
-                if centre.size > 0:
-                    # atom in extents
-                    transform = atom.get_transform(tensor=self.ion_type)
-                    if np.any(transform>0):
+                transform = atom.get_transform(tensor=self.ion_type)
+                if transform is not None and np.any(transform>0):
+                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
+                    centre, _ = self._remove_points_outside_extent(centre)
+                    if centre.size > 0:
+                        # atom in extents
                         centre = self.transform_points_abc_to_xyz(centre)
                         this_verts = verts @ transform + centre
                         mesh = scene.visuals.Mesh(vertices=this_verts, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
