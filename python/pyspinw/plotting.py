@@ -6,10 +6,17 @@ from vispy.visuals.filters import ShadingFilter, WireframeFilter
 from vispy.geometry import create_sphere
 import copy
 from scipy.spatial.transform import Rotation
+from scipy.spatial import ConvexHull
 
+class PolyhedraArgs:
+    def __init__(self, atom1_idx, atom2_idx, color, n_nearest=6):
+        self.atom1_idx = np.array(atom1_idx).reshape(-1)  # makes an array even if single number passed
+        self.atom2_idx = np.array(atom2_idx).reshape(-1)  # makes an array even if single number passed
+        self.n_nearest=n_nearest
+        self.color = color
 
 class SuperCellSimple:
-    def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None):
+    def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None, polyhedra_args=None):
         # init with sw obj - could get NExt from object if not explicitly provide (i.e. make default None)
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
@@ -19,6 +26,7 @@ class SuperCellSimple:
         self.do_plot_plane=plot_plane
         self.do_plot_ion = ion_type is not None
         self.ion_type = ion_type  # "aniso" or "g"
+        self.polyhedra_args = polyhedra_args
 
         # get properties from swobj
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
@@ -45,7 +53,7 @@ class SuperCellSimple:
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
-            unit_cell.add_atom(AtomSimple(swobj.atom()['r'][:,iatom], S=S, size=size, color=color, label=label,
+            unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], S=S, size=size, color=color, label=label,
                                           gtensor_mat=g_mat, aniso_mat=aniso_mat))
             
         # add bonds - only plot bonds for which there is a mat_idx
@@ -73,6 +81,7 @@ class SuperCellSimple:
         
         # transforms
         self.basis_vec = unit_cell.basis_vec
+        self.inv_basis_vec = np.linalg.inv(self.basis_vec)
                 
         # scale factors
         self.abc = np.sqrt(np.sum(self.basis_vec**2, axis=1))
@@ -92,6 +101,9 @@ class SuperCellSimple:
     def transform_points_abc_to_xyz(self, points):
         return points @ self.basis_vec
         
+    def transform_points_xyz_to_abc(self, points):
+        return points @ self.inv_basis_vec
+
     def apply_magnetic_structure(self, swobj):
         magstr = swobj.magstr('NExt', [int(ext) for ext in self.int_extent])
         mj = magstr['S']
@@ -130,6 +142,8 @@ class SuperCellSimple:
             subvisuals.extend(self.make_rotation_plane_visuals())
         if self.do_plot_ion:
             subvisuals.extend(self.make_ion_visuals())
+        if self.polyhedra_args is not None:
+            subvisuals.extend(self.make_polyhedra_visuals())
         # display
         if subvisuals:
             scene.Compound(subvisuals=subvisuals, parent=view.scene)
@@ -288,6 +302,48 @@ class SuperCellSimple:
                                     color=color,
                                     arrow_color=color)
 
+    def make_polyhedra_visuals(self):
+        atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
+        hulls = []
+        for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
+            # find vector bewteen atom1 in unit cells [0-1] in each direction to atom2 in first unit cell
+            dr = None
+            for dz in range(2):
+                for dy in range(2):
+                    for dx in range(2):
+                        atom1_pos_xyz = self.transform_points_abc_to_xyz(atom1_pos_rlu + np.array([dx, dy, dz]))
+                        if dr is None:
+                            dr = -atom2_pos_xyz + atom1_pos_xyz  # ordered like this due to np broadcasting
+                        else:
+                            dr = np.vstack((dr, -atom2_pos_xyz + atom1_pos_xyz))
+            # keep unique within some tolerance (1e-3) - return_indices=true and get from unrounded array
+            _, unique_idx = np.unique(np.round(dr,3), axis=0, return_index=True)
+            dr = dr[unique_idx]
+            # sort and get n shortest
+            isort = np.argsort(np.linalg.norm(dr, axis=1))
+            dr = dr[isort[:self.polyhedra_args.n_nearest]]
+            if np.linalg.matrix_rank(dr) == 3:
+                hulls.append(ConvexHull(dr + self.transform_points_abc_to_xyz(atom1_pos_rlu)))
+            else:
+                # need to find basis vectors in plane, transform and find hull in 2D
+                print('2D polyhedra not implemented yet.')
+
+        # loop over all unit cells and add origin to mesh vertices
+        polyhedra_visuals = []
+        for zcen in range(self.int_extent[2]):
+            for ycen in range(self.int_extent[1]):
+                for xcen in range(self.int_extent[0]):
+                    lvec = self.transform_points_abc_to_xyz(np.array([xcen, ycen, zcen]))
+                    for hull in hulls:
+                        verts = hull.points[hull.vertices] + lvec
+                        _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(verts))
+                        if len(irem) < self.polyhedra_args.n_nearest:
+                            # polyhedra has at least 1 vertex inside extent
+                            mesh = scene.visuals.Mesh(vertices=verts, faces=hull.simplices, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
+                            wireframe_filter = WireframeFilter(color=3*[0.7])
+                            mesh.attach(wireframe_filter)
+                            polyhedra_visuals.append(mesh)
+        return polyhedra_visuals
 
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
@@ -350,7 +406,7 @@ class UnitCellSimple:
 
 
 class AtomSimple:
-    def __init__(self, position, S=None, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
+    def __init__(self, index, position, S=None, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
         self.pos = np.asarray(position)
         self.S = S
         self.moment=moment
@@ -360,6 +416,7 @@ class AtomSimple:
         self.color = color
         self.label = label
         self.spin_scale = 0.3
+        self.wyckoff_index = index
         
     def get_transform(self, tensor='aniso'):
         if tensor=="aniso":
