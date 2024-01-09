@@ -7,6 +7,12 @@ from vispy.geometry import create_sphere
 import copy
 from scipy.spatial.transform import Rotation
 from scipy.spatial import ConvexHull
+from dataclasses import dataclass
+
+@dataclass
+class PolyhedronMesh:
+    vertices: np.ndarray
+    faces: np.ndarray
 
 class PolyhedraArgs:
     def __init__(self, atom1_idx, atom2_idx, color, n_nearest=6):
@@ -215,13 +221,13 @@ class SuperCellSimple:
         # generate vertices of disc with normal // [0,0,1]
         theta = np.linspace(0, 2*np.pi,npts-1)
         disc_verts = np.zeros((npts, 3))
-        disc_faces = np.zeros((npts-2, 3), dtype=int)
         disc_verts[1:,0] = self.rotation_plane_radius*np.cos(theta)
         disc_verts[1:,1] = self.rotation_plane_radius*np.sin(theta)
         # rotate given normal
         rot_mat = get_rotation_matrix(self.n)
         disc_verts = rot_mat.dot(disc_verts.T).T
         # label faces
+        disc_faces = np.zeros((npts-2, 3), dtype=int)
         disc_faces[:,1] = np.arange(1,npts-1)
         disc_faces[:,2] = np.arange(2,npts)
         disc_visuals = []
@@ -303,50 +309,65 @@ class SuperCellSimple:
                                     arrow_color=color)
 
     def make_polyhedra_visuals(self):
-        hulls = self._calc_convex_hulls()
+        polyhedra = self._calc_convex_polyhedra_mesh()
         # loop over all unit cells and add origin to mesh vertices
         polyhedra_visuals = []
         for zcen in range(self.int_extent[2]):
             for ycen in range(self.int_extent[1]):
                 for xcen in range(self.int_extent[0]):
                     lvec = self.transform_points_abc_to_xyz(np.array([xcen, ycen, zcen]))
-                    for hull in hulls:
-                        verts = hull.points[hull.vertices] + lvec
+                    for poly in polyhedra:
+                        verts = poly.vertices + lvec
                         _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(verts))
                         if len(irem) < self.polyhedra_args.n_nearest:
                             # polyhedron has at least 1 vertex inside extent
-                            mesh = scene.visuals.Mesh(vertices=verts, faces=hull.simplices, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
+                            mesh = scene.visuals.Mesh(vertices=verts, faces=poly.faces, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
                             wireframe_filter = WireframeFilter(color=3*[0.7])
                             mesh.attach(wireframe_filter)
                             polyhedra_visuals.append(mesh)
         return polyhedra_visuals
 
-    def _calc_convex_hulls(self):
+    def _calc_convex_polyhedra_mesh(self):
         atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
         natom2 = atom2_pos_xyz.shape[0]
-        hulls = []
+        polyhedra = []
         for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
             # find vector bewteen atom1 in unit cells [0-1] in each direction to atom2 in first unit cell
-            dr = np.zeros((8*natom2, 3))
+            dr = np.zeros((27*natom2, 3))
             icell = 0
-            for dz in range(2):
-                for dy in range(2):
-                    for dx in range(2):
+            for dz in range(-1,2):
+                for dy in range(-1,2):
+                    for dx in range(-1,2):
                         atom1_pos_xyz = self.transform_points_abc_to_xyz(atom1_pos_rlu + np.array([dx, dy, dz]))
                         dr[icell*natom2:(icell+1)*natom2,:] = -atom2_pos_xyz + atom1_pos_xyz  # ordered like this due to np broadcasting
                         icell += 1
-            # keep unique within some tolerance (1e-3) - return_indices=true and get from unrounded array
+            # keep unique within some tolerance (1e-3)
             _, unique_idx = np.unique(np.round(dr,3), axis=0, return_index=True)
             dr = dr[unique_idx]
             # sort and get n shortest
             isort = np.argsort(np.linalg.norm(dr, axis=1))
             dr = dr[isort[:self.polyhedra_args.n_nearest]]
-            if np.linalg.matrix_rank(dr) == 3:
-                hulls.append(ConvexHull(dr + self.transform_points_abc_to_xyz(atom1_pos_rlu)))
+            atom1_pos_xyz = self.transform_points_abc_to_xyz(atom1_pos_rlu)
+            verts_xyz = dr + atom1_pos_xyz
+            rank = np.linalg.matrix_rank(dr)
+            if rank == 3:
+                hull = ConvexHull(verts_xyz)
+                polyhedra.append(PolyhedronMesh(vertices=verts_xyz[hull.vertices], faces=hull.simplices))
+            elif rank == 2:
+                # transform to basis of polygon plane
+                *_, _, evecs_inv = np.linalg.svd(verts_xyz - verts_xyz[0])  # sorted in decreasing order of singular value
+                verts_2d = (evecs_inv @ verts_xyz.T).T
+                hull = ConvexHull(verts_2d[:, :-1]) # exclude last col (out of polygon plane - all have same value)
+                verts_xyz = np.vstack((atom1_pos_xyz, verts_xyz[hull.vertices], ))  # include central atom1 position as vertex
+                nverts = verts_xyz.shape[0]
+                faces = np.zeros((nverts-1, 3), dtype=int)
+                faces[:,1] = np.arange(1,nverts)
+                faces[:,2] = np.arange(2,nverts + 1)
+                faces[-1,2] = 1  # close the shape by returning to first non-central vertex
+                polyhedra.append(PolyhedronMesh(vertices=verts_xyz, faces=faces))
             else:
-                # need to find basis vectors in plane, transform and find hull in 2D
-                print('2D polyhedra not implemented yet.')
-        return hulls
+                print('Polyhedron vertices must not be a line or point')
+        return polyhedra
     
     
     def _remove_vertices_outside_extent(self, verts):
@@ -359,9 +380,9 @@ class SuperCellSimple:
         iremove = np.hstack((iremove, iremove[iatom2]-1, iremove[~iatom2]+1))
         return np.delete(verts, iremove, axis=0), iremove
 
-    def _remove_points_outside_extent(self, points):
+    def _remove_points_outside_extent(self, points, tol=1e-10):
         # DO THIS BEFORE CONVERTING TO XYZ
-        iremove = np.flatnonzero(np.logical_or(np.any(points<0, axis=1), np.any((points - self.extent)>0, axis=1)))
+        iremove = np.flatnonzero(np.logical_or(np.any(points < -tol, axis=1), np.any((points - self.extent)>tol, axis=1)))
         return np.delete(points, iremove, axis=0), iremove
 
 class UnitCellSimple:
