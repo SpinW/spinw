@@ -303,19 +303,38 @@ class SuperCellSimple:
                                     arrow_color=color)
 
     def make_polyhedra_visuals(self):
+        hulls = self._calc_convex_hulls()
+        # loop over all unit cells and add origin to mesh vertices
+        polyhedra_visuals = []
+        for zcen in range(self.int_extent[2]):
+            for ycen in range(self.int_extent[1]):
+                for xcen in range(self.int_extent[0]):
+                    lvec = self.transform_points_abc_to_xyz(np.array([xcen, ycen, zcen]))
+                    for hull in hulls:
+                        verts = hull.points[hull.vertices] + lvec
+                        _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(verts))
+                        if len(irem) < self.polyhedra_args.n_nearest:
+                            # polyhedron has at least 1 vertex inside extent
+                            mesh = scene.visuals.Mesh(vertices=verts, faces=hull.simplices, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
+                            wireframe_filter = WireframeFilter(color=3*[0.7])
+                            mesh.attach(wireframe_filter)
+                            polyhedra_visuals.append(mesh)
+        return polyhedra_visuals
+
+    def _calc_convex_hulls(self):
         atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
+        natom2 = atom2_pos_xyz.shape[0]
         hulls = []
         for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
             # find vector bewteen atom1 in unit cells [0-1] in each direction to atom2 in first unit cell
-            dr = None
+            dr = np.zeros((8*natom2, 3))
+            icell = 0
             for dz in range(2):
                 for dy in range(2):
                     for dx in range(2):
                         atom1_pos_xyz = self.transform_points_abc_to_xyz(atom1_pos_rlu + np.array([dx, dy, dz]))
-                        if dr is None:
-                            dr = -atom2_pos_xyz + atom1_pos_xyz  # ordered like this due to np broadcasting
-                        else:
-                            dr = np.vstack((dr, -atom2_pos_xyz + atom1_pos_xyz))
+                        dr[icell*natom2:(icell+1)*natom2,:] = -atom2_pos_xyz + atom1_pos_xyz  # ordered like this due to np broadcasting
+                        icell += 1
             # keep unique within some tolerance (1e-3) - return_indices=true and get from unrounded array
             _, unique_idx = np.unique(np.round(dr,3), axis=0, return_index=True)
             dr = dr[unique_idx]
@@ -327,24 +346,9 @@ class SuperCellSimple:
             else:
                 # need to find basis vectors in plane, transform and find hull in 2D
                 print('2D polyhedra not implemented yet.')
-
-        # loop over all unit cells and add origin to mesh vertices
-        polyhedra_visuals = []
-        for zcen in range(self.int_extent[2]):
-            for ycen in range(self.int_extent[1]):
-                for xcen in range(self.int_extent[0]):
-                    lvec = self.transform_points_abc_to_xyz(np.array([xcen, ycen, zcen]))
-                    for hull in hulls:
-                        verts = hull.points[hull.vertices] + lvec
-                        _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(verts))
-                        if len(irem) < self.polyhedra_args.n_nearest:
-                            # polyhedra has at least 1 vertex inside extent
-                            mesh = scene.visuals.Mesh(vertices=verts, faces=hull.simplices, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
-                            wireframe_filter = WireframeFilter(color=3*[0.7])
-                            mesh.attach(wireframe_filter)
-                            polyhedra_visuals.append(mesh)
-        return polyhedra_visuals
-
+        return hulls
+    
+    
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
         # remove pairs of verts that correpsond to a line outside the extent
