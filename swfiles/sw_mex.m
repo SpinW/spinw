@@ -47,16 +47,17 @@ if param.compile
     swloop_dir = [sw_rootdir filesep 'external' filesep 'swloop'];
     eigen_ver = '3.4.0';
     if ~exist([swloop_dir filesep 'eigen-' eigen_ver], 'dir')
+        cd(swloop_dir);
+        disp('Downloading Eigen')
         mkdir(['eigen-' eigen_ver]);
         cd(['eigen-' eigen_ver]);
         urlwrite(['https://eigen.googlesource.com/mirror/+archive/refs/tags/' eigen_ver '.tar.gz'], 'eigen.tar.gz');
         gunzip('eigen.tar.gz');
         untar('eigen.tar');
-        cd('..');
+        cd(aDir);
     end
     % compile the mex files
     if ispc
-%{
         cd(eig_omp_dir);
         mex('-v','-largeArrayDims','eig_omp.cpp','-lmwlapack',...
             'COMPFLAGS=$COMPFLAGS /openmp','LINKFLAGS=$LINKFLAGS /nodefaultlib:vcomp "$MATLABROOT\bin\win64\libiomp5md.lib"')
@@ -67,7 +68,6 @@ if param.compile
         cd(mtimesx_dir);
         mex('-v','-largeArrayDims','sw_mtimesx.c','-lmwblas','COMPFLAGS=$COMPFLAGS /openmp',...
             'LINKFLAGS=$LINKFLAGS /nodefaultlib:vcomp "$MATLABROOT\bin\win64\libiomp5md.lib"')
-%}
         cd(swloop_dir);
         mex('-R2018a',['COMPFLAGS= /I eigen-' eigen_ver],'swloop.cpp')
     elseif ismac
