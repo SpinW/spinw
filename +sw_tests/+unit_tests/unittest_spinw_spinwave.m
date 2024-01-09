@@ -25,7 +25,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         % Test directions and literal qpts work
         qpts_h5 = {{[0 0 0], [1 0 0], 5}, ...
                    [0:0.25:1; zeros(2,5)]};
-        mex = {0, 1};
+        mex = {0, 'old'};
     end
 
     methods (TestClassSetup)

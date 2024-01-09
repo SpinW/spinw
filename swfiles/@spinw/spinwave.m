@@ -615,7 +615,8 @@ if any(bq)
     
     idxbqD  = [bqAtom1' bqAtom1'+nMagExt];
     %idxbqD2 = [bqAtom1'+nMagExt bqAtom1]; % SP2
-    
+else
+    bqdR = [];
 end
 
 
@@ -655,6 +656,7 @@ fprintf0(fid,[yesNo{param.formfact+1} ' magnetic form factor is'...
 fprintf0(fid,[yesNo{param.gtensor+1} ' g-tensor is included in the '...
     'calculated structure factor.\n']);
 
+z1 = zed;
 if param.gtensor
     
     gtensor = SI.g;
@@ -665,6 +667,9 @@ if param.gtensor
         nxn = n'*n;
         m1  = eye(3);
         gtensor = 1/2*gtensor - 1/2*mmat(mmat(nx,gtensor),nx) + 1/2*mmat(mmat(nxn-m1,gtensor),nxn) + 1/2*mmat(mmat(nxn,gtensor),2*nxn-m1);
+    end
+    for i1 = 1:size(gtensor, 3)
+        z1(:,i1) = gtensor(:,:,i1) * zed(:,i1);
     end
 end
 
@@ -701,9 +706,56 @@ if param.formfact
     FF = repmat(param.formfactfun(permute(obj.unit_cell.ff(1,:,obj.matom.idx),[3 2 1]),hklA0),[prod(nExt) 1]);
 else
     spectra.formfact = false;
+    FF = [];
 end
 
-for jj = 1:nSlice
+if (~isstring(useMex) && ~ischar(useMex) && useMex) || strcmp(useMex, 'auto')
+    % For large unit cells, the original mex code is much better because it parallelizes the individual
+    % eigen/cholesky decompositions operations (chol / eig) in addition to parallelising over Q-points
+    % The new code uses Eigen for these operations which is strictly serial so parallises better over Q-points
+    % but will be super slow for large nMagExt
+    if nMagExt > 250  % This threshold needs to be explored more
+        useMex = 'old';
+    else
+        useMex = 'new';
+    end
+end
+
+if any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV
+    pars = struct('hermit', param.hermit, 'omega_tol', param.omega_tol, 'formfact', param.formfact, ...
+        'incomm', incomm, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), 'nThreads', pref.nthread);
+    ham_diag = diag(accumarray([idxA2; idxD2], 2*[A20 D20], [1 1]*2*nMagExt));
+    idxAll = [idxA1; idxB; idxD1]; ABCD = [AD0 2*BC0 conj(AD0)];
+    bqABCD = []; bq_ham_d = []; idxBq = []; ham_MF = {};
+    if pars.bq
+        bqABCD = [bqA0 conj(bqA0) 2*bqB0];
+        idxBq = [idxbqA; idxbqA2; idxbqB];
+        bq_ham_d = diag(accumarray([idxbqC; idxbqC2; idxbqD], [bqC bqC 2*bqD], [1 1]*2*nMagExt));
+        assert(isreal(bqABCD), 'Internal logical error');
+    end
+    if pars.field
+        for ii = 1:nTwin
+            ham_MF{ii} = accumarray(idxMF, MF(:,:,ii), [1 1]*2*nMagExt);
+        end
+    end
+    try
+        [omega, Sab, warn1, orthWarn0] = swloop(pars, hklExt, ...
+            ABCD, idxAll, ham_diag, dR, RR, S0, z1, FF, bqdR, bqABCD, idxBq, bq_ham_d, ham_MF);
+    catch err
+        if ~isempty(strfind(err.message, 'notposdef'))
+            error('chol_omp:notposdef', 'Hamiltonian is not positive definite');
+        elseif ~isempty(strfind(err.message, 'Eigensolver'))
+            error('swloop:notconverge', 'Could not determine eigenvalues of Hamiltonian');
+        else
+            rethrow(err);
+        end
+    end
+    Sab = Sab / prod(nExt);
+    if param.hermit && sum(abs(imag(omega(:)))) < 1e-5
+        omega = real(omega);
+    end
+else
+  for jj = 1:nSlice
     % q indices selected for every chunk
     hklIdxMEM  = hklIdx(jj):(hklIdx(jj+1)-1);
     % q values contatining the k_m vector
@@ -796,7 +848,7 @@ for jj = 1:nSlice
         % basis functions of the magnon modes
         V = zeros(2*nMagExt,2*nMagExt,nHklMEM);
         
-        if useMex && nHklMEM>1
+        if any(useMex) && nHklMEM>1
             % use mex files to speed up the calculation
             % mex file will return an error if the matrix is not positive definite.
             [K2, invK] = chol_omp(ham,'Colpa','tol',param.omega_tol);
@@ -858,7 +910,7 @@ for jj = 1:nSlice
     else
         % All the matrix calculations are according to White's paper
         % R.M. White, et al., Physical Review 139, A450?A454 (1965)
-        if useMex
+        if any(useMex)
             gham = sw_mtimesx(gComm, ham);
         else
             gham = mmat(gComm,ham);
@@ -924,6 +976,7 @@ for jj = 1:nSlice
     Sab(:,:,:,hklIdxMEM) = squeeze(sum(zeda.*ExpFL.*VExtL,4)).*squeeze(sum(zedb.*ExpFR.*VExtR,3))/prod(nExt);
     
     sw_timeit(jj/nSlice*100,0,param.tid);
+  end
 end
 
 [~,singWarn] = lastwarn;

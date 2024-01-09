@@ -110,7 +110,7 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
         function fieldname = get_fieldname(testCase, pars)
             if isempty(pars)
                 fieldname = 'data';
-            elseif ischar(pars);
+            elseif ischar(pars)
                 fieldname = pars;
             else
                 fieldname = ['d' reshape(dec2hex(testCase.get_hash(pars)),1,[])];

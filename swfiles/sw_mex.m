@@ -44,8 +44,19 @@ if param.compile
     eig_omp_dir = [sw_rootdir filesep 'external' filesep 'eig_omp'];
     chol_omp_dir = [sw_rootdir filesep 'external' filesep 'chol_omp'];
     mtimesx_dir = [sw_rootdir filesep 'external' filesep 'mtimesx'];
+    swloop_dir = [sw_rootdir filesep 'external' filesep 'swloop'];
+    eigen_ver = '3.4.0';
+    if ~exist([swloop_dir filesep 'eigen-' eigen_ver], 'dir')
+        mkdir(['eigen-' eigen_ver]);
+        cd(['eigen-' eigen_ver]);
+        urlwrite(['https://eigen.googlesource.com/mirror/+archive/refs/tags/' eigen_ver '.tar.gz'], 'eigen.tar.gz');
+        gunzip('eigen.tar.gz');
+        untar('eigen.tar');
+        cd('..');
+    end
     % compile the mex files
     if ispc
+%{
         cd(eig_omp_dir);
         mex('-v','-largeArrayDims','eig_omp.cpp','-lmwlapack',...
             'COMPFLAGS=$COMPFLAGS /openmp','LINKFLAGS=$LINKFLAGS /nodefaultlib:vcomp "$MATLABROOT\bin\win64\libiomp5md.lib"')
@@ -56,6 +67,9 @@ if param.compile
         cd(mtimesx_dir);
         mex('-v','-largeArrayDims','sw_mtimesx.c','-lmwblas','COMPFLAGS=$COMPFLAGS /openmp',...
             'LINKFLAGS=$LINKFLAGS /nodefaultlib:vcomp "$MATLABROOT\bin\win64\libiomp5md.lib"')
+%}
+        cd(swloop_dir);
+        mex('-R2018a',['COMPFLAGS= /I eigen-' eigen_ver],'swloop.cpp')
     elseif ismac
         % add =libiomp5 after -fopenmp?
         cd(eig_omp_dir);
@@ -70,6 +84,8 @@ if param.compile
         mex('-v','-largeArrayDims','sw_mtimesx.c', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
             'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas"', ...
             'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
+        cd(swloop_dir);
+        mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
     else
         % linux?
         cd(eig_omp_dir);
@@ -78,6 +94,8 @@ if param.compile
         mex('-v','-largeArrayDims','chol_omp.cpp','-lmwlapack','-lmwblas','CXXFLAGS=$CXXFLAGS -fopenmp -pthread','LDFLAGS=$LDFLAGS -fopenmp')
         cd(mtimesx_dir);
         mex('-v','-largeArrayDims','sw_mtimesx.c','-lmwblas','CXXFLAGS=$CXXFLAGS -fopenmp -pthread','LDFLAGS=$LDFLAGS -fopenmp')
+        cd(swloop_dir);
+        mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
     end
     % return back to original folder
     cd(aDir);
@@ -261,6 +279,12 @@ end
 
 if param.swtest
     pref = swpref;
+    import matlab.unittest.TestCase
+    import matlab.unittest.constraints.IsEqualTo
+    import matlab.unittest.constraints.RelativeTolerance
+    import matlab.unittest.constraints.AbsoluteTolerance
+    theseBounds = RelativeTolerance(0.05) | AbsoluteTolerance(5e-6);
+    testCase = TestCase.forInteractiveUse;
     
     % Antiferromagnetic square lattice (tutorial 4, Cu+1 S=1) - small system [3 spins, n=6]
     AFsq = spinw;
@@ -277,16 +301,31 @@ if param.swtest
     hkl = {[1/4 3/4 0] [1/2 1/2 0] [1/2 0 0] [3/4 1/4 0] [1 0 0] [3/2 0 0] 50000};
     nm = 15;   % Ensure same number of slices for all tests
     pref.usemex = true;
-    tic; linespec_herm_mex      = AFsq.spinwave(hkl,'hermit',true,'optmem',nm,'fid',0);  t1=toc;
+    tic; linespec_herm_mex = AFsq.spinwave(hkl,'hermit',true,'optmem',nm,'fid',0); t1=toc;
     pref.usemex = false;
-    tic; linespec_herm_nomex    = AFsq.spinwave(hkl,'hermit',true,'optmem',nm,'fid',0); t2=toc;
+    tic; linespec_herm_nomex = AFsq.spinwave(hkl,'hermit',true,'optmem',nm,'fid',0); t2=toc;
     pref.usemex = true;
-    tic; linespec_nonherm_mex   = AFsq.spinwave(hkl,'hermit',false,'optmem',nm,'fid',0); t3=toc;
+    tic; linespec_nonherm_mex = AFsq.spinwave(hkl,'hermit',false,'optmem',nm,'fid',0); t3=toc;
     pref.usemex = false;
-    tic; linespec_nonherm_nomex = AFsq.spinwave(hkl,'hermit',false,'optmem',nm,'fid',0);t4=toc;
+    tic; linespec_nonherm_nomex = AFsq.spinwave(hkl,'hermit',false,'optmem',nm,'fid',0); t4=toc;
+
+    emax = ceil(max(linespec_herm_nomex.omega(:))/10)*10; evect = linspace(0, emax, 100);
+    sp_mex = sw_egrid(sw_neutron(linespec_herm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_herm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
+    sp_mex = sw_egrid(sw_neutron(linespec_nonherm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_nonherm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
     
-    fprintf('             %16s  %16s  %16s  %16s\n','Hermitian Mex','Hermitian NoMex','NonHermitian Mex','NonHermitian NoMex');
-    fprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f\n',t1*5,t2*5,t3*5,t4*5);
+    hdr = sprintf('             %16s  %16s  %16s  %16s','Hermitian Mex','Hermitian NoMex','NonHermitian Mex','NonHermitian NoMex');
+    rr1 = sprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f',t1*5,t2*5,t3*5,t4*5);
+    fprintf('%s\n%s\n', hdr, rr1);
     
     % Times
     %   ndlt811:         43.7453   72.0950  406.1366  611.1799
@@ -328,8 +367,23 @@ if param.swtest
     tic; linespec_nonherm_mex = hK.spinwave(hkl,'hermit',false,'optmem',nm); t3=toc;
     pref.usemex = false;
     tic; linespec_nonherm_nomex = hK.spinwave(hkl,'hermit',false,'optmem',nm); t4=toc;
-    fprintf('             %16s  %16s  %16s  %16s\n','Hermitian Mex','Hermitian NoMex','NonHermitian Mex','NonHermitian NoMex');
-    fprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f\n',t1,t2,t3,t4);
+
+    evect = linspace(0, ceil(max(linespec_herm_nomex.omega(:))/10)*10, 100);
+    sp_mex = sw_egrid(sw_neutron(linespec_herm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_herm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
+    sp_mex = sw_egrid(sw_neutron(linespec_nonherm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_nonherm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
+    
+    rr2 = sprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f',t1,t2,t3,t4);
+    fprintf('%s\n%s\n', hdr, rr2);
     
     %{
 [~,nSuperlat] = rat(hK.mag_str.k,0.01);
@@ -389,14 +443,30 @@ disp(sprintf('Supercell    % 16.6f  % 16.6f  % 16.6f    % 16.6f',t5,t6,t7,t8));
     pref.usemex = false;
     tic; linespec_nonherm_nomex = bfof.spinwave(hkl,'hermit',false,'optmem',nm); t4=toc;
     
-    fprintf('             %16s  %16s  %16s  %16s\n','Hermitian Mex','Hermitian NoMex','NonHermitian Mex','NonHermitian NoMex');
-    fprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f\n',t1,t2,t3,t4);
+    evect = linspace(0, ceil(max(linespec_herm_nomex.omega(:))/10)*10, 100);
+    sp_mex = sw_egrid(sw_neutron(linespec_herm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_herm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
+    sp_mex = sw_egrid(sw_neutron(linespec_nonherm_mex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    sp_nomex = sw_egrid(sw_neutron(linespec_nonherm_nomex),'component','Sperp', 'Evect', evect, 'imagChk', false);
+    testCase.verifyThat(sort(real(sp_mex.omega)), IsEqualTo(sort(real(sp_nomex.omega)), 'Within', theseBounds));
+    testCase.verifyThat(sp_mex.swConv, IsEqualTo(sp_nomex.swConv, 'Within', theseBounds));
+    %figure; sw_plotspec(sp_mex); figure; sw_plotspec(sp_nomex);
+    %dsW = sp_mex.swConv - sp_nomex.swConv; dsW(find(abs(dsW)<1e-5)) = NaN; figure; pcolor(dsW); shading flat;
+    
+    rr3 = sprintf('Run Time(s)  % 16.6f  % 16.6f  % 16.6f    % 16.6f',t1,t2,t3,t4);
+    fprintf('%s\n%s\n', hdr, rr3);
     % Times
     %   ndlt811:        123.6812  139.6476  197.1951  363.2818
     %   eryenyo:        127.4535  135.8621  220.9112  389.4686
     %   ndl01wkc26243:   67.8451  117.7316  146.2180  474.1894
     %   simon_i9_32Gb:  74.31700   84.7511  253.0013  342.0254
     %   simonWork:      75.40301  107.8941  216.4226  467.2630
+
+    fprintf('%s\n%s (small model)\n%s (medium model)\n%s (large model)\n', hdr, rr1, rr2, rr3);
 
 end
 end
