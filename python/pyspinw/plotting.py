@@ -219,7 +219,7 @@ class SuperCellSimple:
     
     def make_rotation_plane_visuals(self, npts=15):
         # generate vertices of disc with normal // [0,0,1]
-        theta = np.linspace(0, 2*np.pi,npts-1)
+        theta = np.linspace(0, 2*np.pi,npts)[:-1] # exclude 2pi
         disc_verts = np.zeros((npts, 3))
         disc_verts[1:,0] = self.rotation_plane_radius*np.cos(theta)
         disc_verts[1:,1] = self.rotation_plane_radius*np.sin(theta)
@@ -227,9 +227,7 @@ class SuperCellSimple:
         rot_mat = get_rotation_matrix(self.n)
         disc_verts = rot_mat.dot(disc_verts.T).T
         # label faces
-        disc_faces = np.zeros((npts-2, 3), dtype=int)
-        disc_faces[:,1] = np.arange(1,npts-1)
-        disc_faces[:,2] = np.arange(2,npts)
+        disc_faces = self._label_2D_mesh_faces(disc_verts)
         disc_visuals = []
         for cell in self.unit_cells:
             for atom in cell.atoms:
@@ -359,16 +357,20 @@ class SuperCellSimple:
                 verts_2d = (evecs_inv @ verts_xyz.T).T
                 hull = ConvexHull(verts_2d[:, :-1]) # exclude last col (out of polygon plane - all have same value)
                 verts_xyz = np.vstack((atom1_pos_xyz, verts_xyz[hull.vertices], ))  # include central atom1 position as vertex
-                nverts = verts_xyz.shape[0]
-                faces = np.zeros((nverts-1, 3), dtype=int)
-                faces[:,1] = np.arange(1,nverts)
-                faces[:,2] = np.arange(2,nverts + 1)
-                faces[-1,2] = 1  # close the shape by returning to first non-central vertex
+                faces = self._label_2D_mesh_faces(verts_xyz)
                 polyhedra.append(PolyhedronMesh(vertices=verts_xyz, faces=faces))
             else:
                 print('Polyhedron vertices must not be a line or point')
         return polyhedra
     
+    def _label_2D_mesh_faces(self, verts):
+        # assume centre point has index 0
+        nverts = verts.shape[0]
+        faces = np.zeros((nverts-1, 3), dtype=int)
+        faces[:,1] = np.arange(1,nverts)
+        faces[:,2] = np.arange(2,nverts + 1)
+        faces[-1,2] = 1  # close the shape by returning to first non-central vertex
+        return faces
     
     def _remove_vertices_outside_extent(self, verts):
         # DO THIS BEFORE CONVERTING TO XYZ
