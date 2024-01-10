@@ -37,7 +37,7 @@ class SuperCellSimple:
         # get properties from swobj
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
         # add atoms
-        _, single_ion = swobj.intmatrix('plotmode', True,'extend',False,'sortDM',False,'zeroC',False,'nExt',[1, 1, 1])
+        _, single_ion = swobj.intmatrix(plotmode= True, extend=False, sortDM=False, zeroC=False, nExt=[1, 1, 1])
         aniso_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
         g_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
         imat = -1  # index of aniso and g matrices
@@ -69,9 +69,13 @@ class SuperCellSimple:
             i_dl = np.squeeze(bond_idx==ibond)
             for mat_idx in swobj.coupling['mat_idx'][:, np.argmax(i_dl)]:
                 if mat_idx > 0:
-                    unit_cell.add_bond_vertices(f"bond{ibond}_mat{mat_idx}", np.squeeze(swobj.coupling['atom1'])[i_dl]-1, np.squeeze(swobj.coupling['atom2'])[i_dl]-1, swobj.coupling['dl'].T[i_dl],
-                                                bond_matrices[:,:,mat_idx-1], color=swobj.matrix['color'][:,mat_idx-1]/255)
-        
+                    unit_cell.add_bond_vertices(name=f"bond{ibond}_mat{mat_idx}",
+                                                atom1_idx=np.squeeze(swobj.coupling['atom1'])[i_dl]-1,
+                                                atom2_idx=np.squeeze(swobj.coupling['atom2'])[i_dl]-1,
+                                                dl=swobj.coupling['dl'].T[i_dl],
+                                                mat=bond_matrices[:,:,mat_idx-1],
+                                                color=swobj.matrix['color'][:,mat_idx-1]/255)
+
         # generate unit cells in supercell
         self.unit_cells = []
         self.extent = np.asarray(extent)
@@ -111,7 +115,7 @@ class SuperCellSimple:
         return points @ self.inv_basis_vec
 
     def apply_magnetic_structure(self, swobj):
-        magstr = swobj.magstr('NExt', [int(ext) for ext in self.int_extent])
+        magstr = swobj.magstr(NExt=[int(ext) for ext in self.int_extent])
         mj = magstr['S']
         if not np.any(mj):
             print('No magnetic structure defined')
@@ -135,7 +139,7 @@ class SuperCellSimple:
         pos, colors, sizes, labels, iremove = self.get_atomic_positions_xyz_in_supercell()
         subvisuals = []
         if self.do_plot_cell:
-            self.plot_unit_cell_box(view.scene)  # plot girdlines for unit cell boundaries
+            self.plot_unit_cell_box(view.scene)  # plot gridlines for unit cell boundaries
         if self.do_plot_mag:
             self.plot_magnetic_structure(view.scene, pos, colors, iremove)
         if self.do_plot_atoms:
