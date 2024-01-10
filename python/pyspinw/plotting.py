@@ -388,9 +388,9 @@ class SuperCellSimple:
         return np.delete(points, iremove, axis=0), iremove
 
 class UnitCellSimple:
-    def __init__(self, atoms_list=[], bonds={}, origin=np.array([0,0,0]), basis_vec=np.eye(3)):
-        self.atoms = atoms_list
-        self.bonds = bonds
+    def __init__(self, atoms_list=None, bonds=None, origin=np.array([0,0,0]), basis_vec=np.eye(3)):
+        self.atoms = atoms_list if atoms_list is not None else []
+        self.bonds = bonds if bonds is not None else {}
         self.origin = np.array(origin)
         self.basis_vec = basis_vec  # each col is a basis vector
     
