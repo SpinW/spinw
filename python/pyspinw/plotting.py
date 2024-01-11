@@ -8,6 +8,7 @@ import copy
 from scipy.spatial.transform import Rotation
 from scipy.spatial import ConvexHull
 from dataclasses import dataclass
+import warnings
 
 @dataclass
 class PolyhedronMesh:
@@ -118,7 +119,7 @@ class SuperCellSimple:
         magstr = swobj.magstr(NExt=[int(ext) for ext in self.int_extent])
         mj = magstr['S']
         if not np.any(mj):
-            print('No magnetic structure defined')
+            warnings.warn('No magnetic structure defined')
             self.do_plot_mag = False
             self.do_plot_plane = False
             return
@@ -364,7 +365,7 @@ class SuperCellSimple:
                 faces = self._label_2D_mesh_faces(verts_xyz)
                 polyhedra.append(PolyhedronMesh(vertices=verts_xyz, faces=faces))
             else:
-                print('Polyhedron vertices must not be a line or point')
+                warnings.warn('Polyhedron vertices must not be a line or point')
         return polyhedra
     
     def _label_2D_mesh_faces(self, verts):
@@ -457,7 +458,7 @@ class AtomSimple:
         # diagonalise so can normalise eigenvalues 
         evals, evecs = np.linalg.eig(mat)
         if not evals.all():
-            print(f"Singular {tensor} matrix on atom {self.label}")
+            warnings.warn(f"Singular {tensor} matrix on atom {self.label}")
             return np.zeros(mat.shape)  # transform will be ignored
         else:
             if tensor=="aniso":
