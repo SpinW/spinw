@@ -34,6 +34,9 @@ class SuperCellSimple:
         self.do_plot_ion = ion_type is not None
         self.ion_type = ion_type  # "aniso" or "g"
         self.polyhedra_args = polyhedra_args
+        # magnetic structure
+        self.mj = None
+        self.n = None
 
         # get properties from swobj
         unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
@@ -48,19 +51,17 @@ class SuperCellSimple:
             if atoms_mag[iatom]:
                 # get S
                 imatom = np.argmax(swobj.matom()['idx'].flatten().astype(int)== atom_idx)
-                S = swobj.matom()['S'].flat[imatom]
                 # get single-ion matrices
                 imat += 1
                 g_mat = g_mats[:,:,imat]
                 aniso_mat = aniso_mats[:,:,imat]
             else:
-                S = None
                 g_mat = None
                 aniso_mat = None
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
-            unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], S=S, size=size, color=color, label=label,
+            unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], is_mag=atoms_mag[iatom], size=size, color=color, label=label,
                                           gtensor_mat=g_mat, aniso_mat=aniso_mat))
             
         # add bonds - only plot bonds for which there is a mat_idx
@@ -88,8 +89,7 @@ class SuperCellSimple:
                     self.unit_cells.append(unit_cell.translate_by([xcen, ycen, zcen]))
                     
         # get magnetic structure for all spins in supercell
-        self.n = np.zeros(3)
-        self.apply_magnetic_structure(swobj)
+        self.set_magnetic_structure(swobj)
         
         # transforms
         self.basis_vec = unit_cell.basis_vec
@@ -116,34 +116,32 @@ class SuperCellSimple:
     def transform_points_xyz_to_abc(self, points):
         return points @ self.inv_basis_vec
 
-    def apply_magnetic_structure(self, swobj):
+    def set_magnetic_structure(self, swobj):
         magstr = swobj.magstr(NExt=[int(ext) for ext in self.int_extent])
-        mj = magstr['S']
-        if not np.any(mj):
+        if not np.any(magstr['S']):
             warnings.warn('No magnetic structure defined')
             self.do_plot_mag = False
             self.do_plot_plane = False
             return
-        icol = 0
-        for uc in self.unit_cells:
-            # think is generated in correct order...
-            for atom in uc.atoms:
-                if atom.S is not None:
-                    atom.moment = mj[:,icol]
-                    icol+=1
+        self.mj = magstr['S'].T
         self.n = np.asarray(magstr['n'])  # plane of rotation of moment
+
 
     def plot(self):
         canvas = scene.SceneCanvas(bgcolor='white',  show=True) # size=(600, 600),
         view = canvas.central_widget.add_view()
         view.camera = scene.cameras.TurntableCamera() # fov=5)
         
-        pos, colors, sizes, labels, iremove = self.get_atomic_positions_xyz_in_supercell()
+        pos, is_matom, colors, sizes, labels, iremove, iremove_mag = self.get_atomic_properties_in_supercell()
+        # delete spin vectors outside extent
+        if self.mj is not None:
+            mj = np.delete(self.mj, iremove_mag, axis=0)
+        
         subvisuals = []
         if self.do_plot_cell:
             self.plot_unit_cell_box(view.scene)  # plot gridlines for unit cell boundaries
         if self.do_plot_mag:
-            self.plot_magnetic_structure(view.scene, pos, colors, iremove)
+            self.plot_magnetic_structure(view.scene, mj, pos[is_matom], colors[is_matom])
         if self.do_plot_atoms:
             self.plot_atoms(view.scene, pos, colors, sizes, labels)
         if self.do_plot_bonds:
@@ -151,7 +149,7 @@ class SuperCellSimple:
         if self.do_plot_axes:
             self.plot_cartesian_axes(view.scene)
         if self.do_plot_plane:
-            subvisuals.extend(self.make_rotation_plane_visuals())
+            subvisuals.extend(self.make_rotation_plane_visuals(pos[is_matom], colors[is_matom]))
         if self.do_plot_ion:
             subvisuals.extend(self.make_ion_visuals())
         if self.polyhedra_args is not None:
@@ -197,7 +195,7 @@ class SuperCellSimple:
                     scene.visuals.Line(pos = self.transform_points_abc_to_xyz(np.array([[xcen, 0, zcen], [xcen, np.ceil(self.extent[1]), zcen]])),
                                        parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
 
-    def get_atomic_positions_xyz_in_supercell(self):
+    def get_atomic_properties_in_supercell(self):
         atoms_pos_unit_cell = np.array([atom.pos for atom in self.unit_cells[0].atoms])
         natoms = atoms_pos_unit_cell.shape[0]
         atoms_pos_supercell = np.zeros((self.ncells*natoms, 3))
@@ -208,23 +206,25 @@ class SuperCellSimple:
                 for xcen in range(self.int_extent[0]):
                     atoms_pos_supercell[icell*natoms:(icell+1)*natoms,:] = atoms_pos_unit_cell + np.array([xcen, ycen, zcen])
                     icell += 1
+        is_matom = np.tile([atom.is_mag for atom in self.unit_cells[0].atoms], self.ncells)
         sizes = np.tile([atom.size for atom in self.unit_cells[0].atoms], self.ncells)
         colors = np.tile(np.array([atom.color for atom in self.unit_cells[0].atoms]).reshape(-1,3), (self.ncells, 1))
-        # remove points and vertices beyond extent
+        # remove points beyond extent of supercell
         atoms_pos_supercell, iremove = self._remove_points_outside_extent(atoms_pos_supercell)
         sizes = np.delete(sizes, iremove)
         colors = np.delete(colors, iremove, axis=0)
+        # get indices of magnetic atoms outside extents
+        iremove_mag = [np.sum(is_matom[:irem]) for irem in iremove if is_matom[irem]]
+        is_matom = np.delete(is_matom, iremove)
         # transfrom to xyz
         atoms_pos_supercell = self.transform_points_abc_to_xyz(atoms_pos_supercell)
         # get atomic labels
         labels = np.tile([atom.label for atom in self.unit_cells[0].atoms], self.ncells)
         labels = np.delete(labels, iremove).tolist()
-        return atoms_pos_supercell, colors, sizes, labels, iremove
+        return atoms_pos_supercell, is_matom, colors, sizes, labels, iremove, iremove_mag
     
-    def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
-        mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
-        mj = self.spin_scale*np.delete(mj, iremove, axis=0)
-        verts = np.c_[pos, pos+mj]  # natom x 6
+    def plot_magnetic_structure(self, canvas_scene, mj, pos, colors):
+        verts = np.c_[pos, pos + self.spin_scale*mj]  # natom x 6
         scene.visuals.Arrow(pos=verts.reshape(-1,3), parent=canvas_scene, connect='segments',
             arrows=verts, arrow_size=self.arrow_head_size,
             width=self.arrow_width, antialias=True, 
@@ -232,7 +232,7 @@ class SuperCellSimple:
             color=np.repeat(colors, 2, axis=0).tolist(),
             arrow_color= colors.tolist())
     
-    def make_rotation_plane_visuals(self, npts=15):
+    def make_rotation_plane_visuals(self, pos, colors, npts=15):
         # generate vertices of disc with normal // [0,0,1]
         theta = np.linspace(0, 2*np.pi,npts)[:-1] # exclude 2pi
         disc_verts = np.zeros((npts, 3))
@@ -244,16 +244,10 @@ class SuperCellSimple:
         # label faces
         disc_faces = self._label_2D_mesh_faces(disc_verts)
         disc_visuals = []
-        for cell in self.unit_cells:
-            for atom in cell.atoms:
-                if atom.S is not None and atom.S > 0:
-                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
-                    centre, _ = self._remove_points_outside_extent(centre)
-                    if centre.size > 0:
-                        # atom in extents
-                        centre = self.transform_points_abc_to_xyz(centre)
-                        mesh = scene.visuals.Mesh(vertices=disc_verts + centre, faces=disc_faces, color=color_array.Color(color=atom.color, alpha=0.25))
-                        disc_visuals.append(mesh)
+        # add disc to every magnetic atom
+        for icen, cen in enumerate(pos):
+            mesh = scene.visuals.Mesh(vertices=disc_verts + cen, faces=disc_faces, color=color_array.Color(color=colors[icen], alpha=0.25))
+            disc_visuals.append(mesh)
         return disc_visuals
     
     def make_ion_visuals(self, npts=7):
@@ -458,9 +452,9 @@ class UnitCellSimple:
 
 
 class AtomSimple:
-    def __init__(self, index, position, S=None, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
+    def __init__(self, index, position, is_mag=False, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
         self.pos = np.asarray(position)
-        self.S = S
+        self.is_mag = is_mag
         self.moment=moment
         self.gtensor = gtensor_mat
         self.aniso = aniso_mat
