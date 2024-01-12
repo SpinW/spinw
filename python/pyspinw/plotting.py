@@ -39,7 +39,7 @@ class SuperCellSimple:
         self.n = None
 
         # get properties from swobj
-        unit_cell = UnitCellSimple(basis_vec=swobj.basisvector().T)
+        self.unit_cell = UnitCellSimple()
         # add atoms
         _, single_ion = swobj.intmatrix(plotmode= True, extend=False, sortDM=False, zeroC=False, nExt=[1, 1, 1])
         aniso_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
@@ -61,8 +61,8 @@ class SuperCellSimple:
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
-            unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], is_mag=atoms_mag[iatom], size=size, color=color, label=label,
-                                          gtensor_mat=g_mat, aniso_mat=aniso_mat))
+            self.unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], is_mag=atoms_mag[iatom], size=size, color=color, label=label,
+                                               gtensor_mat=g_mat, aniso_mat=aniso_mat))
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
@@ -71,28 +71,23 @@ class SuperCellSimple:
             i_dl = np.squeeze(bond_idx==ibond)
             for mat_idx in swobj.coupling['mat_idx'][:, np.argmax(i_dl)]:
                 if mat_idx > 0:
-                    unit_cell.add_bond_vertices(name=f"bond{ibond}_mat{mat_idx}",
-                                                atom1_idx=np.squeeze(swobj.coupling['atom1'])[i_dl]-1,
-                                                atom2_idx=np.squeeze(swobj.coupling['atom2'])[i_dl]-1,
-                                                dl=swobj.coupling['dl'].T[i_dl],
-                                                mat=bond_matrices[:,:,mat_idx-1],
-                                                color=swobj.matrix['color'][:,mat_idx-1]/255)
+                    self.unit_cell.add_bond_vertices(name=f"bond{ibond}_mat{mat_idx}",
+                                                     atom1_idx=np.squeeze(swobj.coupling['atom1'])[i_dl]-1,
+                                                     atom2_idx=np.squeeze(swobj.coupling['atom2'])[i_dl]-1,
+                                                     dl=swobj.coupling['dl'].T[i_dl],
+                                                     mat=bond_matrices[:,:,mat_idx-1],
+                                                     color=swobj.matrix['color'][:,mat_idx-1]/255)
 
-        # generate unit cells in supercell
-        self.unit_cells = []
+        # dimensions of supercell (pad by 1 for plotting)
         self.extent = np.asarray(extent)
         self.int_extent = np.ceil(self.extent).astype(int) + 1  # to plot additional unit cell along each dimension to get atoms on cell boundary
         self.ncells = np.prod(self.int_extent)
-        for zcen in range(self.int_extent[2]):
-            for ycen in range(self.int_extent[1]):
-                for xcen in range(self.int_extent[0]):
-                    self.unit_cells.append(unit_cell.translate_by([xcen, ycen, zcen]))
                     
         # get magnetic structure for all spins in supercell
         self.set_magnetic_structure(swobj)
         
         # transforms
-        self.basis_vec = unit_cell.basis_vec
+        self.basis_vec = swobj.basisvector().T
         self.inv_basis_vec = np.linalg.inv(self.basis_vec)
                 
         # scale factors
@@ -128,9 +123,9 @@ class SuperCellSimple:
 
 
     def plot(self):
-        canvas = scene.SceneCanvas(bgcolor='white',  show=True) # size=(600, 600),
+        canvas = scene.SceneCanvas(bgcolor='white', show=True)
         view = canvas.central_widget.add_view()
-        view.camera = scene.cameras.TurntableCamera() # fov=5)
+        view.camera = scene.cameras.TurntableCamera()
         
         pos, is_matom, colors, sizes, labels, iremove, iremove_mag = self.get_atomic_properties_in_supercell()
         # delete spin vectors outside extent
@@ -196,7 +191,7 @@ class SuperCellSimple:
                                        parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
 
     def get_atomic_properties_in_supercell(self):
-        atoms_pos_unit_cell = np.array([atom.pos for atom in self.unit_cells[0].atoms])
+        atoms_pos_unit_cell = np.array([atom.pos for atom in self.unit_cell.atoms])
         natoms = atoms_pos_unit_cell.shape[0]
         atoms_pos_supercell = np.zeros((self.ncells*natoms, 3))
         icell = 0
@@ -206,9 +201,9 @@ class SuperCellSimple:
                 for xcen in range(self.int_extent[0]):
                     atoms_pos_supercell[icell*natoms:(icell+1)*natoms,:] = atoms_pos_unit_cell + np.array([xcen, ycen, zcen])
                     icell += 1
-        is_matom = np.tile([atom.is_mag for atom in self.unit_cells[0].atoms], self.ncells)
-        sizes = np.tile([atom.size for atom in self.unit_cells[0].atoms], self.ncells)
-        colors = np.tile(np.array([atom.color for atom in self.unit_cells[0].atoms]).reshape(-1,3), (self.ncells, 1))
+        is_matom = np.tile([atom.is_mag for atom in self.unit_cell.atoms], self.ncells)
+        sizes = np.tile([atom.size for atom in self.unit_cell.atoms], self.ncells)
+        colors = np.tile(np.array([atom.color for atom in self.unit_cell.atoms]).reshape(-1,3), (self.ncells, 1))
         # remove points beyond extent of supercell
         atoms_pos_supercell, iremove = self._remove_points_outside_extent(atoms_pos_supercell)
         sizes = np.delete(sizes, iremove)
@@ -219,7 +214,7 @@ class SuperCellSimple:
         # transfrom to xyz
         atoms_pos_supercell = self.transform_points_abc_to_xyz(atoms_pos_supercell)
         # get atomic labels
-        labels = np.tile([atom.label for atom in self.unit_cells[0].atoms], self.ncells)
+        labels = np.tile([atom.label for atom in self.unit_cell.atoms], self.ncells)
         labels = np.delete(labels, iremove).tolist()
         return atoms_pos_supercell, is_matom, colors, sizes, labels, iremove, iremove_mag
     
@@ -256,7 +251,7 @@ class SuperCellSimple:
         sphere_verts = meshdata.get_vertices()
         faces = meshdata.get_faces()
         ellips_visuals = []
-        for atom in self.unit_cells[0].atoms:
+        for atom in self.unit_cell.atoms:
             transform = atom.get_transform(tensor=self.ion_type)
             if transform is not None and np.any(transform>0):
                 verts = sphere_verts @ transform
@@ -290,18 +285,18 @@ class SuperCellSimple:
         scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=self.font_size*self.cell_scale_abc_to_xyz)
 
     def plot_bonds(self, canvas_scene):
-        max_dm_norm = self.unit_cells[0].get_max_DM_vec_norm()
-        for bond_name in self.unit_cells[0].bonds:
-            color = self.unit_cells[0].get_bond_color(bond_name)
+        max_dm_norm = self.unit_cell.get_max_DM_vec_norm()
+        for bond_name in self.unit_cell.bonds:
+            color = self.unit_cell.get_bond_color(bond_name)
             verts = self._get_supercell_bond_verts(bond_name)
-            if self.unit_cells[0].is_bond_symmetric(bond_name):
+            if self.unit_cell.is_bond_symmetric(bond_name):
                 scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
                                    width=self.bond_width, color=color)
             else:
                 # DM bond
                 # generate verts of DM arrows at bond mid-points (note DM vector in xyz)
                 mid_points = verts.reshape(-1,2,3).sum(axis=1)/2
-                dm_vec = self.dm_arrow_scale*self.unit_cells[0].get_bond_DM_vec(bond_name)/max_dm_norm
+                dm_vec = self.dm_arrow_scale*self.unit_cell.get_bond_DM_vec(bond_name)/max_dm_norm
                 dm_verts = np.c_[mid_points, mid_points + dm_vec]
                 arrow_verts = np.r_[np.c_[verts[::2], mid_points], dm_verts]  # draw arrow at mid-point of line as well as DM vec
                 line_verts = np.r_[verts, dm_verts.reshape(-1,3)]
@@ -313,8 +308,8 @@ class SuperCellSimple:
                                     arrow_color=color)
                                     
     def _get_supercell_bond_verts(self, bond_name):
-        bond = self.unit_cells[0].bonds[bond_name]
-        bond_verts_unit_cell = self.unit_cells[0].get_bond_vertices(bond_name)
+        bond = self.unit_cell.bonds[bond_name]
+        bond_verts_unit_cell = self.unit_cell.get_bond_vertices(bond_name)
         nverts_per_cell = bond_verts_unit_cell.shape[0]
         bond_verts_supercell = np.zeros((self.ncells*nverts_per_cell, 3))
         icell = 0
@@ -349,10 +344,10 @@ class SuperCellSimple:
         return polyhedra_visuals
 
     def _calc_convex_polyhedra_mesh(self):
-        atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
+        atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cell.atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
         natom2 = atom2_pos_xyz.shape[0]
         polyhedra = []
-        for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cells[0].atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
+        for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cell.atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
             # find vector bewteen atom1 in unit cells [0-1] in each direction to atom2 in first unit cell
             dr = np.zeros((27*natom2, 3))
             icell = 0
@@ -411,11 +406,9 @@ class SuperCellSimple:
         return np.delete(points, iremove, axis=0), iremove
 
 class UnitCellSimple:
-    def __init__(self, atoms_list=None, bonds=None, origin=np.array([0,0,0]), basis_vec=np.eye(3)):
+    def __init__(self, atoms_list=None, bonds=None):
         self.atoms = atoms_list if atoms_list is not None else []
         self.bonds = bonds if bonds is not None else {}
-        self.origin = np.array(origin)
-        self.basis_vec = basis_vec  # each col is a basis vector
     
     def add_atom(self, atom):
         self.atoms.append(atom)
@@ -427,9 +420,6 @@ class UnitCellSimple:
         self.bonds[name]['is_sym'] = np.allclose(mat, mat.T)
         self.bonds[name]['DM_vec'] = np.array([mat[1,2], mat[2,0], mat[0,1]]) if not self.bonds[name]['is_sym'] else None
         self.bonds[name]['color'] = color
-
-    def translate_by(self, origin):
-        return UnitCellSimple(copy.deepcopy(self.atoms), self.bonds, origin, basis_vec=self.basis_vec)
 
     def get_bond_vertices(self, bond_name):
         return self.bonds[bond_name]['verts']
