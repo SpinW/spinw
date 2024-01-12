@@ -259,23 +259,25 @@ class SuperCellSimple:
     def make_ion_visuals(self, npts=7):
         # get mesh for a sphere
         meshdata = create_sphere(radius=self.ion_radius, rows=npts, cols=npts)
-        verts = meshdata.get_vertices()
+        sphere_verts = meshdata.get_vertices()
         faces = meshdata.get_faces()
         ellips_visuals = []
-        for cell in self.unit_cells:
-            for atom in cell.atoms:
-                transform = atom.get_transform(tensor=self.ion_type)
-                if transform is not None and np.any(transform>0):
-                    centre = (atom.pos + cell.origin).reshape(1,-1) # i.e. make 2D array
-                    centre, _ = self._remove_points_outside_extent(centre)
-                    if centre.size > 0:
-                        # atom in extents
-                        centre = self.transform_points_abc_to_xyz(centre)
-                        this_verts = verts @ transform + centre
-                        mesh = scene.visuals.Mesh(vertices=this_verts, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
-                        wireframe_filter = WireframeFilter(color=3*[0.7])
-                        mesh.attach(wireframe_filter)
-                        ellips_visuals.append(mesh)
+        for atom in self.unit_cells[0].atoms:
+            transform = atom.get_transform(tensor=self.ion_type)
+            if transform is not None and np.any(transform>0):
+                verts = sphere_verts @ transform
+                for zcen in range(self.int_extent[2]):
+                    for ycen in range(self.int_extent[1]):
+                        for xcen in range(self.int_extent[0]):
+                            centre = (atom.pos + np.array([xcen, ycen, zcen])).reshape(1,-1) # i.e. make 2D array
+                            centre, _ = self._remove_points_outside_extent(centre)
+                            if centre.size > 0:
+                                # atom in extents
+                                centre = self.transform_points_abc_to_xyz(centre)
+                                mesh = scene.visuals.Mesh(vertices=verts + centre, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
+                                wireframe_filter = WireframeFilter(color=3*[0.7])
+                                mesh.attach(wireframe_filter)
+                                ellips_visuals.append(mesh)
         return ellips_visuals
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
