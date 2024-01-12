@@ -81,6 +81,7 @@ class SuperCellSimple:
         self.unit_cells = []
         self.extent = np.asarray(extent)
         self.int_extent = np.ceil(self.extent).astype(int) + 1  # to plot additional unit cell along each dimension to get atoms on cell boundary
+        self.ncells = np.prod(self.int_extent)
         for zcen in range(self.int_extent[2]):
             for ycen in range(self.int_extent[1]):
                 for xcen in range(self.int_extent[0]):
@@ -199,8 +200,7 @@ class SuperCellSimple:
     def get_atomic_positions_xyz_in_supercell(self):
         atoms_pos_unit_cell = np.array([atom.pos for atom in self.unit_cells[0].atoms])
         natoms = atoms_pos_unit_cell.shape[0]
-        ncells = np.prod(self.int_extent)
-        atoms_pos_supercell = np.zeros((ncells*natoms, 3))
+        atoms_pos_supercell = np.zeros((self.ncells*natoms, 3))
         icell = 0
         # loop over unit cells in same order as in MATLAB
         for zcen in range(self.int_extent[2]):
@@ -208,8 +208,8 @@ class SuperCellSimple:
                 for xcen in range(self.int_extent[0]):
                     atoms_pos_supercell[icell*natoms:(icell+1)*natoms,:] = atoms_pos_unit_cell + np.array([xcen, ycen, zcen])
                     icell += 1
-        sizes = np.tile([atom.size for atom in self.unit_cells[0].atoms], ncells)
-        colors = np.tile(np.array([atom.color for atom in self.unit_cells[0].atoms]).reshape(-1,3), (ncells, 1))
+        sizes = np.tile([atom.size for atom in self.unit_cells[0].atoms], self.ncells)
+        colors = np.tile(np.array([atom.color for atom in self.unit_cells[0].atoms]).reshape(-1,3), (self.ncells, 1))
         # remove points and vertices beyond extent
         atoms_pos_supercell, iremove = self._remove_points_outside_extent(atoms_pos_supercell)
         sizes = np.delete(sizes, iremove)
@@ -217,7 +217,7 @@ class SuperCellSimple:
         # transfrom to xyz
         atoms_pos_supercell = self.transform_points_abc_to_xyz(atoms_pos_supercell)
         # get atomic labels
-        labels = np.tile([atom.label for atom in self.unit_cells[0].atoms], ncells)
+        labels = np.tile([atom.label for atom in self.unit_cells[0].atoms], self.ncells)
         labels = np.delete(labels, iremove).tolist()
         return atoms_pos_supercell, colors, sizes, labels, iremove
     
@@ -297,19 +297,14 @@ class SuperCellSimple:
         max_dm_norm = self.unit_cells[0].get_max_DM_vec_norm()
         for bond_name in self.unit_cells[0].bonds:
             color = self.unit_cells[0].get_bond_color(bond_name)
-            verts = np.array([unit_cell.get_bond_vertices(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
-            verts, _ = self._remove_vertices_outside_extent(verts)
-            verts = self.transform_points_abc_to_xyz(verts)
+            verts = self._get_supercell_bond_verts(bond_name)
             if self.unit_cells[0].is_bond_symmetric(bond_name):
                 scene.visuals.Line(pos=verts, parent=canvas_scene, connect='segments', 
                                    width=self.bond_width, color=color)
             else:
                 # DM bond
-                # get mid-point of bond (origin of DM arrow)
-                mid_points = np.array([unit_cell.get_bond_midpoints(bond_name) for unit_cell in self.unit_cells]).reshape(-1,3)
-                mid_points, _ = self._remove_points_outside_extent(mid_points)
-                mid_points = self.transform_points_abc_to_xyz(mid_points)
                 # generate verts of DM arrows at bond mid-points (note DM vector in xyz)
+                mid_points = verts.reshape(-1,2,3).sum(axis=1)/2
                 dm_vec = self.dm_arrow_scale*self.unit_cells[0].get_bond_DM_vec(bond_name)/max_dm_norm
                 dm_verts = np.c_[mid_points, mid_points + dm_vec]
                 arrow_verts = np.r_[np.c_[verts[::2], mid_points], dm_verts]  # draw arrow at mid-point of line as well as DM vec
@@ -320,6 +315,23 @@ class SuperCellSimple:
                                     arrow_type='triangle_60',
                                     color=color,
                                     arrow_color=color)
+                                    
+    def _get_supercell_bond_verts(self, bond_name):
+        bond = self.unit_cells[0].bonds[bond_name]
+        bond_verts_unit_cell = self.unit_cells[0].get_bond_vertices(bond_name)
+        nverts_per_cell = bond_verts_unit_cell.shape[0]
+        bond_verts_supercell = np.zeros((self.ncells*nverts_per_cell, 3))
+        icell = 0
+        for zcen in range(self.int_extent[2]):
+            for ycen in range(self.int_extent[1]):
+                for xcen in range(self.int_extent[0]):
+                    lvec = np.array([xcen, ycen, zcen])
+                    bond_verts_supercell[icell*nverts_per_cell:(icell+1)*nverts_per_cell,:] = bond_verts_unit_cell + lvec
+                    icell += 1
+        bond_verts_supercell, _ = self._remove_vertices_outside_extent(bond_verts_supercell)
+        bond_verts_supercell = self.transform_points_abc_to_xyz(bond_verts_supercell)
+        return bond_verts_supercell
+        
 
     def make_polyhedra_visuals(self):
         polyhedra = self._calc_convex_polyhedra_mesh()
@@ -417,7 +429,6 @@ class UnitCellSimple:
         self.bonds[name] = {'verts': np.array([(self.atoms[atom1_idx[ibond]].pos, 
                             self.atoms[atom2_idx[ibond]].pos + dl) for ibond, dl in enumerate(np.asarray(dl))]).reshape(-1,3)}
         self.bonds[name]['is_sym'] = np.allclose(mat, mat.T)
-        self.bonds[name]['mid_points'] = self.bonds[name]['verts'].reshape(-1,2,3).sum(axis=1)/2 if not self.bonds[name]['is_sym'] else None
         self.bonds[name]['DM_vec'] = np.array([mat[1,2], mat[2,0], mat[0,1]]) if not self.bonds[name]['is_sym'] else None
         self.bonds[name]['color'] = color
 
@@ -425,10 +436,7 @@ class UnitCellSimple:
         return UnitCellSimple(copy.deepcopy(self.atoms), self.bonds, origin, basis_vec=self.basis_vec)
 
     def get_bond_vertices(self, bond_name):
-        return self.bonds[bond_name]['verts'] + self.origin
-        
-    def get_bond_midpoints(self, bond_name):
-        return self.bonds[bond_name]['mid_points'] + self.origin
+        return self.bonds[bond_name]['verts']
 
     def get_bond_DM_vec(self, bond_name):
         return self.bonds[bond_name]['DM_vec']
