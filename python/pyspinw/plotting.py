@@ -197,19 +197,29 @@ class SuperCellSimple:
                                        parent=canvas_scene, color=color_array.Color(color="k", alpha=0.25)) # , method="gl")
 
     def get_atomic_positions_xyz_in_supercell(self):
-        pos = np.array([atom.pos + cell.origin for cell in self.unit_cells for atom in cell.atoms])
-        sizes = np.array([atom.size for cell in self.unit_cells for atom in cell.atoms])
-        colors = np.array([atom.color for cell in self.unit_cells for atom in cell.atoms]).reshape(-1,3)
+        atoms_pos_unit_cell = np.array([atom.pos for atom in self.unit_cells[0].atoms])
+        natoms = atoms_pos_unit_cell.shape[0]
+        ncells = np.prod(self.int_extent)
+        atoms_pos_supercell = np.zeros((ncells*natoms, 3))
+        icell = 0
+        # loop over unit cells in same order as in MATLAB
+        for zcen in range(self.int_extent[2]):
+            for ycen in range(self.int_extent[1]):
+                for xcen in range(self.int_extent[0]):
+                    atoms_pos_supercell[icell*natoms:(icell+1)*natoms,:] = atoms_pos_unit_cell + np.array([xcen, ycen, zcen])
+                    icell += 1
+        sizes = np.tile([atom.size for atom in self.unit_cells[0].atoms], ncells)
+        colors = np.tile(np.array([atom.color for atom in self.unit_cells[0].atoms]).reshape(-1,3), (ncells, 1))
         # remove points and vertices beyond extent
-        pos, iremove = self._remove_points_outside_extent(pos)
+        atoms_pos_supercell, iremove = self._remove_points_outside_extent(atoms_pos_supercell)
         sizes = np.delete(sizes, iremove)
         colors = np.delete(colors, iremove, axis=0)
         # transfrom to xyz
-        pos = self.transform_points_abc_to_xyz(pos)
+        atoms_pos_supercell = self.transform_points_abc_to_xyz(atoms_pos_supercell)
         # get atomic labels
-        labels = [atom.label for cell in self.unit_cells for atom in cell.atoms]
+        labels = np.tile([atom.label for atom in self.unit_cells[0].atoms], ncells)
         labels = np.delete(labels, iremove).tolist()
-        return pos, colors, sizes, labels, iremove
+        return atoms_pos_supercell, colors, sizes, labels, iremove
     
     def plot_magnetic_structure(self, canvas_scene, pos, colors, iremove):
         mj = np.array([atom.moment for cell in self.unit_cells for atom in cell.atoms]) # already in xyz
