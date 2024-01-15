@@ -144,7 +144,7 @@ class SuperCellSimple:
         if self.do_plot_axes:
             self.plot_cartesian_axes(view.scene)
         if self.do_plot_plane:
-            subvisuals.extend(self.make_rotation_plane_visuals(pos[is_matom], colors[is_matom]))
+            self.plot_rotation_plane(view.scene, pos[is_matom], colors[is_matom])
         if self.do_plot_ion:
             subvisuals.extend(self.make_ion_visuals())
         if self.polyhedra_args is not None:
@@ -227,7 +227,7 @@ class SuperCellSimple:
             color=np.repeat(colors, 2, axis=0).tolist(),
             arrow_color= colors.tolist())
     
-    def make_rotation_plane_visuals(self, pos, colors, npts=15):
+    def plot_rotation_plane(self, canvas_scene, pos, colors, npts=15):
         # generate vertices of disc with normal // [0,0,1]
         theta = np.linspace(0, 2*np.pi,npts)[:-1] # exclude 2pi
         disc_verts = np.zeros((npts, 3))
@@ -236,14 +236,15 @@ class SuperCellSimple:
         # rotate given normal
         rot_mat = get_rotation_matrix(self.n)
         disc_verts = rot_mat.dot(disc_verts.T).T
-        # label faces
         disc_faces = self._label_2D_mesh_faces(disc_verts)
-        disc_visuals = []
-        # add disc to every magnetic atom
-        for icen, cen in enumerate(pos):
-            mesh = scene.visuals.Mesh(vertices=disc_verts + cen, faces=disc_faces, color=color_array.Color(color=colors[icen], alpha=0.25))
-            disc_visuals.append(mesh)
-        return disc_visuals
+        # for each row (atom) in pos to add to shift to verts (use np boradcasting)
+        disc_verts = (disc_verts + pos[:,None]).reshape(-1,3)
+        # increment faces indices to match larger verts array (use np boradcasting)
+        disc_faces = (disc_faces + np.repeat(npts*np.arange(pos.shape[0]), 3).reshape(-1,1,3)).reshape(-1,3)
+        # repeat colors
+        face_colors = np.tile(colors, (npts-1, 1))
+        face_colors = np.c_[face_colors, np.full((face_colors.shape[0], 1), 0.25)]  # add transparency
+        scene.visuals.Mesh(vertices=disc_verts, faces=disc_faces, face_colors=face_colors, parent=canvas_scene)
     
     def make_ion_visuals(self, npts=7):
         # get mesh for a sphere
