@@ -148,7 +148,7 @@ class SuperCellSimple:
         if self.do_plot_ion:
             subvisuals.extend(self.make_ion_visuals())
         if self.polyhedra_args is not None:
-            subvisuals.extend(self.make_polyhedra_visuals())
+            self.plot_polyhedra(view.scene)
         # display
         if subvisuals:
             scene.Compound(subvisuals=subvisuals, parent=view.scene)
@@ -325,31 +325,40 @@ class SuperCellSimple:
         return bond_verts_supercell
         
 
-    def make_polyhedra_visuals(self):
+    def plot_polyhedra(self, canvas_scene):
         polyhedra = self._calc_convex_polyhedra_mesh()
         # loop over all unit cells and add origin to mesh vertices
-        polyhedra_visuals = []
+        npoly = self.ncells*len(polyhedra)
+        nverts_per_poly = polyhedra[0].vertices.shape[0]
+        verts = np.zeros((npoly*nverts_per_poly, 3))
+        nfaces_per_poly = polyhedra[0].faces.shape[0]
+        faces = np.zeros((npoly*nfaces_per_poly, 3))
+        irow_verts, irow_faces = 0, 0
+        ipoly = 0
         for zcen in range(self.int_extent[2]):
             for ycen in range(self.int_extent[1]):
                 for xcen in range(self.int_extent[0]):
                     lvec = self.transform_points_abc_to_xyz(np.array([xcen, ycen, zcen]))
                     for poly in polyhedra:
-                        verts = poly.vertices + lvec
-                        _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(verts))
+                        this_verts = poly.vertices + lvec
+                        _, irem = self._remove_points_outside_extent(self.transform_points_xyz_to_abc(this_verts))
                         if len(irem) < self.polyhedra_args.n_nearest:
                             # polyhedron has at least 1 vertex inside extent
-                            mesh = scene.visuals.Mesh(vertices=verts, faces=poly.faces, color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25))
-                            wireframe_filter = WireframeFilter(color=3*[0.7])
-                            mesh.attach(wireframe_filter)
-                            polyhedra_visuals.append(mesh)
-        return polyhedra_visuals
+                            verts[irow_verts:irow_verts+nverts_per_poly, : ] = this_verts
+                            faces[irow_faces:irow_faces+nfaces_per_poly, : ] = poly.faces + nverts_per_poly * ipoly
+                            irow_verts = irow_verts+nverts_per_poly
+                            irow_faces = irow_faces+nfaces_per_poly
+                            ipoly += 1
+        mesh = scene.visuals.Mesh(vertices=verts[:irow_verts,:], faces=faces[:irow_faces,:].astype(int), color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25), parent=canvas_scene)
+        wireframe_filter = WireframeFilter(color=3*[0.7])
+        mesh.attach(wireframe_filter)
 
     def _calc_convex_polyhedra_mesh(self):
         atom2_pos_xyz = self.transform_points_abc_to_xyz(np.array([atom.pos for atom in self.unit_cell.atoms if atom.wyckoff_index in self.polyhedra_args.atom2_idx]))
         natom2 = atom2_pos_xyz.shape[0]
         polyhedra = []
         for atom1_pos_rlu in np.array([atom.pos for atom in self.unit_cell.atoms if atom.wyckoff_index in self.polyhedra_args.atom1_idx]):
-            # find vector bewteen atom1 in unit cells [0-1] in each direction to atom2 in first unit cell
+            # find vector bewteen atom1 in unit cells +/- 1 in each direction to atom2 in first unit cell
             dr = np.zeros((27*natom2, 3))
             icell = 0
             for dz in range(-1,2):
@@ -372,7 +381,7 @@ class SuperCellSimple:
                 polyhedra.append(PolyhedronMesh(vertices=verts_xyz[hull.vertices], faces=hull.simplices))
             elif rank == 2:
                 # transform to basis of polygon plane
-                *_, _, evecs_inv = np.linalg.svd(verts_xyz - verts_xyz[0])  # sorted in decreasing order of singular value
+                *_, evecs_inv = np.linalg.svd(verts_xyz - verts_xyz[0])  # sorted in decreasing order of singular value
                 verts_2d = (evecs_inv @ verts_xyz.T).T
                 hull = ConvexHull(verts_2d[:, :-1]) # exclude last col (out of polygon plane - all have same value)
                 verts_xyz = np.vstack((atom1_pos_xyz, verts_xyz[hull.vertices], ))  # include central atom1 position as vertex
