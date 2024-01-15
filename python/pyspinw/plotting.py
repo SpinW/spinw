@@ -132,7 +132,6 @@ class SuperCellSimple:
         if self.mj is not None:
             mj = np.delete(self.mj, iremove_mag, axis=0)
         
-        subvisuals = []
         if self.do_plot_cell:
             self.plot_unit_cell_box(view.scene)  # plot gridlines for unit cell boundaries
         if self.do_plot_mag:
@@ -146,12 +145,9 @@ class SuperCellSimple:
         if self.do_plot_plane:
             self.plot_rotation_plane(view.scene, pos[is_matom], colors[is_matom])
         if self.do_plot_ion:
-            subvisuals.extend(self.make_ion_visuals())
+            self.plot_ion_ellipsoids(view.scene)
         if self.polyhedra_args is not None:
             self.plot_polyhedra(view.scene)
-        # display
-        if subvisuals:
-            scene.Compound(subvisuals=subvisuals, parent=view.scene)
         view.camera.set_range()  # centers camera on middle of data and auto-scales extent
         canvas.app.run()
         return canvas, view.scene
@@ -246,16 +242,22 @@ class SuperCellSimple:
         face_colors = np.c_[face_colors, np.full((face_colors.shape[0], 1), 0.25)]  # add transparency
         scene.visuals.Mesh(vertices=disc_verts, faces=disc_faces, face_colors=face_colors, parent=canvas_scene)
     
-    def make_ion_visuals(self, npts=7):
+    def plot_ion_ellipsoids(self, canvas_scene, npts=7):
+        matoms = [atom for atom in self.unit_cell.atoms if atom.is_mag]
         # get mesh for a sphere
         meshdata = create_sphere(radius=self.ion_radius, rows=npts, cols=npts)
         sphere_verts = meshdata.get_vertices()
-        faces = meshdata.get_faces()
-        ellips_visuals = []
-        for atom in self.unit_cell.atoms:
+        sphere_faces = meshdata.get_faces()
+        # loop over ions and get mesh verts and faces
+        ion_verts = np.zeros((len(matoms) * self.ncells * sphere_verts.shape[0], 3))
+        ion_faces = np.zeros((len(matoms) * self.ncells * sphere_faces.shape[0], 3))
+        face_colors = np.full((ion_faces.shape[0], 4), 0.25)  #' fill with 0.25 (value of alpha)
+        irow_verts, irow_faces = 0, 0
+        imesh = 0
+        for atom in matoms:
             transform = atom.get_transform(tensor=self.ion_type)
             if transform is not None and np.any(transform>0):
-                verts = sphere_verts @ transform
+                this_verts = sphere_verts @ transform
                 for zcen in range(self.int_extent[2]):
                     for ycen in range(self.int_extent[1]):
                         for xcen in range(self.int_extent[0]):
@@ -264,11 +266,15 @@ class SuperCellSimple:
                             if centre.size > 0:
                                 # atom in extents
                                 centre = self.transform_points_abc_to_xyz(centre)
-                                mesh = scene.visuals.Mesh(vertices=verts + centre, faces=faces, color=color_array.Color(color=atom.color, alpha=0.25))
-                                wireframe_filter = WireframeFilter(color=3*[0.7])
-                                mesh.attach(wireframe_filter)
-                                ellips_visuals.append(mesh)
-        return ellips_visuals
+                                ion_verts[irow_verts:irow_verts+sphere_verts.shape[0]] = (sphere_verts @ transform) + centre
+                                ion_faces[irow_faces:irow_faces+sphere_faces.shape[0]] = sphere_faces + sphere_verts.shape[0] * imesh
+                                face_colors[irow_faces:irow_faces+sphere_faces.shape[0], :3] = atom.color  # np broadcasting allows this
+                                irow_verts = irow_verts+sphere_verts.shape[0]
+                                irow_faces = irow_faces+sphere_faces.shape[0]
+                                imesh += 1
+        mesh = scene.visuals.Mesh(vertices=ion_verts[:irow_verts,:], faces=ion_faces[:irow_faces,:].astype(int), face_colors=face_colors[:irow_faces,:], parent=canvas_scene)
+        wireframe_filter = WireframeFilter(color=3*[0.7])
+        mesh.attach(wireframe_filter)
 
     def plot_atoms(self, canvas_scene, pos, colors, sizes, labels):
         scene.visuals.Markers(
