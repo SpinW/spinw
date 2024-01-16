@@ -112,13 +112,15 @@ class SuperCell:
         self.abc = np.sqrt(np.sum(self.basis_vec**2, axis=1))
         self.cell_scale_abc_to_xyz = min(self.abc)
         self.supercell_scale_abc_to_xyz = min(self.abc*self.extent)
+        # visual properties
         self.bond_width = 5
         self.spin_scale = 1
         self.arrow_width = 8
         self.arrow_head_size = 5
         self.font_size = 20
         self.axes_font_size = 50
-        self.atom_alpha = 0.5
+        self.atom_alpha = 0.75
+        self.mesh_alpha = 0.25
         self.rotation_plane_radius = 0.3*self.cell_scale_abc_to_xyz
         self.ion_radius = 0.3*self.cell_scale_abc_to_xyz
         self.dm_arrow_scale = 0.2*self.cell_scale_abc_to_xyz
@@ -257,7 +259,7 @@ class SuperCell:
         disc_faces = (disc_faces + np.repeat(npts*np.arange(pos.shape[0]), 3).reshape(-1,1,3)).reshape(-1,3)
         # repeat colors
         face_colors = np.tile(colors, (npts-1, 1))
-        face_colors = np.c_[face_colors, np.full((face_colors.shape[0], 1), 0.25)]  # add transparency
+        face_colors = np.c_[face_colors, np.full((face_colors.shape[0], 1), self.mesh_alpha)]  # add transparency
         scene.visuals.Mesh(vertices=disc_verts, faces=disc_faces, face_colors=face_colors, parent=canvas_scene)
     
     def plot_ion_ellipsoids(self, canvas_scene, npts=7):
@@ -270,7 +272,7 @@ class SuperCell:
             # loop over ions and get mesh verts and faces
             ion_verts = np.zeros((len(matoms) * self.ncells * sphere_verts.shape[0], 3))
             ion_faces = np.zeros((len(matoms) * self.ncells * sphere_faces.shape[0], 3))
-            face_colors = np.full((ion_faces.shape[0], 4), 0.25)  #' fill with 0.25 (value of alpha)
+            face_colors = np.full((ion_faces.shape[0], 4), self.mesh_alpha)
             irow_verts, irow_faces = 0, 0
             imesh = 0
             for atom in matoms:
@@ -374,7 +376,7 @@ class SuperCell:
                             irow_faces = irow_faces+nfaces_per_poly
                             ipoly += 1
         mesh = scene.visuals.Mesh(vertices=verts[:irow_verts,:], faces=faces[:irow_faces,:].astype(int), 
-                                  color=color_array.Color(color=self.polyhedra_args.color, alpha=0.25), parent=canvas_scene)
+                                  color=color_array.Color(color=self.polyhedra_args.color, alpha=self.mesh_alpha), parent=canvas_scene)
         wireframe_filter = WireframeFilter(color=3*[0.7])
         mesh.attach(wireframe_filter)
 
