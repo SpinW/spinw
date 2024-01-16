@@ -22,9 +22,9 @@ class PolyhedraArgs:
         self.n_nearest=n_nearest
         self.color = color
 
-class SuperCellSimple:
+class SuperCell:
     def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True,
-                 plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None, polyhedra_args=None):
+                 plot_labels=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None, polyhedra_args=None):
         """
         :param swobj: spinw object to plot
         :param extent: Tuple of supercell dimensions default is (1,1,1) - a single unit cell
@@ -32,6 +32,7 @@ class SuperCellSimple:
                          plotted if a magnetic structure has been set on swobj
         :param plot_bonds: If True the bonds in swobj.coupling will be plotted
         :param plot_atoms: If True the atoms will be plotted
+        :param plot_labels: If True atom labels will be plotted on atom markers
         :param plot_cell: If True the unit cell boundaries will be plotted
         :param plot_axes: If True the arrows for the unit cell vectors will be plotted near the origin
         :param plot_plane: If True the rotation plane will be plotted
@@ -44,6 +45,7 @@ class SuperCellSimple:
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
         self.do_plot_atoms=plot_atoms
+        self.do_plot_labels=plot_labels
         self.do_plot_cell=plot_cell
         self.do_plot_axes=plot_axes
         self.do_plot_plane=plot_plane
@@ -55,7 +57,7 @@ class SuperCellSimple:
         self.n = None
 
         # get properties from swobj
-        self.unit_cell = UnitCellSimple()
+        self.unit_cell = UnitCell()
         # add atoms
         _, single_ion = swobj.intmatrix(plotmode= True, extend=False, sortDM=False, zeroC=False, nExt=[1, 1, 1])
         aniso_mats = single_ion['aniso'].reshape(3,3,-1)  # make 3D array even if only one atom
@@ -77,8 +79,8 @@ class SuperCellSimple:
             color = swobj.unit_cell['color'][:,atom_idx-1]/255
             label = swobj.unit_cell['label'][atom_idx-1]
             size = matlab_caller.sw_atomdata(label, 'radius')[0,0]
-            self.unit_cell.add_atom(AtomSimple(atom_idx, swobj.atom()['r'][:,iatom], is_mag=atoms_mag[iatom], size=size, color=color, label=label,
-                                               gtensor_mat=g_mat, aniso_mat=aniso_mat))
+            self.unit_cell.add_atom(Atom(atom_idx, swobj.atom()['r'][:,iatom], is_mag=atoms_mag[iatom], size=size, color=color, label=label,
+                                         gtensor_mat=g_mat, aniso_mat=aniso_mat))
             
         # add bonds - only plot bonds for which there is a mat_idx
         bond_idx = np.squeeze(swobj.coupling['idx'])
@@ -304,7 +306,8 @@ class SuperCellSimple:
                     alpha=self.atom_alpha,
                     parent=canvas_scene)
         # labels
-        scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=self.font_size*self.cell_scale_abc_to_xyz)
+        if self.do_plot_labels:
+            scene.visuals.Text(pos=pos, parent=canvas_scene, text=labels, color="white", font_size=self.font_size*self.cell_scale_abc_to_xyz)
 
     def plot_bonds(self, canvas_scene):
         max_dm_norm = self.unit_cell.get_max_DM_vec_norm()
@@ -437,7 +440,7 @@ class SuperCellSimple:
         iremove = np.flatnonzero(np.logical_or(np.any(points < -tol, axis=1), np.any((points - self.extent)>tol, axis=1)))
         return np.delete(points, iremove, axis=0), iremove
 
-class UnitCellSimple:
+class UnitCell:
     def __init__(self, atoms_list=None, bonds=None):
         self.atoms = atoms_list if atoms_list is not None else []
         self.bonds = bonds if bonds is not None else {}
@@ -473,7 +476,7 @@ class UnitCellSimple:
         return max_norm
 
 
-class AtomSimple:
+class Atom:
     def __init__(self, index, position, is_mag=False, moment=np.zeros(3), size=0.2, gtensor_mat=None, aniso_mat=None, label='atom', color="blue"):
         self.pos = np.asarray(position)
         self.is_mag = is_mag
