@@ -23,7 +23,23 @@ class PolyhedraArgs:
         self.color = color
 
 class SuperCellSimple:
-    def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True, plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None, polyhedra_args=None):
+    def __init__(self, matlab_caller, swobj, extent=(1,1,1), plot_mag=True, plot_bonds=False, plot_atoms=True,
+                 plot_cell=True, plot_axes=True, plot_plane=True, ion_type=None, polyhedra_args=None):
+        """
+        :param swobj: spinw object to plot
+        :param extent: Tuple of supercell dimensions default is (1,1,1) - a single unit cell
+        :param plot_mag: If True the magneitc moments (in rotating frame representation) will be 
+                         plotted if a magnetic structure has been set on swobj
+        :param plot_bonds: If True the bonds in swobj.coupling will be plotted
+        :param plot_atoms: If True the atoms will be plotted
+        :param plot_cell: If True the unit cell boundaries will be plotted
+        :param plot_axes: If True the arrows for the unit cell vectors will be plotted near the origin
+        :param plot_plane: If True the rotation plane will be plotted
+        :param ion_type: If not None ion_type can be one of 'aniso' or 'g' and the corresponding 
+                         single-ion ellipsoid will be plotted
+        :param polyhedra_args: If not None then instance of PolyhedraArgs that stores atom indices and 
+                                nearest neighbours. These will be used to plot polyhedra.
+        """
         # init with sw obj - could get NExt from object if not explicitly provide (i.e. make default None)
         self.do_plot_mag=plot_mag
         self.do_plot_bonds=plot_bonds
