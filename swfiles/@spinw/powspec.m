@@ -246,7 +246,6 @@ switch param.binType
 end
 
 nQ      = numel(hklA);
-powSpec = zeros(max(1,nE),nQ);
 
 fprintf0(fid,'Calculating powder spectra...\n');
 
@@ -260,6 +259,7 @@ fprintf0(fid,[yesNo{param.gtensor+1} ' g-tensor is included in the '...
 
 sw_timeit(0,1,param.tid,'Powder spectrum calculation');
 
+nk = param.nRand;
 if param.fibo
     % apply the Fibonacci numerical integration on a sphere
     % according to J. Phys. A: Math. Gen. 37 (2004) 11591
@@ -279,11 +279,13 @@ if param.fibo
     QF(1,:) = cos(theta).*sin(phi);
     QF(2,:) = cos(theta).*cos(phi);
     
+    nk = F;
 end
 
 % lambda value for SCGA, empty will make integration in first loop
 specQ.lambda = [];
 
+hkl = zeros(3, nk * nQ);
 for ii = 1:nQ
     if param.fibo
         Q = QF*hklA(ii);
@@ -291,40 +293,37 @@ for ii = 1:nQ
         rQ  = randn(3,param.nRand);
         Q   = bsxfun(@rdivide,rQ,sqrt(sum(rQ.^2)))*hklA(ii);
     end
-    hkl = (Q'*obj.basisvector)'/2/pi;
-    
-    switch funIdx
-        case 0
-            % general function call allow arbitrary additional parameters to
-            % pass to the spectral calculation function
-            warnState = warning('off','sw_readparam:UnreadInput');
-            specQ = param.specfun(obj,hkl,varargin{:});
-            warning(warnState);
-        case 1
-            % @spinwave
-            specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
-                'Hermit',param.hermit,'formfact',param.formfact,...
-                'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
-                'optmem',param.optmem,'tid',0,'fid',0),'noCheck');
-            
-        case 2
-            % @scga
-            specQ = scga(obj,hkl,struct('fitmode',true,'formfact',param.formfact,...
-                'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
-                'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
-                'plot',false),'noCheck');
-    end
-    
-    specQ = sw_neutron(specQ,'pol',false);
-    specQ.obj = obj;
-    % use edge grid by default
-    specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
-    'imagChk',param.imagChk,'component',param.component),'noCheck');
-    powSpec(:,ii) = sum(specQ.swConv,2)/param.nRand;
-    sw_timeit(ii/nQ*100,0,param.tid);
+    i0 = (ii-1) * nk + 1;
+    hkl(:, i0:(i0+nk-1)) = (Q'*obj.basisvector)'/2/pi;
 end
 
-sw_timeit(100,2,param.tid);
+switch funIdx
+    case 0
+        % general function call allow arbitrary additional parameters to
+        % pass to the spectral calculation function
+        warnState = warning('off','sw_readparam:UnreadInput');
+        specQ = param.specfun(obj,hkl,varargin{:});
+        warning(warnState);
+    case 1
+        % @spinwave
+        specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
+            'Hermit',param.hermit,'formfact',param.formfact,...
+            'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
+            'optmem',param.optmem,'tid',param.tid,'fid',0),'noCheck');
+    case 2
+        % @scga
+        specQ = scga(obj,hkl,struct('fitmode',true,'formfact',param.formfact,...
+            'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
+            'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
+            'plot',false),'noCheck');
+end
+
+specQ = sw_neutron(specQ,'pol',false);
+specQ.obj = obj;
+% use edge grid by default
+specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
+    'imagChk',param.imagChk,'component',param.component),'noCheck');
+powSpec = squeeze(sum(reshape(specQ.swConv, max(1, nE), nk, nQ), 2) / param.nRand);
 
 fprintf0(fid,'Calculation finished.\n');
 

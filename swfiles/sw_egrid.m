@@ -477,7 +477,7 @@ if isfield(spectra,'omega')
     
     % Calculate Bose temperature factor for magnons
     if param.T==0
-        nBose = double(ebin_cens>=0);
+        nBose = find(ebin_cens<0);
     else
         nBose = 1./(exp(abs(ebin_cens)./(spectra.obj.unit.kB*param.T))-1)+double(ebin_cens>=0);
     end
@@ -507,7 +507,11 @@ if isfield(spectra,'omega')
                 DSF_valid(DSF_valid > param.maxDSF) = 0;
                 swConv{ii,tt} = accumarray(sw_conv_idx, DSF_valid(ien_valid), [nE, nHkl]);
                 % Multiply the intensities with the Bose factor.
-                swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
+                if param.T > 0
+                    swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
+                elseif ~isempty(nBose)
+                    swConv{ii,tt}(nBose,:) = 0;
+                end
                 swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
             else
                 swConv{ii,tt} = zeros(numel(ebin_cens), nHkl);
@@ -521,7 +525,7 @@ else
 end
 
 % sum up twin spectra if requested
-if param.sumtwin
+if param.sumtwin && nTwin > 1
     % normalised volume fractions of the twins
     if isfield(spectra,'obj')
         vol = spectra.obj.twin.vol/sum(spectra.obj.twin.vol);
