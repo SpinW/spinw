@@ -229,16 +229,19 @@ if param.dQ > 0
     stdG = param.dQ/2.35482;
     
     for jj = 1:nPlot
-        swConv = spectra.swConv{jj};
-        swConvTemp = swConv * 0;
-        for ii = 1:numel(Qconv)
-            % Gaussian with intensity normalised to 1, centered on E(ii)
-            fG = exp(-((Qconv-Qconv(ii))/stdG).^2/2);
-            fG = fG/sum(fG);
-            swConvTemp = swConvTemp + swConv(:,ii) * fG;
-            
+        if pref.usemex
+            spectra.swConv{jj} = sw_qconv(spectra.swConv{jj}, Qconv, stdG, pref.nthread);
+        else
+            swConv = spectra.swConv{jj};
+            swConvTemp = swConv * 0;
+            for ii = 1:numel(Qconv)
+                % Gaussian with intensity normalised to 1, centered on E(ii)
+                fG = exp(-((Qconv-Qconv(ii))/stdG).^2/2);
+                fG = fG/sum(fG);
+                swConvTemp = swConvTemp + swConv(:,ii) * fG;
+            end
+            spectra.swConv{jj} = swConvTemp;
         end
-        spectra.swConv{jj} = swConvTemp;
     end
     
     fprintf0(fid,'Finite instrumental momentum resolution of %5.3f A-1 is applied.\n',param.dQ);

@@ -45,6 +45,7 @@ if param.compile
     chol_omp_dir = [sw_rootdir filesep 'external' filesep 'chol_omp'];
     mtimesx_dir = [sw_rootdir filesep 'external' filesep 'mtimesx'];
     swloop_dir = [sw_rootdir filesep 'external' filesep 'swloop'];
+    swqconv_dir = [sw_rootdir filesep 'external' filesep 'sw_qconv'];
     eigen_ver = '3.4.0';
     if ~exist([swloop_dir filesep 'eigen-' eigen_ver], 'dir')
         cd(swloop_dir);
@@ -97,6 +98,8 @@ if param.compile
         cd(swloop_dir);
         mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
     end
+    cd(swqconv_dir);
+    mex('-R2018a','sw_qconv.cpp')
     % return back to original folder
     cd(aDir);
 end
