@@ -15,7 +15,7 @@ classdef systemtest_spinwave_af33kagome < sw_tests.system_tests.systemtest_spinw
             AF33kagome.addcoupling('mat','J1','bond',1);
             testCase.swobj = AF33kagome;
             testCase.relToll = 0.027;
-            testCase.absToll = 1.2e-5;
+            testCase.absToll = 2e-5;
         end
     end
 

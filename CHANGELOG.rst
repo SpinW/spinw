@@ -94,3 +94,5 @@ Bug Fixes
   introduced by a previous update to provide more helpful error messages.
 - ``sw_instrument`` now calculates the limits for thetaMax, before it was
   using the continuation of the thetaMin line to high Q which is incorrect.
+- Fixes a parsing error in the ``spinw.fourier`` method if no sublat option
+  given.

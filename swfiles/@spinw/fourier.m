@@ -214,7 +214,10 @@ if ~isempty(param.sublat)
     atom2 = param.sublat(atom2);
     nMag  = max(param.sublat);
     nMag0 = numel(obj.matom.idx);
+    nsubl = nMag / nMag0;
     fprintf0(fid,'Remapping magnetic atoms into a new set of sublattices...\n');
+else
+    nsubl = 1;
 end
 
 % number of magnetic atoms in the magnetic supercell
@@ -289,7 +292,7 @@ end
 
 % save results in a struct
 % scale ft with the number of sublattices
-res.ft    = ft*(nMag/nMag0);
+res.ft    = ft * nsubl;
 res.hkl   = hkl;
 % Heisenberg output
 res.isiso = size(ft,1)==1;
