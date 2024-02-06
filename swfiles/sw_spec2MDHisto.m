@@ -15,8 +15,8 @@ function sw_spec2MDHisto(spectra,proj, dproj, filename)
 % 
 % proj: a 3x3 matrix defining an orthogonal coordinate system 
 %       where each column is a vector defining the orientation 
-%       of the view. One of the vectors must be identical to the Q axis 
-%       defined by the direction of the calculation.  
+%       of the view. One of the vectors must be along the Q axis 
+%       defined by the direction of the calculation. It is also used to define the units along the x axis.  
 % 
 % dproj: is a 3 vector that is the bin size in each of the 
 %        directions defined in proj. For the direction of the 
@@ -28,11 +28,11 @@ function sw_spec2MDHisto(spectra,proj, dproj, filename)
 %
 % Example:
 % q0 = [0 0 0];
-% qdir = [1 0 0];
+% qmax = [2 0 0];
 % nsteps = 100;
-% spec = sw_egrid(spinwave(sw_model('triAF', 1), {q0 q0+qdir nsteps}))
-% proj = [qdir(:) [0 1 0]' [0 0 1]'];
-% dproj = [(qdir(1)-q0(1)/steps, 1e-6, 1e-6];
+% spec = sw_egrid(spinwave(sw_model('triAF', 1), {q0 qmax nsteps}))
+% proj = [[1 0 0]' [0 1 0]' [0 0 1]'];
+% dproj = [1, 1e-6, 1e-6];
 % sw_spec2MDHisto(spec, proj, dproj, 'testmdh.nxs');
 % Note that: 
 % (1) In the call to `spinwave`, only one q-direction may be specified
@@ -250,26 +250,29 @@ function [latt_parms,Bmat,proj_out,D,signal,proj,name] = read_struct(dstruct,pro
     %proj_out = proj(:);
     hkls = dstruct.hkl;
     hkls_sz = size(hkls);
+    % determine the direction where the hkl changes
     dir_vec = hkls(:,hkls_sz(2))-hkls(:,1);
     dir_vec = dir_vec/norm(dir_vec);
     %qout = hkls'/dir_vec';
     D={};
-    
+    % loop through each of the projection directions
     for idx=1:3
         qidx = idx; 
         procjv = proj(:,qidx)/norm(proj(:,qidx));
-          
+       % if the projection direction is perpendicular to the propogation direction
+       % then set the values to +/- dproj
        if abs(norm(cross(dir_vec,procjv)))> 1e-6
            dtmp = dot(hkls(:,2),procjv);
            D{idx} = dtmp+dproj(qidx)/2.*[-1 1]; 
        else
-           hkl_proj = hkls'/dir_vec';
+           %assume it aslong the propogation direction
+           hkl_proj = hkls'/proj(:,qidx)'; 
            dhkl = hkl_proj(2)-hkl_proj(1); % get the spacing along the q axis
            %hkl_proj = dot(hkls(:,1),procjv);
            D{idx} = zeros([1,length(hkl_proj)+1]);
            D{idx}(1:length(hkl_proj)) = hkl_proj-dhkl/2;
            D{idx}(length(D{idx})) = hkl_proj(length(hkl_proj))+dhkl/2;% change to bin boundaries
-           proj(:,qidx) = dir_vec; %set varying projection vector to spectra object 
+           %proj(:,qidx) = dir_vec; %set varying projection vector to spectra object 
        end  
     end
     D{4}=dstruct.Evect;
