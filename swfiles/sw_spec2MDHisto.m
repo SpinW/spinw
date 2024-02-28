@@ -256,22 +256,21 @@ function [latt_parms,Bmat,proj_out,D,signal,proj,name] = read_struct(dstruct,pro
     %qout = hkls'/dir_vec';
     D={};
     % loop through each of the projection directions
-    for idx=1:3
-        qidx = idx; 
+    for qidx=1:3
         procjv = proj(:,qidx)/norm(proj(:,qidx));
        % if the projection direction is perpendicular to the propogation direction
        % then set the values to +/- dproj
        if abs(norm(cross(dir_vec,procjv)))> 1e-6
            dtmp = dot(hkls(:,2),procjv);
-           D{idx} = dtmp+dproj(qidx)/2.*[-1 1]; 
+           D{qidx} = dtmp+dproj(qidx)/2.*[-1 1]; 
        else
            %assume it aslong the propogation direction
            hkl_proj = hkls'/proj(:,qidx)'; 
            dhkl = hkl_proj(2)-hkl_proj(1); % get the spacing along the q axis
            %hkl_proj = dot(hkls(:,1),procjv);
-           D{idx} = zeros([1,length(hkl_proj)+1]);
-           D{idx}(1:length(hkl_proj)) = hkl_proj-dhkl/2;
-           D{idx}(length(D{idx})) = hkl_proj(length(hkl_proj))+dhkl/2;% change to bin boundaries
+           D{qidx} = zeros([1,length(hkl_proj)+1]);
+           D{qidx}(1:length(hkl_proj)) = hkl_proj-dhkl/2;
+           D{qidx}(length(D{qidx})) = hkl_proj(length(hkl_proj))+dhkl/2;% change to bin boundaries
            %proj(:,qidx) = dir_vec; %set varying projection vector to spectra object 
        end  
     end
