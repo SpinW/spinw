@@ -130,6 +130,9 @@ function spectra = sw_egrid(spectra, varargin)
 % `'imagChk'`
 % : Checks whether the imaginary part of the spin wave dispersion is
 %   smaller than the energy bin size. Default value is true.
+%
+% `dE`
+% : Energy resolution (FWHM) can be function, or a single number
 % 
 % {{note The Blume-Maleev coordinate system is a cartesian coordinate
 % system with $x_{BM}$, $y_{BM}$ and $z_{BM}$ basis vectors defined as:
@@ -209,10 +212,10 @@ inpForm.defval = [inpForm.defval {false       true       'ebin'  5e-4}];
 inpForm.size   = [inpForm.size   {[1 1]      [1 1]      [1 -5]   [1 1]}];
 inpForm.soft   = [inpForm.soft   {false      false      false    false}];
 
-inpForm.fname  = [inpForm.fname  {'maxDSF'}];
-inpForm.defval = [inpForm.defval {1e6}];
-inpForm.size   = [inpForm.size   {[1 1]}];
-inpForm.soft   = [inpForm.soft   {false}];
+inpForm.fname  = [inpForm.fname  {'maxDSF', 'dE'}];
+inpForm.defval = [inpForm.defval {1e6,      []}];
+inpForm.size   = [inpForm.size   {[1 1],    [-6 -7]}];
+inpForm.soft   = [inpForm.soft   {false,    true}];
 
 param = sw_readparam(inpForm, varargin{:});
 
@@ -450,20 +453,28 @@ param.Evect = sort(param.Evect);
 if eBin
     ebin_edges = param.Evect;
     ebin_cens = (ebin_edges(2:end)+ebin_edges(1:(end-1)))/2;
-    dE = diff(ebin_cens);
 else
     ebin_cens = param.Evect;
-    dE = diff(ebin_cens);
-    ebin_edges = [ebin_cens-0.5*[dE(1) dE], ebin_cens(end) + dE(end)/2];
+    den = diff(ebin_cens)./2;
+    ebin_edges = [ebin_cens(1)-den(1), ebin_cens(1:end-1) + den, ebin_cens(end) + den(end)];
 end
+bin_widths = diff(ebin_edges);
 nE = numel(ebin_cens);
+
+% evalulate reoslution at every bin-center if func
+if isa(param.dE,'function_handle')
+    dE_sigma = param.dE(ebin_cens(:))/2.355;
+else
+    dE_sigma = param.dE(:)/2.355;
+end
+
 
 if isfield(spectra,'omega')   
     if param.imagChk
         % find the maximum of the imaginary part of the spin wave energies
         % checks only the first twin!
         ioMax = max(abs(imag(omega{1}(:))));
-        if ioMax > max(abs(dE(:)))
+        if ioMax > max(abs(bin_widths(:)))
             error('egrid:BadSolution',['The imaginary part of the spin '...
                 'wave energes is larger than the bin size! Improve '...
                 'your calculation or disable imagChk option!']);
@@ -487,34 +498,43 @@ if isfield(spectra,'omega')
     
     for tt = 1:nTwin
         for ii = 1:nConv
+            swConv{ii, tt} = zeros([nE, nHkl]);
             real_eigvals = real(omega{tt}(param.modeIdx, :));
-            % find energy bin (cen) index coinciding with evals in omega
-            ien = discretize(real_eigvals, ebin_edges);
-            % set eigvals < zeroEnergyTol to naN (will be ignored)
-            izero_eigval = abs(real_eigvals(:)) < param.zeroEnergyTol;
-            ien(izero_eigval) = NaN;
-             % NaN in ien implies eigvals not in extent of Evect
-            ien_valid =  ~isnan(ien(:)); 
-            % get hkl index of each ien bin (column index in real_eigvals)
-            [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
-            % get index of bins in final sxConv field
-            % normally ien(ien_valid) is a colulmn vector but not in case
-            % of one modeIDx specified so need to reshape
-            sw_conv_idx = [reshape(ien(ien_valid), [], 1), ihkl(ien_valid)'];
-            if ~isempty(sw_conv_idx)
-                % sum intensities and pad energies above max eigval with 0
-                DSF_valid = DSF{ii,tt}(param.modeIdx, :);
-                DSF_valid(DSF_valid > param.maxDSF) = 0;
-                swConv{ii,tt} = accumarray(sw_conv_idx, DSF_valid(ien_valid), [nE, nHkl]);
-                % Multiply the intensities with the Bose factor.
-                swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
-                swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
+            % sum intensities and pad energies above max eigval with 0
+            DSF_valid = DSF{ii,tt}(param.modeIdx, :);
+            DSF_valid(DSF_valid > param.maxDSF) = 0;
+            if isempty(param.dE)
+                % find energy bin (cen) index coinciding with evals in omega
+                ien = discretize(real_eigvals, ebin_edges);
+                % set eigvals < zeroEnergyTol to naN (will be ignored)
+                izero_eigval = abs(real_eigvals(:)) < param.zeroEnergyTol;
+                ien(izero_eigval) = NaN;
+                 % NaN in ien implies eigvals not in extent of Evect
+                ien_valid =  ~isnan(ien(:)); 
+                % get hkl index of each ien bin (column index in real_eigvals)
+                [~, ihkl] = ind2sub(size(ien), 1:numel(ien));
+                % get index of bins in final sxConv field
+                % normally ien(ien_valid) is a colulmn vector but not in case
+                % of one modeIDx specified so need to reshape
+                sw_conv_idx = [reshape(ien(ien_valid), [], 1), ihkl(ien_valid)'];
+                if ~isempty(sw_conv_idx)
+                    swConv{ii,tt} = accumarray(sw_conv_idx, DSF_valid(ien_valid), [nE, nHkl]);
+                end
             else
-                swConv{ii,tt} = zeros(numel(ebin_cens), nHkl);
+                swConv{ii, tt} = zeros([nE, nHkl]);
+                for ieval = 1:size(real_eigvals,1)
+                    eval = real_eigvals(ieval, :);
+                    % make use of array broadcasting, each q point
+                    % corresponds to a col in ebin_cens(:) - eval
+                    swConv{ii, tt} = swConv{ii, tt} + ...
+                            DSF_valid(ieval,:).*(bin_widths(:)./(sqrt(2*pi)*dE_sigma)).*exp(-0.5 * ((ebin_cens(:) - eval) ./ dE_sigma).^2);
+                end
             end
+            % Multiply the intensities with the Bose factor.
+            swConv{ii,tt} = bsxfun(@times,swConv{ii,tt},nBose');
+            swConv{ii,tt}(isnan(swConv{ii,tt})) = 0;
         end
     end
-    
 else
     swConv = DSF;
     nE     = 1;
