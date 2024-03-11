@@ -132,7 +132,8 @@ function spectra = sw_egrid(spectra, varargin)
 %   smaller than the energy bin size. Default value is true.
 %
 % `dE`
-% : Energy resolution (FWHM) can be function, or a single number
+% : Energy resolution (FWHM) can be function, or a numeric matrix that
+%   has length 1 or the numeber of energy bin centers.
 % 
 % {{note The Blume-Maleev coordinate system is a cartesian coordinate
 % system with $x_{BM}$, $y_{BM}$ and $z_{BM}$ basis vectors defined as:
@@ -464,8 +465,16 @@ nE = numel(ebin_cens);
 % evalulate reoslution at every bin-center if func
 if isa(param.dE,'function_handle')
     dE_sigma = param.dE(ebin_cens(:))/2.355;
-else
+elseif isnumeric(param.dE)
+    n_dE = numel(param.dE);
+    if n_dE > 1 && n_dE ~= nE
+        error('sw_egrid:WrongInput', ['numeric dE must be on length 1 ' ...
+              'or number of energy bin centers'])
+    end
     dE_sigma = param.dE(:)/2.355;
+else
+    error('sw_egrid:WrongInput', ['dE must be a numeric matrix or a ' ...
+          'callable function']);
 end
 
 

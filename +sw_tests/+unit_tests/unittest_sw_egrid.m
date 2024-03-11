@@ -376,7 +376,23 @@ classdef unittest_sw_egrid < sw_tests.unit_tests.unittest_super
             expected_out.swConv(455,3) = 2.65255873676699;
             testCase.verify_obj(out, expected_out);
         end
-        function test_dE_callable(testCase)
+        function test_dE_matrix_correct_numel(testCase)
+            % use small dE so only intenisty in a single ebin at each q
+            dE = 0.001*ones(1, numel(testCase.sw_egrid_out_sperp.Evect)-1);
+            out = sw_egrid(testCase.spectrum, 'component', 'Sperp', 'dE', dE);
+            expected_out = testCase.sw_egrid_out_sperp;
+            expected_out.swConv(228,[2, 4]) = 6.29705585872502e-05;
+            expected_out.swConv(455,3) = 2.65255873676699;
+            testCase.verify_obj(out, expected_out);
+        end
+        function test_dE_matrix_incorrect_numel(testCase)
+            % use small dE so only intenisty in a single ebin at each q
+            dE = [0.001, 0.001];
+            testCase.verifyError(...
+                @() sw_egrid(testCase.spectrum, 'component', 'Sperp', 'dE', dE), ...
+                'sw_egrid:WrongInput');
+        end
+        function test_dE_callable_func(testCase)
             % use small dE so only intenisty in a single ebin at each q
             dE_func = @(en) 0.001;
             out = sw_egrid(testCase.spectrum, 'component', 'Sperp', 'dE', dE_func);
