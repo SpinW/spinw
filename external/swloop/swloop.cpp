@@ -6,7 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include <mutex>
+#include <atomic>
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
 typedef std::complex<double> cd_t;
@@ -71,7 +71,13 @@ MatrixXT<T> accumarray(Eigen::MatrixXd ind,
     return res;
 }
 
-std::mutex warn_mutex;
+std::atomic_int err_flag(0);
+std::vector<std::string> errmsgs = {
+    std::string("all good"),
+    std::string("swloop:notposdef: Very baaaad!"),
+    std::string("swloop:notposdef: The input matrix is not positive definite."),
+    std::string("swloop: Eigensolver could not converge")
+};
 
 void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inputs, struct swoutputs &outputs) {
     // Setup
@@ -128,6 +134,10 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
 
     // This is the main loop
     for (size_t jj=i0; jj<i1; jj++) {
+        if (jj % 10 == 0) {
+            if (err_flag.load(std::memory_order_relaxed) > 0) {
+                return; }
+        }
         Eigen::MatrixXcd V(nHam, nHam);
         Eigen::VectorXcd ExpF = exp((dR * hklExt(Eigen::all, jj)).array() * std::complex<double>(0., 1.));
         Eigen::MatrixXcd ham = accumarray<cd_t>(idxAll, ABCD.array() * ExpF.replicate(3,1).array(), nHam);
@@ -147,12 +157,17 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             if (chol.info() == Eigen::NumericalIssue) {
                 Eigen::VectorXcd eigvals = ham.eigenvalues();
                 double tol0 = abs(eigvals.real().minCoeff()) * sqrt(nHam) * 4.;
+                if (tol0 > params.omega_tol) {
+                    err_flag.store(1, std::memory_order_relaxed);
+                    return;
+                }
                 Eigen::MatrixXcd hamtol = ham + (Eigen::MatrixXcd::Identity(nHam, nHam) * tol0);
                 chol.compute(hamtol);
                 if (chol.info() == Eigen::NumericalIssue) {
                     chol.compute(ham + (Eigen::MatrixXcd::Identity(nHam, nHam) * params.omega_tol));
                     if (chol.info() == Eigen::NumericalIssue) {
-                        throw std::runtime_error("swloop:notposdef: The input matrix is not positive definite.");
+                        err_flag.store(2, std::memory_order_relaxed);
+                        return;
                     }
                 }
                 outputs.warn_posdef = true;
@@ -162,7 +177,9 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             K2 = (K2 + K2.adjoint().eval()) / 2;
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> eig(K2);
             if (eig.info() != Eigen::Success) {
-                throw std::runtime_error("swloop: Eigensolver could not converge"); }
+                err_flag.store(3, std::memory_order_relaxed);
+                return;
+            }
             std::vector<ev_tuple_t> evs;
             for (size_t ii=0; ii<nHam; ii++) {
                 evs.push_back(ev_tuple_t(eig.eigenvalues()[ii], eig.eigenvectors().col(ii))); }
@@ -183,7 +200,9 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             for (size_t ii=0; ii<nHam; ii++) { gham(ii, ii) += vd*1e-12; vd++; }
             Eigen::ComplexEigenSolver<Eigen::MatrixXcd> eig(gham);
             if (eig.info() != Eigen::Success) {
-                throw std::runtime_error("swloop: Eigensolver could not converge"); }
+                err_flag.store(3, std::memory_order_relaxed);
+                return;
+            }
             std::vector<ev_tuple_t> evs;
             for (size_t ii=0; ii<nHam; ii++) {
                 evs.push_back(ev_tuple_t(eig.eigenvalues()[ii], eig.eigenvectors().col(ii))); }
@@ -268,6 +287,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if (nrhs < 15) {
         throw std::runtime_error("swloop: Requires 15 arguments");
     }
+    err_flag.store(0, std::memory_order_release);
     size_t nThreads = getField<size_t>(prhs[0], 0, "nThreads", 8);
     // Initialises the parameters structure
     struct pars params;
@@ -392,6 +412,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             outputs.Sab = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[1]));
         }
         swcalc_fun(0, params.nHkl, std::ref(params), std::ref(inputs), std::ref(outputs));
+        int errcode = err_flag.load(std::memory_order_relaxed);
+        if (errcode > 0) {
+            delete[]idx0;
+            if (!mxIsComplex(prhs[2])) {
+                delete[]ABCDmem; }
+            if (params.incomm) {
+                delete [](outputs.omega);
+                delete [](outputs.Sab);
+            }
+            mexErrMsgIdAndTxt("swloop:error", errmsgs[errcode].c_str());
+        }
         if (outputs.warn_posdef) *warn1 = 1.;
         if (params.incomm) {
             // Re-arranges incommensurate modes into [Q-km, Q, Q+km] modes
@@ -447,7 +478,21 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         }
         for (size_t ii=0; ii<nThreads; ii++) {
             if (threads[ii].joinable()) {
-                threads[ii].join(); }
+                threads[ii].join();
+            }
+        }
+        int errcode = err_flag.load(std::memory_order_relaxed);
+        if (errcode > 0) {
+            delete[]idx0;
+            if (!mxIsComplex(prhs[2])) {
+                delete[]ABCDmem; }
+            for (size_t ii=0; ii<nThreads; ii++) {
+                delete [](outputs_v[ii].omega);
+                delete [](outputs_v[ii].Sab);
+            }
+            throw std::runtime_error(errmsgs[errcode].c_str());
+        }
+        for (size_t ii=0; ii<nThreads; ii++) {
             if (params.incomm) {
                 // Re-arranges incommensurate modes into [Q-km, Q, Q+km] modes
                 for (size_t jj=i0; jj<i1; jj++) {

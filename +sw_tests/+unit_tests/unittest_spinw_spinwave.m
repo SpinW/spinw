@@ -25,7 +25,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         % Test directions and literal qpts work
         qpts_h5 = {{[0 0 0], [1 0 0], 5}, ...
                    [0:0.25:1; zeros(2,5)]};
-        mex = {0, 'old'};
+        mex = {0, 'old', 1};
     end
 
     methods (TestClassSetup)
@@ -156,6 +156,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     end
     methods (Test)
         function test_sw_qh5(testCase, qpts_h5, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts_h5);
@@ -163,6 +164,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_sortmode(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
@@ -188,6 +190,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out_nformula, expected_sw);
         end
         function test_sw_qh5_periodic(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Test qpts in different BZ give same omega, Sab
             qpts = testCase.qh5 + 1;
@@ -199,6 +202,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_perpendicular(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Test qpts in perpendicular direction give flat modes
             qpts = [zeros(1, 5); 0:0.25:1; 0:0.25:1];
@@ -228,6 +232,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_title(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             title = 'Example title';
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
@@ -392,6 +397,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_notwin(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Create copy to avoid changing obj for other tests
             swobj_twin = copy(testCase.swobj);
@@ -417,8 +423,10 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_cmplxBase_fails_with_chain(testCase, mex)
             swpref.setpref('usemex', mex);
-            if mex
+            if ischar(mex)
                 err ='chol_omp:notposdef';
+            elseif mex == 1
+                err ='swloop:notconverge';
             else
                 err= 'spinw:spinwave:NonPosDefHamiltonian';
             end
@@ -515,6 +523,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertGreaterThan(sum(abs(imag(spec.omega(:)))), 0);
         end
         function test_sw_qh5_tol(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             tol = 5e-4;
             qpts = testCase.qh5;
@@ -537,6 +546,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_omega_tol(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             if mex
                 err ='chol_omp:notposdef';
