@@ -721,9 +721,12 @@ if (~isstring(useMex) && ~ischar(useMex) && useMex) || strcmp(useMex, 'auto')
     end
 end
 
-if any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV
+use_swloop = any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV && ~param.saveSabp;
+
+if use_swloop
     pars = struct('hermit', param.hermit, 'omega_tol', param.omega_tol, 'formfact', param.formfact, ...
-        'incomm', incomm, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), 'nThreads', pref.nthread);
+        'incomm', incomm, 'helical', helical, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), ...
+        'nThreads', pref.nthread);
     ham_diag = diag(accumarray([idxA2; idxD2], 2*[A20 D20], [1 1]*2*nMagExt));
     idxAll = [idxA1; idxB; idxD1]; ABCD = [AD0 2*BC0 conj(AD0)];
     bqABCD = []; bq_ham_d = []; idxBq = []; ham_MF = {};
@@ -740,7 +743,7 @@ if any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV
     end
     try
         [omega, Sab, warn1, orthWarn0] = swloop(pars, hklExt, ...
-            ABCD, idxAll, ham_diag, dR, RR, S0, z1, FF, bqdR, bqABCD, idxBq, bq_ham_d, ham_MF);
+            ABCD, idxAll, ham_diag, dR, RR, S0, z1, FF, bqdR, bqABCD, idxBq, bq_ham_d, ham_MF, n);
     catch err
         if ~isempty(strfind(err.message, 'notposdef'))
             error('chol_omp:notposdef', 'Hamiltonian is not positive definite');
@@ -753,6 +756,12 @@ if any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV
     Sab = Sab / prod(nExt);
     if param.hermit && sum(abs(imag(omega(:)))) < 1e-5
         omega = real(omega);
+    end
+    if incomm
+        nHkl0 = nHkl0/3;
+        nHklT = nHkl / nTwin;
+        kmIdx = cell2mat(arrayfun(@(x) (x+nHkl0):(x+2*nHkl0-1), [0:(nTwin-1)]*nHklT + 1, 'UniformOutput', false));
+        hkl = hkl(:, kmIdx);
     end
 else
   for jj = 1:nSlice
@@ -1002,7 +1011,7 @@ end
 % END MEMORY MANAGEMENT LOOP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if incomm
+if incomm && ~use_swloop
     % resize matrices due to the incommensurability (k-km,k,k+km) multiplicity
     kmIdx = repmat(sort(repmat([1 2 3],1,nHkl0/3)),1,nTwin);
     % Rodrigues' rotation formula.
