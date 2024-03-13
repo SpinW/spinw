@@ -28,6 +28,9 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
                 testCase.reference_data = load(fname);
             end
         end
+        function disable_mex_setup(testCase)
+            swpref.setpref('usemex', false);
+        end
     end
 
     methods (TestClassTeardown)
@@ -38,6 +41,9 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
                 ref_dat = rmfield(ref_dat, 'tmp');
                 save(fname, '-struct', 'ref_dat');
             end
+        end
+        function disable_mex_teardown(testCase)
+            swpref.setpref('usemex', false);
         end
     end
 
