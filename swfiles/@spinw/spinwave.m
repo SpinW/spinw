@@ -349,13 +349,13 @@ if param.fastmode
     param.neutron_output = true;
     param.fitmode = true;
     param.sortMode = false;
-    if any(useMex) && (param.saveV || param.saveH || param.Sabp)
+    if any(useMex) && (param.saveV || param.saveH || param.saveSabp)
         warning('spinw:spinwave:fastmodewithsave', ...
                 ['You have set both "usemex" and "fastmode" and also ' ...
                  'requested that S, V or H is saved, but mex files do not ' ...
                  'support saving intermediate matrices. So in this case ' ...
-                 'the mex files will *not* be used. Set the "save" option ' ...
-                 'to "false" to use mex files.']);
+                 'the mex files will *not* be used. Set all "save*" ' ...
+                 'options to "false" to use mex files.']);
     end
 end
 
@@ -767,12 +767,18 @@ end
 use_swloop = any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.saveV && ~param.saveSabp;
 
 if ~use_swloop
+    if param.fastmode
+        nMode = nMagExt;
+    else
+        nMode = 2 * nMagExt;
+    end
+
     % Empty omega dispersion of all spin wave modes, size: 2*nMagExt x nHkl.
     omega = zeros(2*nMagExt, nHkl);
     if param.neutron_output
-        Sperp = zeros(2*nMagExt, nHkl);
+        Sperp = zeros(nMode, nHkl);
     else
-        SabFull = zeros(3,3,2*nMagExt,nHkl);
+        SabFull = zeros(3,3,nMode,nHkl);
     end
 
     if incomm
@@ -835,25 +841,6 @@ if use_swloop
         nHklT = nHkl / nTwin;
         kmIdx = cell2mat(arrayfun(@(x) (x+nHkl0):(x+2*nHkl0-1), [0:(nTwin-1)]*nHklT + 1, 'UniformOutput', false));
         hkl = hkl(:, kmIdx);
-    end
-    if ~param.notwin
-        if nTwin > 1
-            omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
-            Sab = squeeze(mat2cell(Sab,3,3,size(Sab,3),repmat(nHkl0,[1 nTwin])))';
-        end
-    end
-    if param.sortMode
-        if ~param.notwin
-            for ii = 1:nTwin
-                % sort the spin wave modes
-                [omega{ii}, Sab{ii}] = sortmode(omega{ii},reshape(Sab{ii},9,size(Sab{ii},3),[]));
-                Sab{ii} = reshape(Sab{ii},3,3,size(Sab{ii},2),[]);
-            end
-        else
-            % sort the spin wave modes
-            [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
-            Sab = reshape(Sab,3,3,size(Sab,2),[]);
-        end
     end
 else
   for jj = 1:nSlice
@@ -958,7 +945,7 @@ else
             if param.fastmode
                 % Only transform the positive energy modes (first half of V)
                 for ii = 1:nMagExt
-                    V(:,ii,:) = bsxfun(@times, squeeze(V(:,ii,:)), sqrt(omega(ii,hklIdxMem)));
+                    V(:,ii,:) = bsxfun(@times, squeeze(V(:,ii,:)), sqrt(omega(ii,hklIdxMEM)));
                 end
                 V = sw_mtimesx(invK, V(:,1:nMagExt,:));
             else
@@ -1054,9 +1041,6 @@ else
 
     if param.fastmode
         V = V(:,1:nMagExt,:);
-        nMode = nMagExt;
-    else
-        nMode = 2 * nMagExt;
     end
 
     % Calculates correlation functions.
@@ -1122,6 +1106,25 @@ else
         Sab(:,:,:,kmIdxMEM==3) = mmat(Sab(:,:,:,kmIdxMEM==3), conj(K1));
     end
 
+    if ~param.notwin
+        % Rotate the calculated correlation function into the twin coordinate system using rotC
+        for ii = 1:nTwin
+            % select the ii-th twin from the Q points
+            idx = find((hklIdxMEM <= (nHkl0 * ii)) .* (hklIdxMEM > (nHkl0 * (ii-1))));
+            if ~isempty(idx)
+                % convert the matrix into cell of 3x3 matrices
+                SabT   = reshape(Sab(:,:,:,idx),3,3,[]);
+                % select the rotation matrix of twin ii
+                rotC   = obj.twin.rotc(:,:,ii);
+                % rotate correlation function using arrayfun
+                SabRot = arrayfun(@(idx)(rotC*SabT(:,:,idx)*(rotC')),1:size(SabT,3),'UniformOutput',false);
+                SabRot = cat(3,SabRot{:});
+                % resize back the correlation matrix
+                Sab(:,:,:,idx) = reshape(SabRot, [3 3 nMode numel(idx)]);
+            end
+        end
+    end
+
     if param.neutron_output
         if obj.unit.nformula > 0
             Sab = Sab/double(obj.unit.nformula);
@@ -1159,6 +1162,9 @@ else
 
     sw_timeit(jj/nSlice*100,0,param.tid);
   end
+  if param.fastmode
+    omega = omega(1:nMagExt,:);
+  end
   if ~param.neutron_output
     Sab = SabFull;
   end
@@ -1187,8 +1193,7 @@ end
 % END MEMORY MANAGEMENT LOOP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if ~use_swloop
-  if incomm
+if incomm && ~use_swloop
     % Rearrange the Sab and omega matrices
     omega = [omega(:,kmIdx==1); omega(:,kmIdx==2); omega(:,kmIdx==3)];
     if ~param.neutron_output
@@ -1198,49 +1203,28 @@ if ~use_swloop
     end
     hkl   = hkl(:,kmIdx==2);
     nHkl0 = nHkl0/3;
-  end
+end
 
-  if ~param.notwin
-    if nTwin > 1
-        omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
+if ~param.notwin && nTwin > 1
+    omega = mat2cell(omega, size(omega, 1), repmat(nHkl0, [1 nTwin]));
+    Sab = squeeze(mat2cell(Sab, 3, 3, size(Sab, 3), repmat(nHkl0, [1 nTwin])))';
+    if param.neutron_output
+        Sperp = mat2cell(Sperp, size(Sperp, 1), repmat(nHkl0, [1 nTwin]));
     end
-    % Rotate the calculated correlation function into the twin coordinate
-    % system using rotC
-    SabAll = cell(1,nTwin);
-    for ii = 1:nTwin
-        % select the ii-th twin from the Q points
-        idx    = (1:nHkl0) + (ii-1)*nHkl0;
-        % select correlation function of twin ii
-        SabT   = Sab(:,:,:,idx);
-        if param.sortMode && ~param.neutron_output
+end
+
+if param.sortMode && ~param.neutron_output
+    if ~param.notwin
+        for ii = 1:nTwin
             % sort the spin wave modes
-            [omega{ii}, SabT] = sortmode(omega{ii},reshape(SabT,9,size(SabT,3),[]));
-            SabT = reshape(SabT,3,3,size(SabT,2),[]);
+            [omega{ii}, Sab{ii}] = sortmode(omega{ii},reshape(Sab{ii},9,size(Sab{ii},3),[]));
+            Sab{ii} = reshape(Sab{ii},3,3,size(Sab{ii},2),[]);
         end
-        % size of the correlation function matrix
-        sSabT  = size(SabT);
-        % convert the matrix into cell of 3x3 matrices
-        SabT   = reshape(SabT,3,3,[]);
-        % select the rotation matrix of twin ii
-        rotC   = obj.twin.rotc(:,:,ii);
-        % rotate correlation function using arrayfun
-        SabRot = arrayfun(@(idx)(rotC*SabT(:,:,idx)*(rotC')),1:size(SabT,3),'UniformOutput',false);
-        SabRot = cat(3,SabRot{:});
-        % resize back the correlation matrix
-        SabAll{ii} = reshape(SabRot,sSabT);
-    end
-    Sab = SabAll;
-
-    if nTwin == 1
-        Sab = Sab{1};
-    end
-  else
-    if param.sortMode && ~param.neutron_output
+    else
         % sort the spin wave modes
         [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
-        Sab          = reshape(Sab,3,3,size(Sab,2),[]);
+        Sab = reshape(Sab,3,3,size(Sab,2),[]);
     end
-  end
 end
 
 % Creates output structure with the calculated values.

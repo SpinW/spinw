@@ -624,6 +624,43 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swpref.setpref('usemex', mexpref.val);
             swpref.setpref('nspinlarge', nslpref.val);
         end
+        function test_neutron_output(testCase)
+            objs = {testCase.swobj, testCase.swobj_tri};
+            hkl = {[0 0 0] [1 0 0] [0 1 0] 50};
+            for ii = 1:numel(objs)
+                swobj = copy(objs{ii});
+                spec0 = sw_neutron(swobj.spinwave(hkl, 'sortMode', false));
+                spec1 = swobj.spinwave(hkl, 'neutron_output', true);
+                testCase.verify_val(spec0.omega, spec1.omega, 'abs_tol', 1e-8);
+                testCase.verify_val(spec0.Sperp, spec1.Sperp, 'abs_tol', 1e-8);
+            end
+        end
+        function test_neutron_twin(testCase)
+            swobj = copy(testCase.swobj);
+            swobj.addtwin('axis', [1 1 1], 'phid', 54);
+            swobj.unit.nformula = int32(2);
+            hkl = {[1 0 0] [0 1 0] [0 0 0] 50};
+            spec0 = sw_neutron(swobj.spinwave(hkl, 'sortMode', false));
+            spec1 = swobj.spinwave(hkl, 'neutron_output', true);
+            testCase.verify_val(spec0.omega{1}, spec1.omega{1}, 'abs_tol', 1e-8);
+            testCase.verify_val(spec0.omega{2}, spec1.omega{2}, 'abs_tol', 1e-8);
+            testCase.verify_val(spec0.Sperp{1}, spec1.Sperp{1}, 'abs_tol', 1e-8);
+            testCase.verify_val(spec0.Sperp{2}, spec1.Sperp{2}, 'abs_tol', 1e-8);
+        end
+        function test_fastmode(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
+            swpref.setpref('usemex', mex);
+            swobj = copy(testCase.swobj);
+            hkl = {[0 0 0] [1 0 0] [0 1 0] 50};
+            spec0 = sw_neutron(swobj.spinwave(hkl));
+            spec1 = swobj.spinwave(hkl, 'fastmode', true);
+            spec2 = swobj.spinwave(hkl, 'hermit', false, 'fastmode', true);
+            nMode = size(spec1.omega, 1);
+            testCase.verify_val(size(spec0.omega, 1), 2*nMode);
+            testCase.verify_val(spec0.omega(1:nMode,:), spec1.omega, 'abs_tol', 1e-4);
+            testCase.verify_val(spec0.Sperp(1:nMode,:), spec1.Sperp, 'abs_tol', 1e-8);
+            testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
+        end
     end
     methods (Test, TestTags = {'Symbolic'})
         function test_sw_symbolic_no_qpts(testCase)
