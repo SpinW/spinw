@@ -390,10 +390,10 @@ else
 end
 
 % number of modes and Q points
-if iscell(spectra.Sab)
-    nMode = size(spectra.Sab{1},3);
+if iscell(spectra.omega)
+    nMode = size(spectra.omega{1}, 1);
 else
-    nMode = size(spectra.Sab,3);
+    nMode = size(spectra.omega, 1);
 end
 nHkl  = numel(spectra.hkl)/3;
 sHkl  = [size(spectra.hkl) 1];
