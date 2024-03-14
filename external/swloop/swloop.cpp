@@ -44,6 +44,7 @@ struct swinputs {
     std::vector< const double *> ham_MF_v;
     const int *idx0;
     const double *n;
+    const double *rotc;
 };
 
 struct swoutputs {
@@ -259,6 +260,12 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                 }
                 Sab = Sab * K;
             }
+            if (params.nTwin > 1) {
+                // Rotates the correlation function by the twin rotation matrix
+                size_t iT = jj / nHklT;
+                Eigen::Map<const Eigen::Matrix3d> rotC(inputs.rotc + iT*9, 3, 3);
+                Sab = rotC * Sab * rotC.transpose().eval();
+            }
             Sab_ptr += 9;   // This trick only works for column-major data layouts!
         }
     }
@@ -363,7 +370,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             inputs.ham_MF_v.push_back(mxGetDoubles(mf_ptr));
         }
     }
-    inputs.n = mxGetDoubles(prhs[15]);
+    inputs.n = mxGetDoubles(mxGetField(prhs[0], 0, "n"));
+    inputs.rotc = mxGetDoubles(mxGetField(prhs[0], 0, "rotc"));
 
     int *idx0 = new int[params.nHkl];
     double K1[9], K2[9];

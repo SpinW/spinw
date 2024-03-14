@@ -726,7 +726,7 @@ use_swloop = any(useMex) && strcmp(useMex, 'new') && ~param.saveH && ~param.save
 if use_swloop
     pars = struct('hermit', param.hermit, 'omega_tol', param.omega_tol, 'formfact', param.formfact, ...
         'incomm', incomm, 'helical', helical, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), ...
-        'nThreads', pref.nthread);
+        'nThreads', pref.nthread, 'n', n, 'rotc', obj.twin.rotc);
     ham_diag = diag(accumarray([idxA2; idxD2], 2*[A20 D20], [1 1]*2*nMagExt));
     idxAll = [idxA1; idxB; idxD1]; ABCD = [AD0 2*BC0 conj(AD0)];
     bqABCD = []; bq_ham_d = []; idxBq = []; ham_MF = {};
@@ -743,7 +743,7 @@ if use_swloop
     end
     try
         [omega, Sab, warn1, orthWarn0] = swloop(pars, hklExt, ...
-            ABCD, idxAll, ham_diag, dR, RR, S0, z1, FF, bqdR, bqABCD, idxBq, bq_ham_d, ham_MF, n);
+            ABCD, idxAll, ham_diag, dR, RR, S0, z1, FF, bqdR, bqABCD, idxBq, bq_ham_d, ham_MF);
     catch err
         if ~isempty(strfind(err.message, 'notposdef'))
             error('chol_omp:notposdef', 'Hamiltonian is not positive definite');
@@ -762,6 +762,25 @@ if use_swloop
         nHklT = nHkl / nTwin;
         kmIdx = cell2mat(arrayfun(@(x) (x+nHkl0):(x+2*nHkl0-1), [0:(nTwin-1)]*nHklT + 1, 'UniformOutput', false));
         hkl = hkl(:, kmIdx);
+    end
+    if ~param.notwin
+        if nTwin > 1
+            omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
+            Sab = squeeze(mat2cell(Sab,3,3,size(Sab,3),repmat(nHkl0,[1 nTwin])))';
+        end
+    end
+    if param.sortMode
+        if ~param.notwin
+            for ii = 1:nTwin
+                % sort the spin wave modes
+                [omega{ii}, Sab{ii}] = sortmode(omega{ii},reshape(Sab{ii},9,size(Sab{ii},3),[]));
+                Sab{ii} = reshape(Sab{ii},3,3,size(Sab{ii},2),[]);
+            end
+        else
+            % sort the spin wave modes
+            [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
+            Sab = reshape(Sab,3,3,size(Sab,2),[]);
+        end
     end
 else
   for jj = 1:nSlice
@@ -1011,7 +1030,8 @@ end
 % END MEMORY MANAGEMENT LOOP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if incomm && ~use_swloop
+if ~use_swloop
+  if incomm
     % resize matrices due to the incommensurability (k-km,k,k+km) multiplicity
     kmIdx = repmat(sort(repmat([1 2 3],1,nHkl0/3)),1,nTwin);
     % Rodrigues' rotation formula.
@@ -1049,11 +1069,11 @@ if incomm && ~use_swloop
     
     hkl   = hkl(:,kmIdx==2);
     nHkl0 = nHkl0/3;
-else
+  else
     helical = false;
-end
+  end
 
-if ~param.notwin
+  if ~param.notwin
     if nTwin > 1
         omega = mat2cell(omega,size(omega,1),repmat(nHkl0,[1 nTwin]));
     end
@@ -1087,12 +1107,13 @@ if ~param.notwin
     if nTwin == 1
         Sab = Sab{1};
     end
-else
-    if param.sortMode
+  else
+    if param.sortMode && ~use_swloop
         % sort the spin wave modes
         [omega, Sab] = sortmode(omega,reshape(Sab,9,size(Sab,3),[]));
         Sab          = reshape(Sab,3,3,size(Sab,2),[]);
     end
+  end
 end
 
 % Creates output structure with the calculated values.
