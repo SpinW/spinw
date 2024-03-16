@@ -484,6 +484,8 @@ if param.neutron_output
     else
         hklAf = hklA;
     end
+    % Normalized scattering wavevector in xyz coordinate system.
+    hklAf = bsxfun(@rdivide, hklAf, sqrt(sum(hklAf.^2, 1)));
 end
 % determines a twin index for every q point
 twinIdx = repmat(1:nTwin,[nHkl0 1]);
@@ -805,7 +807,8 @@ end
 if use_swloop
     pars = struct('hermit', param.hermit, 'omega_tol', param.omega_tol, 'formfact', param.formfact, ...
         'incomm', incomm, 'helical', helical, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), ...
-        'nThreads', pref.nthread, 'n', n, 'rotc', obj.twin.rotc);
+        'nThreads', pref.nthread, 'n', n, 'rotc', obj.twin.rotc, 'fastmode', param.fastmode, ...
+	'neutron_output', param.neutron_output, 'hklA', hklAf, 'nformula', obj.unit.nformula);
     ham_diag = diag(accumarray([idxA2; idxD2], 2*[A20 D20], [1 1]*2*nMagExt));
     idxAll = [idxA1; idxB; idxD1]; ABCD = [AD0 2*BC0 conj(AD0)];
     bqABCD = []; bq_ham_d = []; idxBq = []; ham_MF = {};
@@ -1134,7 +1137,7 @@ else
         Sab = (Sab + permute(Sab,[2 1 3 4]))/2;
 
         % Normalized scattering wavevector in xyz coordinate system.
-        hklAN = bsxfun(@rdivide,hklAf(:,hklIdxMEM),sqrt(sum(hklAf(:,hklIdxMEM).^2,1)));
+        hklAN = hklAf(:, hklIdxMEM);
 
         % avoid NaN for Q=0
         NaNidx = find(any(isnan(hklAN)));

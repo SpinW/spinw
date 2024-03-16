@@ -25,6 +25,9 @@ struct pars {
     size_t nHkl;
     size_t nBond;
     size_t nBqBond;
+    bool fastmode;
+    bool neutron_output;
+    size_t nformula;
 };
 
 // In terms of the Toth & Lake paper ( https://arxiv.org/pdf/1402.6069.pdf ),
@@ -50,6 +53,7 @@ struct swinputs {
     const int *idx0;                        // Indices into hklExt for twined Q
     const double *n;                        // normal vector defining the rotating frame (IC calcs)
     const double *rotc;                     // 3*3*nTwin twin rotation matrices
+    const double *hklA;                     // 3*nQ array of Q-points in Cartesian A^-1 units
 };
 
 struct swoutputs {
@@ -120,18 +124,24 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
     size_t nHklT = params.nHkl / params.nTwin;
 
     std::complex<double> *omega = outputs.omega;
-    std::complex<double> *Sab_ptr = outputs.Sab;
+    std::complex<double> *Sab_ptr, *Sperp_ptr;
+    if (params.neutron_output) {
+        Sab_ptr = new std::complex<double>[9];
+        Sperp_ptr = outputs.Sab;
+    } else {
+        Sab_ptr = outputs.Sab;
+    }
 
     size_t nHklI = params.nHkl / params.nTwin / 3;
-    Eigen::Matrix3cd K1, K2, cK1, nx, m1, K;
+    Eigen::Matrix3cd K1, K2, cK1, nx, K, qPerp;
     Eigen::Vector3d n;
+    Eigen::Matrix3cd m1 = Eigen::Matrix3cd::Identity(3, 3);
     if (params.incomm) {
         // Defines the Rodrigues rotation matrix to rotate Sab back
         n << inputs.n[0], inputs.n[1], inputs.n[2];
         nx << 0, -n(2), n(1),
               n(2), 0, -n(0),
              -n(1), n(0), 0;
-        m1 = Eigen::Matrix3cd::Identity(3, 3);
         K2 = n * n.adjoint().eval();
         K1 = 0.5 * (m1 - K2 - nx * std::complex<double>(0., 1.));
         cK1 = K1.conjugate().eval();
@@ -260,6 +270,12 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                 K = cK1;
             }
         }
+        if (params.neutron_output) {
+            size_t iHklA = (jj+i0) * 3;
+            Eigen::Vector3d hklAN;
+            hklAN << inputs.hklA[iHklA], inputs.hklA[iHklA + 1], inputs.hklA[iHklA + 2];
+            qPerp = m1 - (hklAN * hklAN.adjoint().eval());
+        }
         for (int i1=0; i1<nHam; i1++) {
             Eigen::Map<Eigen::Matrix3cd> Sab(Sab_ptr);
             Sab = VExp(Eigen::all, i1) * VExp(Eigen::all, i1).adjoint();
@@ -277,9 +293,19 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                 Eigen::Map<const Eigen::Matrix3d> rotC(inputs.rotc + iT*9, 3, 3);
                 Sab = rotC * Sab * rotC.transpose().eval();
             }
-            Sab_ptr += 9;   // This trick only works for column-major data layouts!
+            if (params.neutron_output) {
+                if (params.nformula > 0) {
+                    Sab = Sab / params.nformula;
+                }
+                Sab = Sab + Sab.transpose().eval();
+                *(Sperp_ptr++) = (qPerp * Sab).sum();
+            } else {
+                Sab_ptr += 9;   // This trick only works for column-major data layouts!
+            }
         }
     }
+    if (params.neutron_output) {
+        delete[](Sab_ptr); }
 }
 
 template <typename T> T getVal(const mxArray *d) { return (T)*(mxGetDoubles(d)); }
@@ -328,7 +354,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     params.helical = getField(prhs[0], 0, "helical", false);
     params.bq = getField(prhs[0], 0, "bq", false);
     params.field = getField(prhs[0], 0, "field", false);
+    params.fastmode = getField(prhs[0], 0, "fastmode", false);
+    params.neutron_output = getField(prhs[0], 0, "neutron_output", false);
     params.omega_tol = getField(prhs[0], 0, "omega_tol", 1.0e-5);
+    params.nformula = getField<size_t>(prhs[0], 0, "nformula", 1);
     params.nTwin = getField<size_t>(prhs[0], 0, "nTwin", 1);
     params.nHkl = (size_t)mxGetDimensions(prhs[1])[1];      // hklExt
     params.nBond = (size_t)mxGetDimensions(prhs[5])[1];     // dR
@@ -393,6 +422,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     }
     inputs.n = mxGetDoubles(mxGetField(prhs[0], 0, "n"));
     inputs.rotc = mxGetDoubles(mxGetField(prhs[0], 0, "rotc"));
+    inputs.hklA = mxGetDoubles(mxGetField(prhs[0], 0, "hklA"));
 
     int *idx0 = new int[params.nHkl];
     double K1[9], K2[9];
