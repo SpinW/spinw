@@ -7,6 +7,7 @@
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <cmath>
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
 typedef std::complex<double> cd_t;
@@ -28,6 +29,7 @@ struct pars {
     bool fastmode;
     bool neutron_output;
     size_t nformula;
+    double nCell;
 };
 
 // In terms of the Toth & Lake paper ( https://arxiv.org/pdf/1402.6069.pdf ),
@@ -241,24 +243,24 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             V = U * Minv.asDiagonal();
         }
         Eigen::MatrixXcd zedExpF(nHam, 3);
-        for (size_t i1=0; i1<params.nMagExt; i1++) {
+        for (size_t j1=0; j1<params.nMagExt; j1++) {
             double ph = 0.;
             for (size_t i2=0; i2<3; i2++) {
-                ph += hklExt(i2, idx0(jj)) * RR(i2, i1); }
-            std::complex<double> expF = exp(std::complex<double>(0., -ph)) * sqrtS0(i1);
+                ph += hklExt(i2, idx0(jj)) * RR(i2, j1); }
+            std::complex<double> expF = exp(std::complex<double>(0., -ph)) * sqrtS0(j1);
             if (params.formfact) {
-                expF *= FF(i1, jj); }
+                expF *= FF(j1, jj); }
             for (size_t i2=0; i2<3; i2++) {
                 // Don't know why we have to use the reverse of the Matlab code here and in
                 // V.tranpose() below instead of V.adjoint() - but otherwise get wrong intensities...
-                zedExpF(i1, i2) = std::conj(zed(i2, i1)) * expF;
-                zedExpF(i1 + params.nMagExt, i2) = zed(i2, i1) * expF;
+                zedExpF(j1, i2) = std::conj(zed(i2, j1)) * expF;
+                zedExpF(j1 + params.nMagExt, i2) = zed(i2, j1) * expF;
             }
         }
         V = V.transpose().eval();
         Eigen::MatrixXcd VExp(3, nHam);
-        for (size_t i1=0; i1<3; i1++) {
-            VExp(i1, Eigen::all) = V * zedExpF(Eigen::all, i1);
+        for (size_t j1=0; j1<3; j1++) {
+            VExp(j1, Eigen::all) = V * zedExpF(Eigen::all, j1);
         }
         if (params.incomm) {
             size_t kk = jj % nHklT;
@@ -271,14 +273,21 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             }
         }
         if (params.neutron_output) {
-            size_t iHklA = (jj+i0) * 3;
+            size_t iHklA = jj * 3;
             Eigen::Vector3d hklAN;
             hklAN << inputs.hklA[iHklA], inputs.hklA[iHklA + 1], inputs.hklA[iHklA + 2];
-            qPerp = m1 - (hklAN * hklAN.adjoint().eval());
+            if (std::isnan(hklAN[0]) || std::isnan(hklAN[1]) || std::isnan(hklAN[2])) {
+                if (jj < (params.nHkl - 1)) {
+                    hklAN << inputs.hklA[iHklA + 3], inputs.hklA[iHklA + 4], inputs.hklA[iHklA + 5];
+                } else {
+                    hklAN << 1., 0., 0.;
+                }
+            }
+            qPerp = m1 - (hklAN * hklAN.transpose().eval());
         }
-        for (int i1=0; i1<nHam; i1++) {
+        for (int j1=0; j1<nHam; j1++) {
             Eigen::Map<Eigen::Matrix3cd> Sab(Sab_ptr);
-            Sab = VExp(Eigen::all, i1) * VExp(Eigen::all, i1).adjoint();
+            Sab = VExp(Eigen::all, j1) * VExp(Eigen::all, j1).adjoint();
             if (params.incomm) {
                 if (params.helical) {
                     // integrating out the arbitrary initial phase of the helix
@@ -293,12 +302,13 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                 Eigen::Map<const Eigen::Matrix3d> rotC(inputs.rotc + iT*9, 3, 3);
                 Sab = rotC * Sab * rotC.transpose().eval();
             }
+            Sab /= params.nCell;
             if (params.neutron_output) {
                 if (params.nformula > 0) {
-                    Sab = Sab / params.nformula;
+                    Sab /= params.nformula;
                 }
-                Sab = Sab + Sab.transpose().eval();
-                *(Sperp_ptr++) = (qPerp * Sab).sum();
+                Sab = (Sab + Sab.transpose().eval()) / 2;
+                *(Sperp_ptr++) = (qPerp.cwiseProduct(Sab)).sum();
             } else {
                 Sab_ptr += 9;   // This trick only works for column-major data layouts!
             }
@@ -308,7 +318,23 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
         delete[](Sab_ptr); }
 }
 
-template <typename T> T getVal(const mxArray *d) { return (T)*(mxGetDoubles(d)); }
+template <typename T> T getVal(const mxArray *d) {
+    mxClassID cat = mxGetClassID(d);
+    switch (cat) {
+        case mxDOUBLE_CLASS: return (T)*(mxGetDoubles(d)); break;
+        case mxSINGLE_CLASS: return (T)*(mxGetSingles(d)); break;
+        case mxINT32_CLASS:  return (T)*(mxGetInt32s(d));  break;
+        case mxUINT32_CLASS: return (T)*(mxGetUint32s(d)); break;
+        case mxINT64_CLASS:  return (T)*(mxGetInt64s(d));  break;
+        case mxUINT64_CLASS: return (T)*(mxGetUint64s(d)); break;
+        case mxINT16_CLASS:  return (T)*(mxGetInt16s(d));  break;
+        case mxUINT16_CLASS: return (T)*(mxGetUint16s(d)); break;
+        case mxINT8_CLASS:   return (T)*(mxGetInt8s(d));   break;
+        case mxUINT8_CLASS:  return (T)*(mxGetUint8s(d));  break;
+        default:
+            throw std::runtime_error("Unknown mxArray class");
+    }
+}
 template <> bool getVal(const mxArray *d) { return (bool)*((mxLogical*)mxGetData(d)); }
 template <typename T>
 T getField(const mxArray *data_ptr, size_t idx, const char *fieldname, T default_val) {
@@ -357,6 +383,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     params.fastmode = getField(prhs[0], 0, "fastmode", false);
     params.neutron_output = getField(prhs[0], 0, "neutron_output", false);
     params.omega_tol = getField(prhs[0], 0, "omega_tol", 1.0e-5);
+    params.nCell = getField(prhs[0], 0, "nCell", 1.0);
     params.nformula = getField<size_t>(prhs[0], 0, "nformula", 1);
     params.nTwin = getField<size_t>(prhs[0], 0, "nTwin", 1);
     params.nHkl = (size_t)mxGetDimensions(prhs[1])[1];      // hklExt
@@ -454,7 +481,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     }
     const mwSize dSab[] = {3, 3, nn, nHkl0};
     plhs[0] = mxCreateDoubleMatrix(nn, nHkl0, mxCOMPLEX);
-    plhs[1] = mxCreateNumericArray(4, dSab, mxDOUBLE_CLASS, mxCOMPLEX);
+    size_t Sab_sz;
+    if (params.neutron_output) {
+        plhs[1] = mxCreateDoubleMatrix(nn, nHkl0, mxCOMPLEX);
+        Sab_sz = 1;
+    } else {
+        plhs[1] = mxCreateNumericArray(4, dSab, mxDOUBLE_CLASS, mxCOMPLEX);
+        Sab_sz = 9;
+    }
     plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
     plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
     double *warn1 = mxGetDoubles(plhs[2]); *warn1 = 0.;
@@ -465,7 +499,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         // Too few nHkl to run in parallel
         if (params.incomm) {
             outputs.omega = new std::complex<double>[nHam * params.nHkl];
-            outputs.Sab = new std::complex<double>[3 * 3 * nHam * params.nHkl];
+            outputs.Sab = new std::complex<double>[Sab_sz * nHam * params.nHkl];
         } else {
             outputs.omega = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[0]));
             outputs.Sab = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[1]));
@@ -487,15 +521,15 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             // Re-arranges incommensurate modes into [Q-km, Q, Q+km] modes
             std::complex<double> *dest_om = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[0]));
             std::complex<double> *dest_Sab = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[1]));
-            size_t nHams = nHam * 9;
-            size_t blkSz = nHam * sizeof(std::complex<double>), blkSzs = blkSz * 9;
+            size_t nHams = nHam * Sab_sz;
+            size_t blkSz = nHam * sizeof(std::complex<double>), blkSzs = blkSz * Sab_sz;
             size_t nHklI = params.nHkl / params.nTwin / 3;
-            size_t nHklI1 = nHklI * nHam, nHklS1 = nHklI1 * 9;
-            size_t nHklI2 = 2 * nHklI * nHam, nHklS2 = nHklI2 * 9;
+            size_t nHklI1 = nHklI * nHam, nHklS1 = nHklI1 * Sab_sz;
+            size_t nHklI2 = 2 * nHklI * nHam, nHklS2 = nHklI2 * Sab_sz;
             for (size_t ii=0; ii<params.nTwin; ii++) {
-                size_t t0 = ii * nHklT * nHam, s0 = t0 * 9;
+                size_t t0 = ii * nHklT * nHam, s0 = t0 * Sab_sz;
                 for (size_t jj=0; jj<nHklI; jj++) {
-                    size_t jx = jj * nHam, jy = jx * 9;
+                    size_t jx = jj * nHam, jy = jx * Sab_sz;
                     memcpy(dest_om, &outputs.omega[jx + t0], blkSz); dest_om += nHam;
                     memcpy(dest_om, &outputs.omega[jx + t0 + nHklI1], blkSz); dest_om += nHam;
                     memcpy(dest_om, &outputs.omega[jx + t0 + nHklI2], blkSz); dest_om += nHam;
@@ -514,7 +548,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         size_t i0 = 0, i1 = nBlock;
         for (size_t ii=0; ii<nThreads; ii++) {
             outputs_v[ii].omega = new std::complex<double>[nHam * (i1 - i0)];
-            outputs_v[ii].Sab = new std::complex<double>[3 * 3 * nHam * (i1 - i0)];
+            outputs_v[ii].Sab = new std::complex<double>[Sab_sz * nHam * (i1 - i0)];
             outputs_v[ii].warn_posdef = false;
             outputs_v[ii].warn_orth = false;
             threads.push_back(
@@ -530,9 +564,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 
         size_t nHams, blkSz, blkSzs, nHklI;
         if (params.incomm) {
-            nHams = nHam * 9;
+            nHams = nHam * Sab_sz;
             blkSz = nHam * sizeof(std::complex<double>);
-            blkSzs = blkSz * 9;
+            blkSzs = blkSz * Sab_sz;
             nHklI = params.nHkl / params.nTwin / 3;
         }
         for (size_t ii=0; ii<nThreads; ii++) {
@@ -564,9 +598,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             } else {
                 size_t msz = (i1 - i0) * nHam;
                 memcpy(omega_ptr, outputs_v[ii].omega, msz * sizeof(std::complex<double>));
-                memcpy(Sab_ptr, outputs_v[ii].Sab, 9 * msz * sizeof(std::complex<double>));
+                memcpy(Sab_ptr, outputs_v[ii].Sab, Sab_sz * msz * sizeof(std::complex<double>));
                 omega_ptr += msz;
-                Sab_ptr += 9 * msz;
+                Sab_ptr += Sab_sz * msz;
             }
             i0 = i1;
             i1 += nBlock;

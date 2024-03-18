@@ -624,7 +624,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             swpref.setpref('usemex', mexpref.val);
             swpref.setpref('nspinlarge', nslpref.val);
         end
-        function test_neutron_output(testCase)
+        function test_neutron_output(testCase, mex)
+            swpref.setpref('usemex', mex);
             objs = {testCase.swobj, testCase.swobj_tri};
             hkl = {[0 0 0] [1 0 0] [0 1 0] 50};
             for ii = 1:numel(objs)
@@ -635,7 +636,8 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
                 testCase.verify_val(spec0.Sperp, spec1.Sperp, 'abs_tol', 1e-8);
             end
         end
-        function test_neutron_twin(testCase)
+        function test_neutron_twin(testCase, mex)
+            swpref.setpref('usemex', mex);
             swobj = copy(testCase.swobj);
             swobj.addtwin('axis', [1 1 1], 'phid', 54);
             swobj.unit.nformula = int32(2);

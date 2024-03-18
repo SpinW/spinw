@@ -486,6 +486,8 @@ if param.neutron_output
     end
     % Normalized scattering wavevector in xyz coordinate system.
     hklAf = bsxfun(@rdivide, hklAf, sqrt(sum(hklAf.^2, 1)));
+else
+    hklAf = [];
 end
 % determines a twin index for every q point
 twinIdx = repmat(1:nTwin,[nHkl0 1]);
@@ -808,7 +810,8 @@ if use_swloop
     pars = struct('hermit', param.hermit, 'omega_tol', param.omega_tol, 'formfact', param.formfact, ...
         'incomm', incomm, 'helical', helical, 'nTwin', nTwin, 'bq', any(bq), 'field', any(SI.field), ...
         'nThreads', pref.nthread, 'n', n, 'rotc', obj.twin.rotc, 'fastmode', param.fastmode, ...
-	'neutron_output', param.neutron_output, 'hklA', hklAf, 'nformula', obj.unit.nformula);
+        'neutron_output', param.neutron_output, 'hklA', hklAf, 'nformula', obj.unit.nformula, ...
+        'nCell', prod(nExt));
     ham_diag = diag(accumarray([idxA2; idxD2], 2*[A20 D20], [1 1]*2*nMagExt));
     idxAll = [idxA1; idxB; idxD1]; ABCD = [AD0 2*BC0 conj(AD0)];
     bqABCD = []; bq_ham_d = []; idxBq = []; ham_MF = {};
@@ -835,9 +838,12 @@ if use_swloop
             rethrow(err);
         end
     end
-    Sab = Sab / prod(nExt);
     if param.hermit && sum(abs(imag(omega(:)))) < 1e-5
         omega = real(omega);
+    end
+    if param.neutron_output
+        Sperp = Sab;
+        clear Sab;
     end
     if incomm
         nHkl0 = nHkl0/3;
@@ -1210,9 +1216,10 @@ end
 
 if ~param.notwin && nTwin > 1
     omega = mat2cell(omega, size(omega, 1), repmat(nHkl0, [1 nTwin]));
-    Sab = squeeze(mat2cell(Sab, 3, 3, size(Sab, 3), repmat(nHkl0, [1 nTwin])))';
     if param.neutron_output
         Sperp = mat2cell(Sperp, size(Sperp, 1), repmat(nHkl0, [1 nTwin]));
+    else
+        Sab = squeeze(mat2cell(Sab, 3, 3, size(Sab, 3), repmat(nHkl0, [1 nTwin])))';
     end
 end
 
