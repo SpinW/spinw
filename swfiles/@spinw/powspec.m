@@ -213,9 +213,9 @@ inpForm.fname  = [inpForm.fname  {'extrap' 'fibo' 'optmem' 'binType' 'component'
 inpForm.defval = [inpForm.defval {false    false  0        'ebin'    'Sperp'    }];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]  [1 1]    [1 -4]     [1 -5]    }];
 
-inpForm.fname  = [inpForm.fname  {'fid'}];
-inpForm.defval = [inpForm.defval {-1   }];
-inpForm.size   = [inpForm.size   {[1 1]}];
+inpForm.fname  = [inpForm.fname  {'fid' , 'dE'}];
+inpForm.defval = [inpForm.defval {-1,      []}];
+inpForm.size   = [inpForm.size   {[1 1],   [-6, -7]}];
 
 param  = sw_readparam(inpForm, varargin{:});
 
@@ -322,7 +322,7 @@ specQ = sw_neutron(specQ,'pol',false);
 specQ.obj = obj;
 % use edge grid by default
 specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
-    'imagChk',param.imagChk,'component',param.component),'noCheck');
+    'imagChk',param.imagChk,'component',param.component, 'dE', param.dE),'noCheck');
 powSpec = squeeze(sum(reshape(specQ.swConv, max(1, nE), nk, nQ), 2) / param.nRand);
 
 fprintf0(fid,'Calculation finished.\n');
