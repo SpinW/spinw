@@ -93,6 +93,7 @@ std::vector<std::string> errmsgs = {
 void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inputs, struct swoutputs &outputs) {
     // Setup
     size_t nHam = 2 * params.nMagExt;
+    size_t nHam_sel = params.fastmode ? params.nMagExt : nHam;
     size_t len_abcd = 3 * params.nBond;
     // Assuming all data is column-major(!), so can be mapped directly to Eigen matrices
     // We're also assuming that the memory blocks are actually as big as defined here!
@@ -155,7 +156,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             if (err_flag.load(std::memory_order_relaxed) > 0) {
                 return; }
         }
-        Eigen::MatrixXcd V(nHam, nHam);
+        Eigen::MatrixXcd V(nHam, nHam_sel);
         Eigen::VectorXcd ExpF = exp((dR * hklExt(Eigen::all, jj)).array() * std::complex<double>(0., 1.));
         Eigen::MatrixXcd ham = accumarray<cd_t>(idxAll, ABCD.array() * ExpF.replicate(3,1).array(), nHam);
         ham += ham_diag.asDiagonal();
@@ -203,8 +204,8 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             std::sort(evs.begin(), evs.end(),
                 [&](const ev_tuple_t &a, const ev_tuple_t &b) -> bool {
                     return std::real(std::get<0>(a)) > std::real(std::get<0>(b)); });
-            Eigen::MatrixXcd U(nHam, nHam);
-            for (size_t ii=0; ii<nHam; ii++) {
+            Eigen::MatrixXcd U(nHam, nHam_sel);
+            for (size_t ii=0; ii<nHam_sel; ii++) {
                 // Note the following pointer arithmetic assumes column-major ordering
                 // We assign the current eigenvalue to the element pointed to by omega (*omega=evs[ii])
                 // then increment the pointer to point to the next element (omega++).
@@ -233,14 +234,12 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             std::sort(evs.begin(), evs.end(),
                 [&](const ev_tuple_t &a, const ev_tuple_t &b) -> bool {
                     return std::real(std::get<0>(a)) > std::real(std::get<0>(b)); });
-            Eigen::MatrixXcd U(nHam, nHam);
-            for (size_t ii=0; ii<nHam; ii++) {
+            for (size_t ii=0; ii<nHam_sel; ii++) {
                 *(omega++) = std::get<0>(evs[ii]);  // Note this pointer arithmetic assumes column-major ordering
-                U.col(ii) = std::get<1>(evs[ii]);
+                Eigen::ArrayXcd U = std::get<1>(evs[ii]);
+                std::complex<double> vsum = (gComm.diagonal().array() * U.conjugate() * U).sum();
+                V.col(ii) = U * sqrt(1.0 / vsum);
             }
-            Eigen::MatrixXcd M = gComm * U.adjoint() * gComm * U;
-            Eigen::VectorXcd Minv = sqrt(1 / M.diagonal().array());
-            V = U * Minv.asDiagonal();
         }
         Eigen::MatrixXcd zedExpF(nHam, 3);
         for (size_t j1=0; j1<params.nMagExt; j1++) {
@@ -258,7 +257,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             }
         }
         V = V.transpose().eval();
-        Eigen::MatrixXcd VExp(3, nHam);
+        Eigen::MatrixXcd VExp(3, nHam_sel);
         for (size_t j1=0; j1<3; j1++) {
             VExp(j1, Eigen::all) = V * zedExpF(Eigen::all, j1);
         }
@@ -285,7 +284,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             }
             qPerp = m1 - (hklAN * hklAN.transpose().eval());
         }
-        for (int j1=0; j1<nHam; j1++) {
+        for (int j1=0; j1<nHam_sel; j1++) {
             Eigen::Map<Eigen::Matrix3cd> Sab(Sab_ptr);
             Sab = VExp(Eigen::all, j1) * VExp(Eigen::all, j1).adjoint();
             if (params.incomm) {
@@ -474,9 +473,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     inputs.idx0 = idx0;
 
     // Creates outputs
-    size_t nn = nHam, nHkl0 = params.nHkl;
+    size_t nHam_sel = params.fastmode ? nHam / 2.0 : nHam;
+    size_t nn = nHam_sel, nHkl0 = params.nHkl;
     if (params.incomm) {
-        nn = nHam * 3; 
+        nn *= 3;
         nHkl0 = params.nHkl / 3;
     }
     const mwSize dSab[] = {3, 3, nn, nHkl0};
@@ -498,8 +498,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     if (params.nHkl < 10 * nThreads || nThreads == 1) {
         // Too few nHkl to run in parallel
         if (params.incomm) {
-            outputs.omega = new std::complex<double>[nHam * params.nHkl];
-            outputs.Sab = new std::complex<double>[Sab_sz * nHam * params.nHkl];
+            outputs.omega = new std::complex<double>[nHam_sel * params.nHkl];
+            outputs.Sab = new std::complex<double>[Sab_sz * nHam_sel * params.nHkl];
         } else {
             outputs.omega = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[0]));
             outputs.Sab = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[1]));
@@ -521,18 +521,18 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             // Re-arranges incommensurate modes into [Q-km, Q, Q+km] modes
             std::complex<double> *dest_om = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[0]));
             std::complex<double> *dest_Sab = reinterpret_cast<cd_t*>(mxGetComplexDoubles(plhs[1]));
-            size_t nHams = nHam * Sab_sz;
-            size_t blkSz = nHam * sizeof(std::complex<double>), blkSzs = blkSz * Sab_sz;
+            size_t nHams = nHam_sel * Sab_sz;
+            size_t blkSz = nHam_sel * sizeof(std::complex<double>), blkSzs = blkSz * Sab_sz;
             size_t nHklI = params.nHkl / params.nTwin / 3;
-            size_t nHklI1 = nHklI * nHam, nHklS1 = nHklI1 * Sab_sz;
-            size_t nHklI2 = 2 * nHklI * nHam, nHklS2 = nHklI2 * Sab_sz;
+            size_t nHklI1 = nHklI * nHam_sel, nHklS1 = nHklI1 * Sab_sz;
+            size_t nHklI2 = 2 * nHklI * nHam_sel, nHklS2 = nHklI2 * Sab_sz;
             for (size_t ii=0; ii<params.nTwin; ii++) {
-                size_t t0 = ii * nHklT * nHam, s0 = t0 * Sab_sz;
+                size_t t0 = ii * nHklT * nHam_sel, s0 = t0 * Sab_sz;
                 for (size_t jj=0; jj<nHklI; jj++) {
-                    size_t jx = jj * nHam, jy = jx * Sab_sz;
-                    memcpy(dest_om, &outputs.omega[jx + t0], blkSz); dest_om += nHam;
-                    memcpy(dest_om, &outputs.omega[jx + t0 + nHklI1], blkSz); dest_om += nHam;
-                    memcpy(dest_om, &outputs.omega[jx + t0 + nHklI2], blkSz); dest_om += nHam;
+                    size_t jx = jj * nHam_sel, jy = jx * Sab_sz;
+                    memcpy(dest_om, &outputs.omega[jx + t0], blkSz); dest_om += nHam_sel;
+                    memcpy(dest_om, &outputs.omega[jx + t0 + nHklI1], blkSz); dest_om += nHam_sel;
+                    memcpy(dest_om, &outputs.omega[jx + t0 + nHklI2], blkSz); dest_om += nHam_sel;
                     memcpy(dest_Sab, &outputs.Sab[jy + s0], blkSzs); dest_Sab += nHams;
                     memcpy(dest_Sab, &outputs.Sab[jy + s0 + nHklS1], blkSzs); dest_Sab += nHams;
                     memcpy(dest_Sab, &outputs.Sab[jy + s0 + nHklS2], blkSzs); dest_Sab += nHams;
@@ -547,8 +547,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         size_t nBlock = params.nHkl / nThreads;
         size_t i0 = 0, i1 = nBlock;
         for (size_t ii=0; ii<nThreads; ii++) {
-            outputs_v[ii].omega = new std::complex<double>[nHam * (i1 - i0)];
-            outputs_v[ii].Sab = new std::complex<double>[Sab_sz * nHam * (i1 - i0)];
+            outputs_v[ii].omega = new std::complex<double>[nHam_sel * (i1 - i0)];
+            outputs_v[ii].Sab = new std::complex<double>[Sab_sz * nHam_sel * (i1 - i0)];
             outputs_v[ii].warn_posdef = false;
             outputs_v[ii].warn_orth = false;
             threads.push_back(
@@ -564,8 +564,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 
         size_t nHams, blkSz, blkSzs, nHklI;
         if (params.incomm) {
-            nHams = nHam * Sab_sz;
-            blkSz = nHam * sizeof(std::complex<double>);
+            nHams = nHam_sel * Sab_sz;
+            blkSz = nHam_sel * sizeof(std::complex<double>);
             blkSzs = blkSz * Sab_sz;
             nHklI = params.nHkl / params.nTwin / 3;
         }
@@ -592,11 +592,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
                     size_t t0 = (jj / nHklT) * nHklT;  // Twin offset
                     size_t kk = (jj % nHklT) / nHklI;  // Flag indicating: 0==Q-km, 1==Q, 2==Q+km
                     size_t k0 = ((jj - t0) - (kk * nHklI))*3 + kk;
-                    memcpy(omega_ptr + (t0 + k0) * nHam, &outputs_v[ii].omega[(jj - i0) * nHam], blkSz);
+                    memcpy(omega_ptr + (t0 + k0) * nHam_sel, &outputs_v[ii].omega[(jj - i0) * nHam_sel], blkSz);
                     memcpy(Sab_ptr + (t0 + k0) * nHams, &outputs_v[ii].Sab[(jj - i0) * nHams], blkSzs);
                 }
             } else {
-                size_t msz = (i1 - i0) * nHam;
+                size_t msz = (i1 - i0) * nHam_sel;
                 memcpy(omega_ptr, outputs_v[ii].omega, msz * sizeof(std::complex<double>));
                 memcpy(Sab_ptr, outputs_v[ii].Sab, Sab_sz * msz * sizeof(std::complex<double>));
                 omega_ptr += msz;
