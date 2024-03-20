@@ -5,6 +5,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     %
 
     properties (SetObservable)
+        % data
        swobj;
        y
        e
@@ -13,13 +14,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        nQ = 10  % number |Q| bins to calc. in integration limits of 1D cut
        ndim
        ncuts = 0;
+       % spinw funtion inputs
        sw_instrument_args = struct()
        powspec_args = struct('nRand', 1e3, 'T', 0, 'formfact', true, 'hermit', false,  'imagChk', false, 'fibo', true, 'binType', 'cbin', 'component', 'Sperp')
+       % functions
        fit_func
        cost_function = "Rsq";  % "Rsq" or "chisq"
        background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept
-       % parameters
+       % fit and parameters
+       optimizer = @ndbase.simplex
        nparams_model
        nparams_bg
        params
@@ -167,27 +171,24 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
 
-        function resid_sq = calc_resid_sq(obj, params)
+        function resid_sq_sum = calc_cost_func(obj, params)
             % evaluate fit function
             [ycalc, ~] = calc_spinwave_spec(obj, params);
-            resid_sq = (obj.y - ycalc).^2;
+            resid = (obj.y - ycalc);
             if obj.cost_function == "chisq"
-                resid_sq = resid_sq./(obj.e.^2);
+                resid = resid./(obj.e);
             end
             % exclude nans in both ycalc and input data
-            resid_sq = resid_sq(~isnan(resid_sq));
+            ikeep = ~isnan(resid);
+            resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
-        function result = fit(obj, options)           
-            % call fit
-            [p, cost, resid_sq, exitflag, ~,~,jacobian] = lsqnonlin(@obj.calc_resid_sq,obj.params,obj.bounds(:,1),obj.bounds(:,2), options);
-            result.p = p;
-            result.exitflag = exitflag;
-            % calculate errors
-            ndof = numel(resid_sq) - numel(p);
-            result.reduced_cost = (cost/ndof);
-            cov = result.reduced_cost * inv(jacobian' * jacobian);
-            result.perr = diag(cov);            
+        function result = fit(obj, varargin) 
+            % setup cell for output of ndbase optimizer/minimizer
+            result = cell(1,nargout(obj.optimizer));
+            [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params, ...
+                                       'lb', obj.bounds(:,1), ...
+                                       'ub', obj.bounds(:,2));
         end
 
         function estimate_scale_factor(obj)
