@@ -21,7 +21,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        fit_func
        cost_function = "Rsq";  % "Rsq" or "chisq"
        background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
-       fbg = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept
+       fbg
+       fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
+       fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
        % fit and parameters
        optimizer = @ndbase.simplex
        nparams_model
@@ -48,8 +50,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                         scale = varargin{ikey+1};
                 end
             end
-            % initialise parameters
             obj.add_data(data)
+            if obj.background_strategy == "planar"
+                obj.fbg = obj.fbg_planar;
+            else
+                obj.fbg = obj.fbg_indep;
+            end
             obj.initialise_parameters_and_bounds(model_params, bg_params, scale)
         end
 
@@ -162,13 +168,21 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             spec = sw_instrument(spec, obj.sw_instrument_args);
             % scale
             ycalc = params(end)*spec.swConv;
-            % add background
+            % calc background
             bg = calc_background(obj, params);
-            ycalc = ycalc + bg;
-            if obj.ndim == 1
+            if obj.background_strategy == "planar"
+                ycalc = ycalc + bg;  % add planar bg before any rebinning
+                if obj.ndim == 1
+                    % integrate nQ |Q| points for each cut
+                    ycalc = obj.rebin_powspec_to_1D_cuts(ycalc);
+                end
+            else
                 % integrate nQ |Q| points for each cut
                 ycalc = obj.rebin_powspec_to_1D_cuts(ycalc);
+                % add background to individual cuts after rebin
+                ycalc = ycalc + bg;
             end
+
         end
 
         function resid_sq_sum = calc_cost_func(obj, params)
@@ -196,10 +210,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             params = obj.params;
             params(end) = 1;
             [ycalc, bg] = calc_spinwave_spec(obj, params);
-            if obj.ndim == 1
-                % integrate nQ |Q| points for each cut
-                bg = obj.rebin_powspec_to_1D_cuts(bg);
-            end
             scale = max(obj.y - bg, [], "all")/max(ycalc, [], "all");
             obj.params(end) = scale;
         end
