@@ -138,6 +138,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % crop data
             ikeep = obj.ebin_cens >= emin & obj.ebin_cens <= emax;
             obj.ebin_cens = obj.ebin_cens(ikeep);
+            obj.powspec_args.Evect = obj.ebin_cens(:)';
             obj.y = obj.y(ikeep, :);
             obj.e = obj.e(ikeep, :);
         end
