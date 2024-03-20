@@ -1,17 +1,17 @@
 function [w, s] = horace(obj, qh, qk, ql, varargin)
 % spin wave calculator with interface to Horace
-% 
+%
 % ### Syntax
-% 
+%
 % `[w, s] = horace(obj, qh, qk, ql,Name,Value)`
-% 
+%
 % ### Description
-% 
+%
 % `[w, s] = horace(obj, qh, qk, ql,Name,Value)` produces spin wave
 % dispersion and intensity for [Horace](http://horace.isis.rl.ac.uk).
-% 
+%
 % ### Examples
-% 
+%
 % This example creates a `d3d` object, a square in $(h,k,0)$ plane and in
 % energy between 0 and 10 meV. Then calculates the inelastice neutron
 % scattering intensity of the square lattice antiferromagnet stored in
@@ -27,17 +27,17 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 % >>snapnow
 % >>>horace off
 % ```
-% 
+%
 % ### Input Arguments
-% 
+%
 % `obj`
 % : [spinw] object.
-% 
+%
 % `qh`, `qk`, `ql`
 % : Reciprocal lattice vectors in reciprocal lattice units.
-% 
+%
 % ### Name-Value Pair Arguments
-% 
+%
 % `'component'`
 % : Selects the previously calculated intensity component to be
 %   convoluted. The possible options are:
@@ -47,15 +47,15 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 %   * `'Sab'`   convolutes the selected components of the spin-spin
 %               correlation function.
 %   For details see [sw_egrid].
-% 
+%
 % `'norm'`
 % : If `true` the spin wave intensity is normalized to mbarn/meV/(unit
 %   cell) units. Default is `false`.
-% 
+%
 % `'dE'`
 % : Energy bin size, for intensity normalization. Use 1 for no
 %   division by `dE` in the intensity.
-% 
+%
 % `'param'`
 % : Input parameters (can be used also within Tobyfit). Additional
 %   parameters (`'mat'`,`'selector'`) might be necessary, for details see
@@ -72,7 +72,7 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 %   of `spinw.horace` will be forwarded. In this case it is recommended
 %   to use [sw_readparam] function to handle the variable number
 %   arguments within `func()`.
-% 
+%
 % `'parfunc'`
 % : Parser function of the `param` input. Default value is
 %   `@spinw.matparser` which can be used directly by Tobyfit. For user
@@ -82,7 +82,7 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 %   ```
 %   where obj is an spinw type object, param is the parameter
 %   values forwarded from` spinw.horace` directly.
-% 
+%
 % `'func'`
 % : User function that will be called after the parameters set on
 %   the [spinw] object. It can be used to optimize magnetic
@@ -91,7 +91,7 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 %   ```
 %   fun(obj)
 %   ```
-% 
+%
 % `'fid'`
 % : Defines whether to provide text output. The default value is determined
 %   by the `fid` preference stored in [swpref]. The possible values are:
@@ -101,15 +101,14 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 %           into the opened file stream.
 %
 % `'useFast'`
-% : whether to use the spinw.spinwavefast method or not. This method 
-%           is similar to spinw.spinwave but calculates only the unpolarised
-%           neutron cross-section and ignores all negative energy branches
-%           as well as using other shortcuts. In general it should produce
+% : whether to use the 'fastmode' option in spinwave() or not. This method
+%           calculates only the unpolarised neutron cross-section and
+%           *ignores all negative energy branches*. In general it produces
 %           the same spectra as spinw.spinwave, with some rounding errors,
 %           but can be 2-3 times faster and uses less memory.
 %
 % ### Output Arguments
-% 
+%
 % `w`
 % : Cell that contains the spin wave energies. Every cell elements
 %           contains a vector of spin wave energies for the corresponding
@@ -119,9 +118,9 @@ function [w, s] = horace(obj, qh, qk, ql, varargin)
 % : Cell that contains the calculated element of the spin-spin
 %           correlation function. Every cell element contains a vector of
 %           intensities in the same order as the spin wave energies in `w`.
-% 
+%
 % ### See Also
-% 
+%
 % [spinw] \| [spinw.spinwave] \| [spinw.matparser] \| [sw_readparam]
 %
 
@@ -136,8 +135,8 @@ inpForm.size   = {[1 -1]      [1 1]  [1 1] [1 1]          [1 -2]  [1 1]  [1 1] [
 inpForm.soft   = {false       false  false false          true    true   false false};
 
 warnState = warning('off','sw_readparam:UnreadInput');
-% To handle matlab fitting syntax, which may set the first argument to the 
-% fittable parameter (without keyword). 
+% To handle matlab fitting syntax, which may set the first argument to the
+% fittable parameter (without keyword).
 if ~ischar(varargin{1})
     param = sw_readparam(inpForm, varargin{2:end});
     if isempty(param.param)
@@ -145,9 +144,9 @@ if ~ischar(varargin{1})
     end
     % always override keyword specified parameters
     param.param = varargin{1};
-    varargin(1) = []; 
+    varargin(1) = [];
 else
-    param = sw_readparam(inpForm, varargin{:}); 
+    param = sw_readparam(inpForm, varargin{:});
 end
 pref = swpref;
 
@@ -214,20 +213,20 @@ if nargin > 5
         if needSab || ~param.useFast
             spectra = obj.spinwave([qh(:) qk(:) ql(:)]',varargin{1});
         else
-            spectra = obj.spinwavefast([qh(:) qk(:) ql(:)]',varargin{1});
+            spectra = obj.spinwave([qh(:) qk(:) ql(:)]',varargin{1},'fastmode',true);
         end
     else
         if needSab || ~param.useFast
             spectra = obj.spinwave([qh(:) qk(:) ql(:)]',varargin{:},'fitmode',true);
         else
-            spectra = obj.spinwavefast([qh(:) qk(:) ql(:)]',varargin{:},'fitmode',true);
+            spectra = obj.spinwave([qh(:) qk(:) ql(:)]',varargin{:},'fitmode',true,'fastmode',true);
         end
     end
 else
     if needSab || ~param.useFast
         spectra = obj.spinwave([qh(:) qk(:) ql(:)]','fitmode',true);
     else
-        spectra = obj.spinwavefast([qh(:) qk(:) ql(:)]','fitmode',true);
+        spectra = obj.spinwave([qh(:) qk(:) ql(:)]','fitmode',true,'fastmode',true);
     end
 end
 warning(warnState);
@@ -245,7 +244,7 @@ if iscell(spectra.omega)
         Sab   = spectra.Sab;
     end
     Sperp = spectra.Sperp;
-    
+
 else
     nTwin = 1;
     omega = {spectra.omega};
@@ -309,10 +308,10 @@ if param.norm
     r0 = 2.8179403267e-15; % m
     % cross section constant in mbarn
     p2 = (g*gamma*r0/2)^2*1e28*1e3; % mbarn
-    
+
     % convert intensity to mbarn/meV units using the energy bin size
     DSF = DSF*p2/param.dE;
-    
+
     fprintf0(obj.fileid,'Intensity is converted to mbarn/meV units.\n');
     if spectra.gtensor
         fprintf0(fid,'g-tensor was already included in the spin wave calculation.\n');

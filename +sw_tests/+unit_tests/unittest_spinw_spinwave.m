@@ -663,17 +663,19 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
         end
         function test_fastmode_mex_nomex(testCase)
-            % Tests that fast mode gives same results for mex and no-mex
+            % Tests that fast mode gives same results for mex, no-mex and non-fastmode
             swobj = copy(testCase.swobj);
             hkl = {[0 0 0] [1 0 0] [0 1 0] 50};
             swpref.setpref('usemex', 0);
             spec0 = sw_neutron(swobj.spinwave(hkl));
-            swpref.setpref('usemex', 1);
             spec1 = swobj.spinwave(hkl, 'fastmode', true);
+            swpref.setpref('usemex', 1);
+            spec2 = swobj.spinwave(hkl, 'fastmode', true);
             nMode = size(spec1.omega, 1);
             testCase.verify_val(size(spec0.omega, 1), 2*nMode);
-            testCase.verify_val(spec0.omega(1:nMode,:), spec1.omega, 'abs_tol', 1e-4);
+            testCase.verify_val(spec0.omega(1:nMode,:), spec2.omega, 'abs_tol', 1e-4);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec1.Sperp, 'abs_tol', 1e-8);
+            testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
         end
     end
     methods (Test, TestTags = {'Symbolic'})
