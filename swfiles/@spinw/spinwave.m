@@ -714,7 +714,7 @@ if (~isstring(useMex) && ~ischar(useMex) && useMex) || strcmp(useMex, 'auto')
     % eigen/cholesky decompositions operations (chol / eig) in addition to parallelising over Q-points
     % The new code uses Eigen for these operations which is strictly serial so parallises better over Q-points
     % but will be super slow for large nMagExt
-    if nMagExt > 250  % This threshold needs to be explored more
+    if nMagExt > (pref.nspinlarge * 2)  % This threshold needs to be explored more
         useMex = 'old';
     else
         useMex = 'new';

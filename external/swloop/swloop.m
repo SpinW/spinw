@@ -1,10 +1,14 @@
 % Calculates the inner loop of spinw/spinwave.m in parallel
 %
-% [omega, Sab, warn1, orthWarn0] = swavel3(param, hklExt, ...
+% ### Syntax
+%
+% [omega, Sab, warn1, orthWarn0] = swloop(param, hklExt, ...
 %   ABCD, idxAll, ham_diag, dR, RR, S0, zed, FF, ...
 %   bqdR, bqABCD, idxBq, bq_ham_d, ham_MF)
 %
 % This is a MEX-file for MATLAB.
+%
+% ### Description
 %
 % This code uses the Eigen matrix library for linear algebra
 % C++ threads to calculate the inner loop of spinwave.m
@@ -13,8 +17,41 @@
 % You should double check that the Matlab and Mex code gives
 % consistent results before running a long calculation.
 %
+% ### Input Arguments
+%
+% `params`
+% : a struct with parameters:
+%   hermit (bool) - use Hermitian algorithm or not
+%   omega_tol (double) - max val to add to Hamiltonian to make +def
+%   formfact (bool) - whether to calculate formfactor
+%   incomm, helical (bool) - whether system is incommensurate/helical
+%   nTwin (int) - number of twins
+%   bq (bool) - whether there are any biquadratic interactions
+%   field (bool) - whether a magnetic field is applied
+%   nThreads (int) - number of threads to use
+%   n (3-vector) - normal vector defining the rotation frame
+%   rotc (3x3xN matrix) - twin rotation matrices
+%
+% `hklExt` : 3 x nQ array of Q-point in the extended unit cell
+% `ABCD` : 3*nBond flattened array of the non-q-dependent part of
+%          the Hamiltonian [A B; B' A'] in eq 25 of Toth & Lake
+% `idxAll` : indices into `ABCD` to compute the Q-dependent part
+%            of the Hamiltonian using accumarray
+% `ham_diag` : diagonal part of the Hamiltonian (C in eq 26)
+% `dR` : 3*nBond array of bond vectors
+% `RR` : 3*nAtom array of magnetic ion coordinates
+% `S0` : nAtom vector of magnetic ion spin lengths
+% `zed` : 3*nAtom array of the (complex) moment direction vector
+%         (denoted u^alpha in eq 9 of Toth & Lake)
+% `FF` : nQ x nAtom array of magnetic form factor values
+%        (not referenced if params.formfact = false)
+% `bqdR`, `bqABCD`, `idxBq`, `bq_ham_d` : equivalent inputs
+%      to `dR`, `ABCD`, `idxAll` and `ham_diag` for biquadratic
+%      interactions (not referenced if params.bq = false)
+% `ham_MF` : the full Zeeman Hamiltonian
+%            (not referenced if params.field = false)
+%
 % Original Author: M. D. Le  [duc.le@stfc.ac.uk]
-
 
 % Equivalent Matlab code to C++ code follows:
 %

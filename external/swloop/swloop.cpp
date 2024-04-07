@@ -27,24 +27,29 @@ struct pars {
     size_t nBqBond;
 };
 
+// In terms of the Toth & Lake paper ( https://arxiv.org/pdf/1402.6069.pdf ),
+// ABCD = [A B; B' A'] in eq (25) and (26)
+// ham_diag = [C 0; 0 C] in eq (25) and (26)
+// zed = u^alpha in eq (9)
+
 struct swinputs {
-    const double *hklExt;
-    const std::complex<double> *ABCD;
-    const double *idxAll;
-    const double *ham_diag;
-    const double *dR;
-    const double *RR;
-    const double *S0;
-    const std::complex<double> *zed;
-    const double *FF;
-    const double *bqdR;
-    const double *bqABCD;
-    const double *idxBq;
-    const double *bq_ham_diag;
-    std::vector< const double *> ham_MF_v;
-    const int *idx0;
-    const double *n;
-    const double *rotc;
+    const double *hklExt;                   // 3*nQ array of Q-points
+    const std::complex<double> *ABCD;       // 3*nBond flattened array of non-q-dep part of H
+    const double *idxAll;                   // indices into ABCD to compute H using accumarray
+    const double *ham_diag;                 // the diagonal non-q-dep part of H
+    const double *dR;                       // 3*nBond array of bond vectors
+    const double *RR;                       // 3*nAtom array of magnetic ion coordinates
+    const double *S0;                       // nAtom vector of magnetic ion spin lengths
+    const std::complex<double> *zed;        // 3*nAtom array of moment direction vectors
+    const double *FF;                       // nQ*nAtom array of magnetic form factor values
+    const double *bqdR;                     // 3*nBond_bq array of biquadratic bond vectors
+    const double *bqABCD;                   // 3*nBond_bq array of non-q-dep part biquadratic H
+    const double *idxBq;                    // indices into bqABCD to compute H with accumarray
+    const double *bq_ham_diag;              // diagonal part of the biquadratic Hamiltonian
+    std::vector< const double *> ham_MF_v;  // The full Zeeman hamiltonian.
+    const int *idx0;                        // Indices into hklExt for twined Q
+    const double *n;                        // normal vector defining the rotating frame (IC calcs)
+    const double *rotc;                     // 3*3*nTwin twin rotation matrices
 };
 
 struct swoutputs {
@@ -75,9 +80,8 @@ MatrixXT<T> accumarray(Eigen::MatrixXd ind,
 std::atomic_int err_flag(0);
 std::vector<std::string> errmsgs = {
     std::string("all good"),
-    std::string("swloop:notposdef: Very baaaad!"),
     std::string("swloop:notposdef: The input matrix is not positive definite."),
-    std::string("swloop: Eigensolver could not converge")
+    std::string("swloop:cantdiag: Eigensolver could not converge")
 };
 
 void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inputs, struct swoutputs &outputs) {
@@ -167,7 +171,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                 if (chol.info() == Eigen::NumericalIssue) {
                     chol.compute(ham + (Eigen::MatrixXcd::Identity(nHam, nHam) * params.omega_tol));
                     if (chol.info() == Eigen::NumericalIssue) {
-                        err_flag.store(2, std::memory_order_relaxed);
+                        err_flag.store(1, std::memory_order_relaxed);
                         return;
                     }
                 }
@@ -178,7 +182,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             K2 = (K2 + K2.adjoint().eval()) / 2;
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> eig(K2);
             if (eig.info() != Eigen::Success) {
-                err_flag.store(3, std::memory_order_relaxed);
+                err_flag.store(2, std::memory_order_relaxed);
                 return;
             }
             std::vector<ev_tuple_t> evs;
@@ -189,7 +193,14 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
                     return std::real(std::get<0>(a)) > std::real(std::get<0>(b)); });
             Eigen::MatrixXcd U(nHam, nHam);
             for (size_t ii=0; ii<nHam; ii++) {
-                *(omega++) = std::get<0>(evs[ii]);  // Note this pointer arithmetic assumes column-major ordering
+                // Note the following pointer arithmetic assumes column-major ordering
+                // We assign the current eigenvalue to the element pointed to by omega (*omega=evs[ii])
+                // then increment the pointer to point to the next element (omega++).
+                // Since we do this q-point by q-point and the Matlab omega array has each
+                // column having all the eigenvalues of a give Q-point, we need a column major layout.
+                // If Matlab switches to a row-major layout, the unit tests will fail and we would
+                // need to transpose the matrix after all these assignments.
+                *(omega++) = std::get<0>(evs[ii]);
                 U.col(ii) = std::get<1>(evs[ii]) * sqrt(gComm(ii,ii) * std::get<0>(evs[ii]));
             }
             V = K.inverse() * U;
@@ -201,7 +212,7 @@ void swcalc_fun(size_t i0, size_t i1, struct pars &params, struct swinputs &inpu
             for (size_t ii=0; ii<nHam; ii++) { gham(ii, ii) += vd*1e-12; vd++; }
             Eigen::ComplexEigenSolver<Eigen::MatrixXcd> eig(gham);
             if (eig.info() != Eigen::Success) {
-                err_flag.store(3, std::memory_order_relaxed);
+                err_flag.store(2, std::memory_order_relaxed);
                 return;
             }
             std::vector<ev_tuple_t> evs;
@@ -295,7 +306,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         throw std::runtime_error("swloop: Requires 15 arguments");
     }
     err_flag.store(0, std::memory_order_release);
-    size_t nThreads = getField<size_t>(prhs[0], 0, "nThreads", 8);
+    size_t nThreads;
+    int nT = getField<int>(prhs[0], 0, "nThreads", -1);
+    if (nThreads < 0) {
+        // Gets number of cores / hyperthreads
+        nThreads = std::thread::hardware_concurrency();
+        if (nThreads == 0) {
+            nThreads = 1;   // Defaults to single thread if not known
+        }
+    } else {
+        nThreads = static_cast<size_t>(nT);
+    }
     // Initialises the parameters structure
     struct pars params;
     if (!mxIsStruct(prhs[0])) {
