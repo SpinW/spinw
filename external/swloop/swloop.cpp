@@ -308,9 +308,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     err_flag.store(0, std::memory_order_release);
     size_t nThreads;
     int nT = getField<int>(prhs[0], 0, "nThreads", -1);
-    if (nThreads < 0) {
+    if (nT < 0) {
         // Gets number of cores / hyperthreads
-        nThreads = std::thread::hardware_concurrency();
+        nThreads = std::thread::hardware_concurrency() / 2;
         if (nThreads == 0) {
             nThreads = 1;   // Defaults to single thread if not known
         }
