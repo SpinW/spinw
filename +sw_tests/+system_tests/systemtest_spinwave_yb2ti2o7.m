@@ -54,6 +54,11 @@ classdef systemtest_spinwave_yb2ti2o7 < sw_tests.system_tests.systemtest_spinwav
             testCase.swobj.addtwin('axis', [1 -1 0], 'phid', 90);
             testCase.test_yto(4, {[-0.5 -0.5 -0.5] [2 2 2]});
         end
+        function test_yto_mex(testCase, B)
+            % Tests mex with just first Q setting
+            swpref.setpref('usemex', 1)
+            testCase.test_yto(B, {[-0.5 -0.5 -0.5] [2 2 2]});
+        end
     end
 
 end

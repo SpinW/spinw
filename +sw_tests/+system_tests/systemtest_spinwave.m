@@ -28,6 +28,9 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
                 testCase.reference_data = load(fname);
             end
         end
+        function disable_mex_setup(testCase)
+            swpref.setpref('usemex', false);
+        end
     end
 
     methods (TestClassTeardown)
@@ -38,6 +41,9 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
                 ref_dat = rmfield(ref_dat, 'tmp');
                 save(fname, '-struct', 'ref_dat');
             end
+        end
+        function disable_mex_teardown(testCase)
+            swpref.setpref('usemex', false);
         end
     end
 
@@ -110,7 +116,7 @@ classdef systemtest_spinwave < matlab.unittest.TestCase
         function fieldname = get_fieldname(testCase, pars)
             if isempty(pars)
                 fieldname = 'data';
-            elseif ischar(pars);
+            elseif ischar(pars)
                 fieldname = pars;
             else
                 fieldname = ['d' reshape(dec2hex(testCase.get_hash(pars)),1,[])];

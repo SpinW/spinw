@@ -35,3 +35,6 @@ includedSupportPackages.txt
 mccExcludedFiles.log
 requiredMCRProducts.txt
 unresolvedSymbols.txt
+
+coverage*xml
+junit*xml

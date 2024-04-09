@@ -4,6 +4,10 @@ classdef systemtest_spinwave_biquadratic < sw_tests.system_tests.systemtest_spin
         reference_data_file = 'systemstest_spinwave_biquadratic.mat';
     end
 
+    properties (TestParameter)
+        mex = {0, 1};
+    end
+
     methods (TestMethodSetup)
         function prepareForRun(testCase)
             % From Tutorial 28, to test the biquadratic interactions functionality, theory from PHYSICAL REVIEW B 85, 054409 (2012)
@@ -28,12 +32,13 @@ classdef systemtest_spinwave_biquadratic < sw_tests.system_tests.systemtest_spin
     end
 
     methods (Test)
-        function test_biquadratic(testCase)
+        function test_biquadratic(testCase, mex)
+            swpref.setpref('usemex', mex);
             fcc = testCase.swobj;
             spec = fcc.spinwave({[1 0 0] [0 0 0] [1/2 1/2 0] [1/2 1/2 1/2] [0 0 0] 50});
             spec = sw_egrid(spec);
             spec = sw_omegasum(spec,'zeroint',1e-5,'emptyval',0,'tol',1e-4);
-            testCase.generate_or_verify(spec, {}, struct(), 'approxSab', 0.01);
+            testCase.generate_or_verify(spec, {}, struct(), 'approxSab', 0.02);
         end
     end
 

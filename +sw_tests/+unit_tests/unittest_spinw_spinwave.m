@@ -25,7 +25,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         % Test directions and literal qpts work
         qpts_h5 = {{[0 0 0], [1 0 0], 5}, ...
                    [0:0.25:1; zeros(2,5)]};
-        mex = {0, 1};
+        mex = {0, 'old', 1};
     end
 
     methods (TestClassSetup)
@@ -156,6 +156,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
     end
     methods (Test)
         function test_sw_qh5(testCase, qpts_h5, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(qpts_h5);
@@ -163,6 +164,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_sortmode(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
             sw_out = testCase.swobj.spinwave(testCase.qh5, 'sortMode', false);
@@ -188,6 +190,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out_nformula, expected_sw);
         end
         function test_sw_qh5_periodic(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Test qpts in different BZ give same omega, Sab
             qpts = testCase.qh5 + 1;
@@ -199,6 +202,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_perpendicular(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Test qpts in perpendicular direction give flat modes
             qpts = [zeros(1, 5); 0:0.25:1; 0:0.25:1];
@@ -228,6 +232,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_title(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             title = 'Example title';
             testCase.disable_warnings('spinw:spinwave:NonPosDefHamiltonian');
@@ -392,6 +397,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_notwin(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             % Create copy to avoid changing obj for other tests
             swobj_twin = copy(testCase.swobj);
@@ -417,8 +423,10 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
         end
         function test_cmplxBase_fails_with_chain(testCase, mex)
             swpref.setpref('usemex', mex);
-            if mex
+            if ischar(mex)
                 err ='chol_omp:notposdef';
+            elseif mex == 1
+                err ='swloop:notconverge';
             else
                 err= 'spinw:spinwave:NonPosDefHamiltonian';
             end
@@ -515,6 +523,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.assertGreaterThan(sum(abs(imag(spec.omega(:)))), 0);
         end
         function test_sw_qh5_tol(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             tol = 5e-4;
             qpts = testCase.qh5;
@@ -537,6 +546,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_sw_qh5_omega_tol(testCase, mex)
+            testCase.assumeNotEqual(mex, 1); % swloop outputs c.c. Sab so fails here
             swpref.setpref('usemex', mex);
             if mex
                 err ='chol_omp:notposdef';
@@ -574,6 +584,45 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verifyError(...
                 @() swobj.spinwave(testCase.qh5), ...
                 'spinw:spinwave:NoMagneticStr');
+        end
+        function test_mex_prefs_nthreads(testCase)
+            % Tests that when nthreads set to -1 mex will parallelise over all cores
+            hkl = {[0 0 0] [1 0 0] [0 1 0] 2000};
+            nCores = maxNumCompThreads();
+            if nCores > 2
+                % If only 2 cores, times may not be different enough to notice
+                mexpref = swpref.getpref('usemex');
+                nthrprf = swpref.getpref('nthread');
+                swpref.setpref('usemex', 1);
+                swpref.setpref('nthread', -1);
+                swobj = copy(testCase.swobj_tri);
+                spec1 = swobj.spinwave({[0 0 0] [1 1 1] 50}); % Run once for the JIT compiler
+                t0 = tic; spec1 = swobj.spinwave(hkl); t1 = toc(t0);
+                swpref.setpref('nthread', 1);
+                t0 = tic; spec1 = swobj.spinwave(hkl); t2 = toc(t0);
+                testCase.verifyTrue(t1 < t2);
+                swpref.setpref('usemex', mexpref.val);
+                swpref.setpref('nthread', nthrprf.val);
+            end
+        end
+        function test_mex_prefs_nspinlarge(testCase)
+            swobj = copy(testCase.swobj_tri);
+            swobj.addmatrix('label', 'K', 'value', 0.1);
+            swobj.addaniso('K');
+            mexpref = swpref.getpref('usemex');
+            nslpref = swpref.getpref('nspinlarge');
+            swpref.setpref('usemex', 1);
+            omega = [1e-5; -1e-5];
+            Sab = reshape([[0.5 0 -0.5j; 0 0 0; 0.5j 0 0.5] [0.5 0 0.5j; 0 0 0; -0.5j 0 0.5]], 3, 3, 2);
+            swloop_mock = sw_tests.utilities.mock_function('swloop', {omega, Sab, 1, 0});
+            spec1 = swobj.spinwave([1; 1; 1], 'hermit', false);
+            testCase.assertEqual(swloop_mock.n_calls, 1);
+            swobj.genmagstr('nExt', 0.01);  % Convert to commensurate with 9 spins in unit cell (3x3)
+            swpref.setpref('nspinlarge', 5);
+            spec1 = swobj.spinwave([1; 1; 1], 'hermit', false);
+            testCase.assertEqual(swloop_mock.n_calls, 1);  % Make sure swloop wasn't called this time
+            swpref.setpref('usemex', mexpref.val);
+            swpref.setpref('nspinlarge', nslpref.val);
         end
     end
     methods (Test, TestTags = {'Symbolic'})

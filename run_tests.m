@@ -28,6 +28,8 @@ function result = run_tests(out_dir)
     % Suppress printing to make test output less verbose
     pref = swpref;
     pref.fid = 0;
+    pref.usemex = 0;   % Tests which use mex will set it themselves
+    pref.nthread = 8;
 
     suite = TestSuite.fromPackage('sw_tests', 'IncludingSubpackages', true);
     if ~sw_hassymtoolbox()

@@ -45,7 +45,7 @@ nMat   = size(M,1);
 nStack = size(M,3);
 
 % Use OpenMP parallelised mex file if it exists
-if nStack>1 && useMex
+if nStack>1 && any(useMex)
     % eigenvalues are already orthogonalised by eig_omp
     [V, D] = eig_omp(M,'orth','sort','descend');
     return
