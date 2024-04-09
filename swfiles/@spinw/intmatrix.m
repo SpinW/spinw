@@ -216,7 +216,9 @@ if obj.sym
     % remove Heisenberg
     colSym = colSym & ~isHeis(:)';
     % rotate the matrices: R*M*R'
-    JJ.mat(:,:,colSym) = mmat(rotOpB(:,:,colSel(colSym)),mmat(JJ.mat(:,:,colSym),permute(rotOpB(:,:,colSel(colSym)),[2 1 3])));
+    if any(colSym)
+        JJ.mat(:,:,colSym) = mmat(rotOpB(:,:,colSel(colSym)),mmat(JJ.mat(:,:,colSym),permute(rotOpB(:,:,colSel(colSym)),[2 1 3])));
+    end
 end
 
 mat_type = SS.all(8,:);

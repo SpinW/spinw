@@ -78,8 +78,10 @@ if symbolic
     angSym = sym([0 0 0]);
     angSym(specIdx) = sym(round(ang(specIdx)*180/pi))*pi/180;
     
-    symAng0 = [sym('alpha','positive') sym('beta','positive') sym('gamma','positive')];
-    angSym(~specIdx) = symAng0(~specIdx);
+    if any(~specIdx)
+        symAng0 = [sym('alpha','positive') sym('beta','positive') sym('gamma','positive')];
+        angSym(~specIdx) = symAng0(~specIdx);
+    end
     
     alpha = angSym(1);
     beta  = angSym(2);
