@@ -143,7 +143,7 @@ end
 function h5createnwrite(filename,path,val,shp)
 dtyp = class(val);
 if shp ==0 
-    shp = size(val)
+    shp = size(val);
 end
 h5create(filename,path,shp,'Datatype',dtyp);
 h5write(filename,path,val);
