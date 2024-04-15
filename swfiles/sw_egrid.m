@@ -471,7 +471,7 @@ elseif isnumeric(param.dE)
         error('sw_egrid:WrongInput', ['numeric dE must be on length 1 ' ...
               'or number of energy bin centers'])
     end
-    dE_sigma = param.dE(:)/2.355;
+    dE_sigma = param.dE(:)/2*sqrt(2*log(2));
 else
     error('sw_egrid:WrongInput', ['dE must be a numeric matrix or a ' ...
           'callable function']);
