@@ -405,7 +405,7 @@ hkl = obj.unit.qmat*hkl;
 % Calculates momentum transfer in A^-1 units.
 hklA = 2*pi*(hkl'/obj.basisvector)';
 
-% Check for 2*km
+% Check for 2*km (if 2*km is integer, the magnetic structure is not a true helix)
 tol = param.tol*2;
 helical =  sum(abs(mod(abs(2*km)+tol,1)-tol).^2) > tol;
 
@@ -793,16 +793,7 @@ if ~use_swloop
         nxn = n'*n;
         K1 = 1/2*(eye(3) - nxn - 1i*nx);
         K2 = nxn;
-
-        % keep the rotation invariant part of Sab
-        %nx  = [0 -n(3) n(2);n(3) 0 -n(1);-n(2) n(1) 0];
-        %nxn = n'*n;
         m1  = eye(3);
-
-        % if the 2*km vector is integer, the magnetic structure is not a true
-        % helix
-        %tol = param.tol*2;
-        %helical =  sum(abs(mod(abs(2*km)+tol,1)-tol).^2) > tol;
     end
 end
 
@@ -1091,8 +1082,6 @@ else
     % Dynamical structure factor from S^alpha^beta(k) correlation function.
     % Sab(alpha,beta,iMode,iHkl), size: 3 x 3 x 2*nMagExt x nHkl.
     % Normalizes the intensity to single unit cell.
-    %Sab(:,:,:,hklIdxMEM) = squeeze(sum(zeda.*ExpFL.*VExtL,4)).*squeeze(sum(zedb.*ExpFR.*VExtR,3))/prod(nExt);
-    % Change from squeeze to reshape, as now can have single-mode cases (fastmode only positive eigenvalues)
     Sab = reshape(sum(zeda.*ExpFL.*VExtL,4),[3 3 nMode nHklMEM]) .* ...
           reshape(sum(zedb.*ExpFR.*VExtR,3),[3 3 nMode nHklMEM]) / prod(nExt);
 
