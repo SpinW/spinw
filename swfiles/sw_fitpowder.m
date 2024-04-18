@@ -163,7 +163,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
             % set spinw model interactions
-            obj.fit_func(obj.swobj, params(1:obj.nparams_model)');
+            % pass params as row-vector as expected by matparser
+            obj.fit_func(obj.swobj, reshape(params(1:obj.nparams_model), 1, []));
             % simulate powder spectrum
             spec = obj.swobj.powspec(obj.modQ_cens, obj.powspec_args);
             spec = sw_instrument(spec, obj.sw_instrument_args);
@@ -201,9 +202,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function result = fit(obj, varargin) 
             % setup cell for output of ndbase optimizer/minimizer
             result = cell(1,nargout(obj.optimizer));
-            [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params, ...
-                                       'lb', obj.bounds(:,1), ...
-                                       'ub', obj.bounds(:,2), ...
+            % pass params and bounds as rows for ndbase optimisers
+            [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
+                                       'lb', obj.bounds(:,1)', ...
+                                       'ub', obj.bounds(:,2)', ...
                                        varargin{:});
         end
 
