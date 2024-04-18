@@ -203,7 +203,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             result = cell(1,nargout(obj.optimizer));
             [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params, ...
                                        'lb', obj.bounds(:,1), ...
-                                       'ub', obj.bounds(:,2));
+                                       'ub', obj.bounds(:,2), ...
+                                       varargin{:});
         end
 
         function estimate_scale_factor(obj)
