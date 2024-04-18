@@ -211,7 +211,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             params = obj.params;
             params(end) = 1;
             [ycalc, bg] = calc_spinwave_spec(obj, params);
-            scale = max(obj.y - bg, [], "all")/max(ycalc, [], "all");
+            scale = max(obj.y - mean(bg(:)), [], "all")/max(ycalc, [], "all");
             obj.params(end) = scale;
         end
 
