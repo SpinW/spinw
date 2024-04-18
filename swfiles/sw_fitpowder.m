@@ -218,6 +218,46 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.params(end) = scale;
         end
 
+        function plot_result(obj, params, varargin)
+            [ycalc, ~] = obj.calc_spinwave_spec(params);
+            if obj.ndim == 1
+                obj.plot_1d_cuts_on_data(ycalc, varargin{:})
+            else
+                obj.plot_2d_contour_on_data(ycalc, varargin{:})
+            end
+        end
+
+        function plot_1d_cuts_on_data(obj, ycalc, varargin)
+            figure("color","white");
+            modQs = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
+            for icut = 1:obj.ncuts
+                ax =  subplot(1, obj.ncuts, icut);
+                hold on; box on;
+                plot(ax, obj.ebin_cens, obj.y(:,icut), 'ok');
+                plot(ax, obj.ebin_cens, ycalc(:,icut), '-r', varargin{:});
+                xlim(ax, [0, 12]);
+                ylim(ax, [-2, 30]);
+                xlabel(ax, 'Energy (meV)')
+                ylabel(ax, 'Intensity');
+                title(ax, num2str(modQs(icut), 2) + " $\AA^{-1}$", 'interpreter','latex')
+            end
+        end
+
+        function plot_2d_contour_on_data(obj, ycalc, varargin)
+            % varargin passed to contour
+            figure("color","white");
+            ax = subplot(1,1,1);
+            box on; hold on;
+            h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, obj.y);
+            h.AlphaData = obj.y > 0;  % make empty bins transparent
+            contour(ax, obj.modQ_cens, obj.ebin_cens, ycalc, varargin{:});
+            cbar = colorbar(ax);
+            cbar.Label.String = "Intensity";
+            xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
+            ylabel(ax, "Energy (meV)");
+            legend('Calculated');
+        end
+
     end
 
     % private
