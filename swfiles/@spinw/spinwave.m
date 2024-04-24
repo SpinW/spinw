@@ -399,6 +399,11 @@ if ~incomm && param.saveSabp
             'structure is commensurate so this will have no effect.']);
 end
 
+% If only one hkl value, convert to column vector
+if numel(hkl) == 3
+    hkl = hkl(:);
+end
+
 % Transform the momentum values to the new lattice coordinate system
 hkl = obj.unit.qmat*hkl;
 
