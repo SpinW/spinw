@@ -428,10 +428,10 @@ if ~powmode
         % Defines colors for plotting modes.
         %colors  = flipud(fireprint(nMode+2));
         if isa(param.colormap,'function_handle')
-            colors = flipud(param.colormap(nMode+2));
+            colors = param.colormap(nMode+2);
         else
             if strcmpi(param.colormap,'auto')
-                colors = flipud(cm_fireprint(nMode+2));
+                colors = cm_fireprint(nMode+2);
             else
                 if numel(param.colormap) == 3
                     param.colormap = param.colormap(:);
@@ -725,7 +725,7 @@ if param.mode == 3
         for ii = 1:nPlot
             vMat(:,:,ii) = swConv{ii};%.*mask{ii};
         end
-        cMat = sw_multicolor(vMat, param.colormap, axLim, param.nCol,true);
+        cMat = sw_multicolor(vMat, param.colormap, axLim, param.nCol);
         % plot image piece-by-pice for the different Q directions
         if iscell(xLabel)
             xCut  = xLabel{end};
