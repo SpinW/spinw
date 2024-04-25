@@ -203,7 +203,6 @@ inpForm.defval = [inpForm.defval {false @sw_surf 1000       [0 1] cell(1,0)}];
 inpForm.size   = [inpForm.size   {[1 1] [1 1]    [1 1]      [1 2] [1 -7]   }];
 
 param = sw_readparam(inpForm, varargin{:});
-pref = swpref;
 
 % plotmode string
 if numel(param.mode)>1
@@ -220,6 +219,78 @@ if numel(param.mode)>1
             param.mode = 4;
     end
 end
+
+if ~isfield(spectra,'omega')
+    param.mode = 3;
+end
+
+if param.mode == 4
+    % PLOT EASY PEASY
+    fHandle = [];
+    pHandle = [];
+    pColor = isfield(spectra,'swConv');
+
+    % Change to "actual" mode and override some properties
+    if pColor
+        if param.dE == 0
+            param.dE = (spectra.Evect(end) - spectra.Evect(1))/50;
+        end
+        param.mode = 3;
+        param.dashed = true;
+        param.colorbar = false;
+        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+    end
+    % Fallthrough - plots dispersion line on top of colormap if applicable
+    if numel(spectra.hklA) ~= length(spectra.hklA)
+        hold on
+        if pColor
+            cMap0 = [0 0 0];
+        else
+            cMap0 = 'auto';
+        end
+
+        if iscell(spectra.omega)
+            omegaTemp = cell2mat(spectra.omega);
+            Emax = max(real(omegaTemp(:)));
+            clear('omegaTemp');
+        else
+            Emax = max(real(spectra.omega(:)));
+        end
+
+        param.mode = 1;
+        param.colorbar = ~pColor;
+        param.dashed = false;
+        param.title = ~pColor;
+        param.legend = ~pColor;
+        param.imag = ~pColor & param.imag;
+        param.colormap = cMap0;
+        param.axLim = [0, 1.1*Emax];
+        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+    else
+        error('sw_plotspec:WrongInput', ['Input looks like a powder spectrum but has no '...
+            '''swConv'' field, something has gone wrong somewhere']);
+    end
+else
+    [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+end
+
+if ~isfield(spectra,'swConv') && param.mode>1 && param.mode<4
+    error('sw_plotspec:WrongInput',['Reference to non-existent field ''swConv'','...
+        'use ''sw_egrid'' to produce the convoluted spectra before plotting!'])
+end
+
+if nargout >0
+    fHandle0 = fHandle;
+end
+if nargout>1
+    pHandle0 = pHandle;
+end
+
+end
+
+function [fHandle0, pHandle0] = plotspec_internal(spectra, param)
+
+pref = swpref;
 
 % length, energy and temperature units
 unitL = spectra.obj.unit.label{1};
@@ -244,15 +315,6 @@ else
     param.twin = 1;
 end
 
-if ~isfield(spectra,'omega')
-    param.mode = 3;
-end
-
-if ~isfield(spectra,'swConv') && param.mode>1 && param.mode<4
-    error('sw_plotspec:WrongInput',['Reference to non-existent field ''swConv'','...
-        'use ''sw_egrid'' to produce the convoluted spectra before plotting!'])
-end
-
 % select twins for convoluted plots
 if param.mode>1 && param.mode<4 && iscell(spectra.swConv)
     % number of convoluted spectras to plot
@@ -269,62 +331,7 @@ else
 end
 
 % Determine powder mode
-powmode = false;
-if numel(spectra.hklA)==length(spectra.hklA)
-    powmode = true;
-end
-
-if param.mode == 4
-    % PLOT EASY PEASY
-    
-    fHandle = [];
-    pHandle = [];
-    pColor = isfield(spectra,'swConv');
-    
-    if pColor
-        if param.dE == 0
-            Eres = (spectra.Evect(end) - spectra.Evect(1))/50;
-        else
-            Eres = param.dE;
-        end
-        
-        [fHandle, pHandle] = sw_plotspec(spectra,'mode',3,'dE',Eres,...
-            'dashed',true,'colorbar',false,'axLim',param.axLim,...
-            'lineStyle',param.lineStyle,'maxPatch',...
-            param.maxPatch,'qLabel',param.qlabel,'dat',param.dat,...
-            'ddat',param.ddat,'datFormat',param.datFormat,...
-            'legend',param.legend);
-    end
-    if ~powmode
-        hold on
-        if pColor
-            cMap0 = [0 0 0];
-        else
-            cMap0 = 'auto';
-        end
-        
-        if iscell(spectra.omega)
-            omegaTemp = cell2mat(spectra.omega);
-            Emax = max(real(omegaTemp(:)));
-            clear('omegaTemp');
-        else
-            Emax = max(real(spectra.omega(:)));
-        end
-
-        [fHandle, pHandle] = sw_plotspec(spectra,'mode','disp','colorbar',~pColor,...
-            'dashed',false,'title',~pColor,'legend',~pColor,'imag',~pColor & param.imag,...
-            'lineStyle',param.lineStyle,'colormap',cMap0,'axLim',[0 1.1*Emax],...
-            'qLabel',param.qlabel);
-    end
-    
-    if nargout >0
-        fHandle0 = fHandle;
-    end
-    if nargout>1
-        pHandle0 = pHandle;
-    end
-    return
-end
+powmode = numel(spectra.hklA) == length(spectra.hklA);
 
 % Label of the x-axis
 if powmode
