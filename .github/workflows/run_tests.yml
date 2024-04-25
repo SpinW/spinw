@@ -16,40 +16,45 @@ jobs:
         matlab_version: [latest]
         include:
           - os: ubuntu-latest
-            matlab_version: R2020a
+            matlab_version: R2021a
           - os: macos-latest
             INSTALL_DEPS: brew install llvm libomp
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out SpinW
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: ${{ matrix.INSTALL_DEPS }}
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        uses: matlab-actions/setup-matlab@v2
         with:
           release: ${{ matrix.matlab_version }}
       - name: Run tests
-        uses: matlab-actions/run-command@v1
+        uses: matlab-actions/run-command@v2
         with:
           command: "run run_tests.m"
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         if: ${{ always() && matrix.os == 'ubuntu-latest' && matrix.matlab_version == 'latest' }}
         with:
             files: coverage*.xml
             token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Unit test results ${{ matrix.os }}
+          name: Unit test results ${{ matrix.os }}-${{ matrix.matlab_version }}
           path: junit_report*.xml
+      #- name: Setup tmate
+      #  if: ${{ failure() }}
+      #  uses: mxschmitt/action-tmate@v3
   publish-test-results:
     needs: test
     runs-on: ubuntu-latest
     if: success() || failure()
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
       - name: Publish test results
