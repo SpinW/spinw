@@ -30,6 +30,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        nparams_bg
        params
        bounds
+       % cache calculation
+       do_cache = true
+       ycalc_cached = []
+       model_params_cached = []
     end
         
     methods       
@@ -161,15 +165,38 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
 
+        function set_caching(obj, do_cache)
+            obj.do_cache = do_cache;
+            if ~obj.do_cache
+                obj.clear_cache()
+            end
+        end
+
+        function clear_cache(obj)
+            obj.ycalc_cached = [];
+            obj.model_params_cached = [];
+        end
+
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
-            % set spinw model interactions
-            % pass params as row-vector as expected by matparser
-            obj.fit_func(obj.swobj, reshape(params(1:obj.nparams_model), 1, []));
-            % simulate powder spectrum
-            spec = obj.swobj.powspec(obj.modQ_cens, obj.powspec_args);
-            spec = sw_instrument(spec, obj.sw_instrument_args);
+            model_params = reshape(params(1:obj.nparams_model), 1, []);
+            if obj.do_cache && ~isempty(obj.model_params_cached) && all(abs(model_params - obj.model_params_cached) < 1e-10)
+                ycalc = obj.ycalc_cached;  % do not repeat calc
+            else
+                % set spinw model interactions
+                % pass params as row-vector as expected by matparser
+                obj.fit_func(obj.swobj, model_params);
+                % simulate powder spectrum
+                spec = obj.swobj.powspec(obj.modQ_cens, obj.powspec_args);
+                spec = sw_instrument(spec, obj.sw_instrument_args);
+                ycalc = spec.swConv;
+                % cache if required
+                if obj.do_cache
+                    obj.ycalc_cached = spec.swConv;
+                    obj.model_params_cached = model_params;
+                end
+            end
             % scale
-            ycalc = params(end)*spec.swConv;
+            ycalc = params(end)*ycalc;
             % calc background
             bg = calc_background(obj, params);
             if obj.background_strategy == "planar"
