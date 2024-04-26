@@ -80,39 +80,95 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.bounds(end,1) = 0; % set lower bound of scale to be 0
         end
 
-        function fix_parameter(obj, iparams, varargin)
-            for ii = 1:numel(iparams)
-                iparam = obj.get_parameter_index(iparams(ii), varargin{:});
-                obj.bounds(iparam, :) = obj.params(iparam);
+        function fix_model_parameters(obj, iparams)
+            if any(iparams > obj.nparams_model)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
+            end
+            for iparam = iparams
+               obj.bounds(iparam, :) = obj.params(iparam);
             end
         end
 
-        function set_parameter(obj, iparams, values, varargin)
-            for ii = 1:numel(iparams)
-                iparam = obj.get_parameter_index(iparams(ii), varargin{:});
-                obj.params(iparam) = values(ii);
+        function fix_bg_parameters(obj, iparams_bg, icuts)
+            if any(iparams_bg > obj.nparams_bg)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
+            end
+            if nargin < 3
+                icuts = 0;
+            end
+            for iparam = obj.get_index_of_background_parameters(iparams_bg, icuts)
+               obj.bounds(iparam, :) = obj.params(iparam);
             end
         end
 
-        function set_parameter_bounds(obj, iparams, varargin)
-            lb = [];
-            ub = [];
-            for ikey = 1:2:numel(varargin)
-                switch varargin{ikey}
-                    case 'lb'
-                        lb = varargin{ikey+1};
-                    case 'ub'
-                        ub = varargin{ikey+1};
-                end
+        function fix_scale(obj)
+            obj.bounds(end, :) = obj.params(end);
+        end
+
+        function set_model_parameters(obj, iparams, values)
+            if any(iparams > obj.nparams_model)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            for ii = 1:numel(iparams)
-                iparam = obj.get_parameter_index(iparams(ii), varargin{:});
+            for ival = 1:numel(values)
+               obj.params(iparams(ival)) = values(ival);
+            end
+        end
+
+        function set_bg_parameters(obj, iparams_bg, values, icuts)
+            if any(iparams_bg > obj.nparams_bg)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
+            end
+            if nargin < 4
+                icuts = 0;
+            end
+            for ival = 1:numel(values)
+                iparams = obj.get_index_of_background_parameters(iparams_bg(ival), icuts);
+                obj.params(iparams) = values(ival);
+            end
+        end
+
+        function set_scale(obj, scale)
+            obj.params(end) = scale;
+        end
+
+        function set_model_parameter_bounds(obj, iparams, lb, ub)
+            if any(iparams > obj.nparams_model)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
+            end
+            for ibnd = 1:numel(iparams)
                 if ~isempty(lb)
-                    obj.bounds(iparam, 1) = lb(ii);
+                    obj.bounds(iparams(ibnd), 1) = lb(ibnd);
                 end
                 if ~isempty(ub)
-                    obj.bounds(iparam, 2) = ub(ii);
+                    obj.bounds(iparams(ibnd), 2) = ub(ibnd);
                 end
+            end
+        end
+
+        function set_bg_parameter_bounds(obj, iparams_bg, lb, ub, icuts)
+            if any(iparams_bg > obj.nparams_bg)
+                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
+            end
+            if nargin < 5
+                icuts = 0;
+            end
+            for ibnd = 1:numel(iparams_bg)
+                iparams = obj.get_index_of_background_parameters(iparams_bg(ibnd), icuts);
+                if ~isempty(lb)
+                    obj.bounds(iparams, 1) = lb(ibnd);
+                end
+                if ~isempty(ub)
+                    obj.bounds(iparams, 2) = ub(ibnd);
+                end
+            end
+        end
+
+        function set_scale_bounds(obj, lb, ub)
+            if ~isempty(lb)
+                obj.bounds(end, 1) = lb;
+            end
+            if ~isempty(ub)
+                obj.bounds(end, 2) = ub;
             end
         end
 
@@ -284,7 +340,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ylabel(ax, "Energy (meV)");
             legend('Calculated');
         end
-
     end
 
     % private
@@ -304,31 +359,14 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
 
-        function iparam = get_parameter_index(obj, iparam, varargin)
-            icut = 0;
-            is_background_param = false;
-            for ikey = 1:2:numel(varargin)
-                switch varargin{ikey}
-                    case 'background'
-                        is_background_param = varargin{ikey+1};
-                    case 'cutIndex'
-                        if obj.ndim == 1 && obj.background_strategy=="independent"
-                            icut = varargin{ikey+1};
-                            if icut < 1 || icut > obj.ncuts
-                                error("Invalid CutIndex supplied.")
-                            end
-                        else
-                            error("Can only supply cutIndex when fitting 1D cuts with independent backgrounds")
-                        end
-                end
+        function iparams = get_index_of_background_parameters(obj, iparams_bg, icuts)
+            if any(icuts == 0) && obj.background_strategy == "independent"
+                icuts = 1:obj.ncuts;  % apply to all cuts
             end
             % find index in vector of all parameters
-            if is_background_param
-                iparam = iparam + obj.nparams_model;
-                if obj.background_strategy == "independent"
-                    nbg_pars = obj.get_nparams_in_background_func();
-                    iparam = iparam + (icut-1)*nbg_pars;
-                end
+            iparams = [];
+            for icut = icuts
+                iparams = [iparams,  iparams_bg + obj.nparams_model + (icut-1)*obj.nparams_bg];
             end
         end
     end
