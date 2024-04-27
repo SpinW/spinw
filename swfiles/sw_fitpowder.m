@@ -1,8 +1,128 @@
 classdef sw_fitpowder < handle & matlab.mixin.SetGet
-    % class to fit powders
-    %
-    % [spinw.copy], [spinw.struct], [Comparing handle and value classes](https://www.mathworks.com/help/matlab/matlab_oop/comparing-handle-and-value-classes.html)
-    %
+% Class to fit powder averaged spectra to inelastic neutron scattering data
+% 
+% ### Syntax
+% 
+% `fitpow = sw_fitpowder(swobj, data, fit_func, model_params, Name,Value)`
+% 
+% ### Description
+% 
+% Fits powder averaged spectra to constant-|Q| cuts or 2D |Q| vs en slices
+% of inelastic neutron scattering data accounting for the instrument 
+% resolution  
+% 
+% ### Input Arguments
+% 
+% `swobj`
+% : spinwave object with magnetic structure defined
+%
+% `data`
+% : Possible inputs depend on dimensionality of the data:
+%   * 2D data in either a IX_dataset_2d or struct containing fields `x`, `y`
+%     and `e`. The size of `y` and `e` should be (N|Q|, NEnergy) and `x` is 
+%     a cell array of size (1,2) where x{1} contains a vector of energy 
+%     transers and x{2} is vector of |Q| bin centers.
+%   * Vector of 1d datasets at constant |Q| - either IX_dataset_1d or 
+%     structs with fields `x`, `y`, `e`, `qmin` and `qmax`, The field `x`
+%     is a vector of energy transfer bin centers, `qmin` and `qmax` are the
+%     limits of the integration in |Q|.
+% 
+% `fit_func`
+% : Function handle changing the interactions in the spinwave model.
+%   For example if the spinw model had matrices `J1`, `J2` and `D` then a
+%   `fit_func` could be
+%   ```
+%   fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', 
+%                                   {'J1', 'J2', 'D(3,3)'}, 'init', true);
+%   ```
+%
+% `model_params`
+% : Vector of initial paramers to pass to fit_func
+%
+% ### Name-Value Pair Arguments
+% 
+% `'backgroundStrategy'`
+% : A string determining the type of background:
+%   * `planar`  (2D planar background in |Q| and energy transfer)
+%   * `independent` (1D linear backgroudn as function of energy transfer)
+%
+% `'initialBackgroundParameters'`
+% : vector containing parameters for the background (size depends on the 
+%   dimensionality of the data and the background strategy)
+%
+% `'scale'`
+% : Initial guess for multiplicative scale factor applied to spinwave calc
+%
+% ### Output Arguments
+% 
+% `'result'` 
+% : cell array containgin output of sw_fitpowder.optimizer
+%   For ndbase optimizers in the spinw package then the reuslt can be
+%   unpacked as follows
+%   ```
+%   [fitted_params, cost_val, stat] = result{:}
+%   ```
+%   See docs for e.g. ndbase.simplex (default) for details
+% 
+% ### Examples
+% 
+% ```
+% >> % init spinw object
+% >> J1 = -0.05;
+% >> J2 = 0.3;
+% >> D = 0.05;
+% >> mnf2 = spinw;
+% >> mnf2.genlattice('lat_const', [4.87 4.87 3.31], 'angle', [90 90 90]*pi/180, 'sym', 'P 42/m n m');
+% >> mnf2.addatom('r', [0 0 0], 'S', 2.5, 'label', 'MMn2', 'color', 'b')
+% >> mnf2.gencoupling('maxDistance', 5)
+% >> mnf2.addmatrix('label', 'J1', 'value', J1, 'color', 'red');
+% >> mnf2.addmatrix('label', 'J2', 'value', J2, 'color', 'green');
+% >> mnf2.addcoupling('mat', 'J1', 'bond', 1)
+% >> mnf2.addcoupling('mat', 'J2', 'bond', 2)
+% >> mnf2.addmatrix('label', 'D', 'value', diag([0 0 D]), 'color', 'black');
+% >> mnf2.addaniso('D')
+% >> mnf2.genmagstr('mode', 'direct', 'S', [0 0; 0 0; 1 -1])
+% >> 
+% >> % define fit_func
+% >> fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', {'J1', 'J2', 'D(3,3)'}, 'init', true);
+% >> 
+% >> % define resolution (from PyChop)
+% >> Ei = 20;
+% >> eres = @(en) 512.17*sqrt((Ei-en).^3 .* ( 8.26326e-10*(0.169+0.4*(Ei./(Ei-en)).^1.5).^2 + 2.81618e-11*(1.169+0.4*(Ei./(Ei-en)).^1.5).^2));
+% >> % Q-resolution (parameters for MARI)
+% >> e2k = @(en) sqrt( en .* (2*1.67492728e-27*1.60217653e-22) )./1.05457168e-34./1e10;
+% >> L1 = 11.8;  % Moderator to Sample distance in m
+% >> L2 = 2.5;   % Sample to detector distance in m
+% >> ws = 0.05;  % Width of sample in m
+% >> wm = 0.12;  % Width of moderator in m
+% >> wd = 0.025; % Width of detector in m
+% >> ki = e2k(Ei);
+% >> a1 = ws/L1; % Angular width of sample seen from moderator
+% >> a2 = wm/L1; % Angular width of moderator seen from sample
+% >> a3 = wd/L2; % Angular width of detector seen from sample
+% >> a4 = ws/L2; % Angular width of sample seen from detector
+% >> dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
+% >> 
+% >> % fit powder
+% >> fitpow = sw_fitpowder(mnf2, mnf2dat,  fit_func, [J1 J2 D], 'backgroundStrategy', 'planar');
+% >> fitpow.crop_energy_range(2.0, 8.0);
+% >> fitpow.powspec_args.dE = eres;
+% >> fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
+% >> fitpow.estimate_scale_factor();
+% >> fitpow.set_model_parameter_bounds(1:3, [-1 0 -0.2], [0 1 0.2]) % Force J1 to be ferromagnetic to agree with structure
+% >> fitpow.set_parameter_bounds(3, 'lb', 0.0, 'background', true) % Set lb of constant bg = 0
+% >> fitpow.set_parameter(3, 0.02, 'background', true);  % set constant background
+% >> fitpow.fix_parameter(1:2, 'background', true); % fix slopes of background to 0
+% >> fitpow.cost_function = "Rsq";  % or "chisq"
+% >> fitpow.optimizer = @ndbase.simplex;
+% >> result = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
+% >> 
+% >> [pfit,cost_val,stat] = result{:};
+% >> fitpow.plot_result(pfit, 26, 'EdgeAlpha', 0.9, 'LineWidth', 2)
+% ```
+%
+% [spinw.spinwave] \| [sw_fitspec]
+%
 
     properties (SetObservable)
         % data
