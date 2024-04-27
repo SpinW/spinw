@@ -142,15 +142,17 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        cost_function = "Rsq";  % "Rsq" or "chisq"
        background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg
-       fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
-       fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
        % fit and parameters
        optimizer = @ndbase.simplex
        nparams_model
        nparams_bg
        params
        bounds
-       % cache calculation
+    end
+
+    properties (SetAccess = private)
+       fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
+       fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
        do_cache = true
        ycalc_cached = []
        model_params_cached = []
