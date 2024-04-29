@@ -482,8 +482,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function iparams = get_index_of_background_parameters(obj, iparams_bg, icuts)
-            if any(icuts == 0) && obj.background_strategy == "independent"
-                icuts = 1:obj.ncuts;  % apply to all cuts
+            if any(icuts == 0)
+                if obj.background_strategy == "independent"
+                    icuts = 1:obj.ncuts;  % apply to all cuts
+                else
+                    icuts = 1; % will work for planar bg
+                end
             end
             % find index in vector of all parameters
             iparams = [];
