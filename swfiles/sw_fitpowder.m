@@ -18,14 +18,23 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 %
 % `data`
 % : Possible inputs depend on dimensionality of the data:
-%   * 2D data in either a IX_dataset_2d or struct containing fields `x`, `y`
-%     and `e`. The size of `y` and `e` should be (N|Q|, NEnergy) and `x` is 
-%     a cell array of size (1,2) where x{1} contains a vector of energy 
-%     transers and x{2} is vector of |Q| bin centers.
-%   * Vector of 1d datasets at constant |Q| - either IX_dataset_1d or 
-%     structs with fields `x`, `y`, `e`, `qmin` and `qmax`, The field `x`
-%     is a vector of energy transfer bin centers, `qmin` and `qmax` are the
-%     limits of the integration in |Q|.
+%   * 2D data 
+%     Either a struct containing fields `x`, `y` and `e` or a 2D HORACE 
+%     object (sqw or d2d)
+%     where `y` is a matrix of intensities with shape (N|Q|, NEnergy)
+%           `e` is a matrix of errorsbars with shape (N|Q|, NEnergy)
+%           `x` is a cell array of size (1,2): 
+%               x{1} contains a vector of energy bin centers
+%               x{2} contains a vector of |Q| bin centers.
+%   * Vector of 1d datasets at constant |Q|
+%     Either a struct containing fields `x`, `y` and `e`  `qmin` and `qmax`
+%     or a 1D HORACE object (sqw or d1d)
+%     where `y` is a vector of intensities with shape (1, NEnergy)
+%           `e` is a vector of errorsbars with shape (1, NEnergy)
+%           `x` is a vector of energy bin centers
+%               x{2} contains a vector of |Q| bin centers.
+%           `qmin` is a scalar denoting the lower Q value of the cut
+%           `qmax` is a scalar denoting the upper Q value of the cut
 % 
 % `fit_func`
 % : Function handle changing the interactions in the spinwave model.
@@ -272,8 +281,14 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function add_data(obj, data)
+            if ~isa(data, "struct")
+                data = arrayfun(@convert_horace_to_struct, data);
+            end
             if numel(data) == 1 && numel(data.x) == 2
                 % 2D
+                assert(all(isfield(data, {'x', 'y', 'e'})), ...
+                       'spinw:fitpow:invalidinput', ...
+                       'Input cell does not have correct fields');
                 obj.ndim = 2;
                 obj.y = data.y';  % nE x n|Q|
                 obj.e = data.e';
@@ -285,6 +300,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.ebin_cens = data(1).x;
                 obj.ncuts = numel(data);
                 for cut = data
+                    assert(all(isfield(cut, {'x', 'y', 'e', 'qmin','qmax'})), ...
+                           'spinw:fitpow:invalidinput', ...
+                           'Input cell does not have correct fields');
                     obj.y = [obj.y cut.y(:)];
                     obj.e = [obj.e cut.e(:)];
                     obj.modQ_cens = [obj.modQ_cens, linspace(cut.qmin, cut.qmax, obj.nQ)];  % does this play nicely with sw_instrument Q convolution?
@@ -493,5 +511,32 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 iparams = [iparams,  iparams_bg + obj.nparams_model + (icut-1)*obj.nparams_bg];
             end
         end
+    end
+    methods (Static=true, Hidden=true, Access = private)
+        function data_struct = convert_horace_to_struct(data)
+            if isa(data, "sqw")
+                ndim = data.dimensions;
+                assert(ndim < 3, 'spinw:fitpow:invalidinput', 'Input SQW object must be 1D or 2D');
+                data_obj = data.data;
+            elseif isa(data, "d1d")
+                ndim = 1;
+                data_obj = data;
+            elseif is(data, "d2d")
+                ndim = 2;
+                data_obj = data;
+            else
+                error('spinw:fitpow:invalidinput', 'Input must be a Horace object (sqw, d1d or d2d)')
+            end
+            assert(strcmp(data_obj.ulabel{1}, '|Q|'), 'spinw:fitpow:invalidinput', 'Input Horace object is not a powder cut');
+            % convert edges to bin centers
+            cens = cellfun(@(edges) (edges(1:end-1) + edges(2:end))/2, data_obj.p(1:ndim), 'UniformOutput', false);
+            data_struct = struct('x', cens, 'y', data_obj.s, 'e', data_obj.e);
+            if ndim == 1
+                % add q integration range
+                data_struct.qmin = data_obj.iint(1,1);
+                data_struct.qmax = data_obj.iint(2,1);
+            end
+        end
+
     end
 end
