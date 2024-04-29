@@ -39,20 +39,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 % `model_params`
 % : Vector of initial paramers to pass to fit_func
 %
-% ### Name-Value Pair Arguments
-% 
-% `'backgroundStrategy'`
-% : A string determining the type of background:
-%   * `planar`  (2D planar background in |Q| and energy transfer)
-%   * `independent` (1D linear backgroudn as function of energy transfer)
-%
-% `'initialBackgroundParameters'`
-% : vector containing parameters for the background (size depends on the 
-%   dimensionality of the data and the background strategy)
-%
-% `'scale'`
-% : Initial guess for multiplicative scale factor applied to spinwave calc
-%
 % ### Output Arguments
 % 
 % `'result'` 
@@ -159,46 +145,37 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
         
     methods       
-        function obj = sw_fitpowder(swobj, data, fit_func, model_params, varargin)
+        function obj = sw_fitpowder(swobj, data, fit_func, model_params, background_strategy)
             % constructor
             obj.swobj = swobj;
             obj.fit_func = fit_func;
-            bg_params = [];
-            scale = 1;
-            % set background startegy and func
-            for ikey = 1:2:numel(varargin)
-                switch varargin{ikey}
-                    case 'backgroundStrategy'
-                        obj.background_strategy = varargin{ikey+1};
-                    case 'initialBackgroundParameters'
-                        bg_params = varargin{ikey+1};
-                    case 'scale'
-                        scale = varargin{ikey+1};
-                end
-            end
             obj.add_data(data)
+            if nargin < 5
+                obj.background_strategy = "planar";
+            else
+                obj.background_strategy = background_strategy;
+            end
             if obj.background_strategy == "planar"
                 obj.fbg = obj.fbg_planar;
             else
                 obj.fbg = obj.fbg_indep;
             end
-            obj.initialise_parameters_and_bounds(model_params, bg_params, scale)
+            obj.initialise_parameters_and_bounds(model_params)
         end
 
-        function initialise_parameters_and_bounds(obj, model_params, bg_params, scale)
+        function initialise_parameters_and_bounds(obj, model_params)
             obj.nparams_model = numel(model_params);
             obj.nparams_bg = obj.get_nparams_in_background_func();
-            if isempty(bg_params)
-                % zero intialise
-                if obj.background_strategy == "independent"
-                    nparams_bg_total = obj.ncuts * obj.nparams_bg;
-                else
-                    nparams_bg_total = obj.nparams_bg;
-                end
-                bg_params = zeros(nparams_bg_total, 1);
+            % zero intialise background parameters
+            if obj.background_strategy == "independent"
+                nparams_bg_total = obj.ncuts * obj.nparams_bg;
+            else
+                nparams_bg_total = obj.nparams_bg;
             end
-            obj.params = [model_params(:); bg_params(:); scale];
-            obj.bounds = [-inf, inf].*ones(numel(obj.params),1);
+            bg_params = zeros(nparams_bg_total, 1);
+            % last parameter is scale factor (default to 1)
+            obj.params = [model_params(:); bg_params(:); 1];
+            obj.bounds = [-inf, inf].*ones(numel(obj.params), 1);
             obj.bounds(end,1) = 0; % set lower bound of scale to be 0
         end
 
@@ -421,6 +398,27 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             [ycalc, bg] = calc_spinwave_spec(obj, params);
             scale = max(obj.y - mean(bg(:)), [], "all")/max(ycalc, [], "all");
             obj.params(end) = scale;
+        end
+
+        function estimate_constant_background(obj)
+            ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
+            bg = ysort(int32(numel(ysort)/2)); % default to median
+            prev_skew = inf;
+            for ipt = 2:numel(ysort)
+                this_mean = mean(ysort(ipt:end));
+                this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
+                if this_skew < 0
+                    bg = this_mean;
+                    break
+                else
+                    prev_skew = this_skew;
+                end
+            end
+            if obj.background_strategy == "planar" && obj.ndim == 1
+                bg = bg/obj.nQ;
+            end
+            % set constant background assuming last bg parameter
+            obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
         end
 
         function plot_result(obj, params, varargin)
