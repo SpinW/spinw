@@ -284,7 +284,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if ~isa(data, "struct")
                 data = arrayfun(@convert_horace_to_struct, data);
             end
-            if numel(data) == 1 && numel(data.x) == 2
+            if numel(data) == 1 && isa(data.x, "cell")
                 % 2D
                 assert(all(isfield(data, {'x', 'y', 'e'})), ...
                        'sw_fitpowder:invalidinput', ...
@@ -305,7 +305,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                            'Input cell does not have correct fields');
                     obj.y = [obj.y cut.y(:)];
                     obj.e = [obj.e cut.e(:)];
-                    obj.modQ_cens = [obj.modQ_cens, linspace(cut.qmin, cut.qmax, obj.nQ)];  % does this play nicely with sw_instrument Q convolution?
+                    dQ = (cut.qmax - cut.qmin)/obj.nQ;
+                    obj.modQ_cens = [obj.modQ_cens, (cut.qmin+dQ/2):dQ:cut.qmax];
                 end
             end
             obj.powspec_args.Evect = obj.ebin_cens(:)';  % row vect
