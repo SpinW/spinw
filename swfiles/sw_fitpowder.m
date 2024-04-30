@@ -287,7 +287,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if numel(data) == 1 && numel(data.x) == 2
                 % 2D
                 assert(all(isfield(data, {'x', 'y', 'e'})), ...
-                       'spinw:fitpow:invalidinput', ...
+                       'sw_fitpowder:invalidinput', ...
                        'Input cell does not have correct fields');
                 obj.ndim = 2;
                 obj.y = data.y';  % nE x n|Q|
@@ -301,7 +301,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.ncuts = numel(data);
                 for cut = data
                     assert(all(isfield(cut, {'x', 'y', 'e', 'qmin','qmax'})), ...
-                           'spinw:fitpow:invalidinput', ...
+                           'sw_fitpowder:invalidinput', ...
                            'Input cell does not have correct fields');
                     obj.y = [obj.y cut.y(:)];
                     obj.e = [obj.e cut.e(:)];
@@ -318,6 +318,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';
             obj.y = obj.y(ikeep, :);
             obj.e = obj.e(ikeep, :);
+        end
+
+        function crop_q_range(obj, qmin, qmax)
+            assert(obj.ndim==2, 'sw_fitpowder:invalidinput', ...
+                  '|Q| range can only be cropped on 2D datasets');
+            % crop data
+            ikeep = obj.modQ_cens >= qmin & obj.modQ_cens <= qmax;
+            obj.modQ_cens = obj.modQ_cens(ikeep);
+            obj.y = obj.y(:, ikeep);
+            obj.e = obj.e(:, ikeep);
         end
 
         function bg = calc_background(obj, params)
