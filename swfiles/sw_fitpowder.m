@@ -154,10 +154,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
         
     methods       
-        function obj = sw_fitpowder(swobj, data, fit_func, model_params, background_strategy)
+        function obj = sw_fitpowder(swobj, data, fit_func, model_params, background_strategy, nQ)
             % constructor
             obj.swobj = swobj;
             obj.fit_func = fit_func;
+            if nargin == 6
+                obj.nQ = nQ; % set this before add data
+            end
             obj.add_data(data)
             if nargin < 5
                 obj.background_strategy = "planar";
