@@ -34,13 +34,13 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
     end
 
     methods
-        function verify_results(testCase, observed, expected, fieldnames)
+        function verify_results(testCase, observed, expected, fieldnames, varargin)
             if nargin < 4
                 fieldnames = testCase.default_fields;
             end
             for ifld = 1:numel(fieldnames)
                 fld = fieldnames{ifld};
-                testCase.verify_val(observed.(fld), expected.(fld));
+                testCase.verify_val(observed.(fld), expected.(fld), varargin{:});
             end
         end
     end
@@ -238,6 +238,28 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             expected_fitpow.modQ_cens = expected_fitpow.modQ_cens(2:end);
             testCase.verify_results(out, expected_fitpow);
         end
+
+        function test_estimate_constant_background(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.estimate_constant_background()
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(end-1) = 1;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_estimate_scale_factor(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.powspec_args.dE = 0.1;  % constant energy resolution
+            out.powspec_args.hermit = true;
+            out.estimate_scale_factor()
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(end) = 17.6;
+            testCase.verify_results(out, expected_fitpow, ...
+                                    testCase.default_fields, 'abs_tol', 1e-1);
+        end
+
     end
 
 end
