@@ -155,6 +155,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        nparams_bg
        params
        bounds
+       liveplot = false
     end
 
     properties (SetAccess = private)
@@ -416,6 +417,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function resid_sq_sum = calc_cost_func(obj, params)
             % evaluate fit function
             [ycalc, ~] = calc_spinwave_spec(obj, params);
+            if obj.liveplot
+                obj.plot_1d_or_2d(ycalc);
+                drawnow;
+            end
             resid = (obj.y - ycalc);
             if obj.cost_function == "chisq"
                 resid = resid./(obj.e);
@@ -426,6 +431,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function result = fit(obj, varargin) 
+            if obj.liveplot
+                figure("color","white");
+            end
             % setup cell for output of ndbase optimizer/minimizer
             result = cell(1,nargout(obj.optimizer));
             % pass params and bounds as rows for ndbase optimisers
@@ -467,15 +475,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function plot_result(obj, params, varargin)
             [ycalc, ~] = obj.calc_spinwave_spec(params);
-            if obj.ndim == 1
-                obj.plot_1d_cuts_on_data(ycalc, varargin{:})
-            else
-                obj.plot_2d_contour_on_data(ycalc, varargin{:})
-            end
+            obj.plot_1d_or_2d(ycalc, varargin{:});
         end
 
         function plot_1d_cuts_on_data(obj, ycalc, varargin)
-            figure("color","white");
+            if ~obj.liveplot
+                figure("color","white");
+            else
+                clf;
+            end
             modQs = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
             for icut = 1:obj.ncuts
                 ax =  subplot(1, obj.ncuts, icut);
@@ -494,7 +502,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function plot_2d_contour_on_data(obj, ycalc, varargin)
             % varargin passed to contour
-            figure("color","white");
+            if ~obj.liveplot
+                figure("color","white");
+            else
+                clf;
+            end
             ax = subplot(1,1,1);
             box on; hold on;
             h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, obj.y);
@@ -539,6 +551,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             iparams = [];
             for icut = icuts
                 iparams = [iparams,  iparams_bg + obj.nparams_model + (icut-1)*obj.nparams_bg];
+            end
+        end
+        function plot_1d_or_2d(obj, ycalc, varargin)
+            if obj.ndim == 1
+                obj.plot_1d_cuts_on_data(ycalc, varargin{:})
+            else
+                obj.plot_2d_contour_on_data(ycalc, varargin{:})
             end
         end
     end
