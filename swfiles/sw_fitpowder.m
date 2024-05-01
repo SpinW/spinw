@@ -482,8 +482,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 hold on; box on;
                 plot(ax, obj.ebin_cens, obj.y(:,icut), 'ok');
                 plot(ax, obj.ebin_cens, ycalc(:,icut), '-r', varargin{:});
-                xlim(ax, [0, 12]);
-                ylim(ax, [-2, 30]);
+                xlim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
+                ymin = min(min(obj.y(:,icut)), min(ycalc(:,icut)));
+                ymax = max(max(obj.y(:,icut)), max(ycalc(:,icut)));
+                ylim(ax, [ymin, ymax]);
                 xlabel(ax, 'Energy (meV)')
                 ylabel(ax, 'Intensity');
                 title(ax, num2str(modQs(icut), 2) + " $\AA^{-1}$", 'interpreter','latex')
@@ -502,6 +504,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             cbar.Label.String = "Intensity";
             xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
             ylabel(ax, "Energy (meV)");
+            ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
+            xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
             legend('Calculated');
         end
     end
