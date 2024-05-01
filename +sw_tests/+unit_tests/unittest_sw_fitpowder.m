@@ -260,6 +260,32 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                     testCase.default_fields, 'abs_tol', 1e-1);
         end
 
+        function test_calc_cost_func_1d_planar_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "planar", 1);
+            out.powspec_args.dE = 0.1;  % constant energy resolution
+            out.powspec_args.hermit = true;
+            cost = out.calc_cost_func(out.params);
+            testCase.verify_val(cost, 25.3, 'abs_tol', 0.1);
+        end
+
+        function test_calc_cost_func_1d_indep_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent", 1);
+            out.powspec_args.dE = 0.1;  % constant energy resolution
+            out.powspec_args.hermit = true;
+            cost = out.calc_cost_func(out.params);
+            testCase.verify_val(cost, 25.3, 'abs_tol', 0.1);
+        end
+
+        function test_calc_cost_func_2d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.powspec_args.dE = 0.1;  % constant energy resolution
+            out.powspec_args.hermit = true;
+            cost = out.calc_cost_func(out.params);
+            testCase.verify_val(cost, 25.3, 'abs_tol', 0.1);
+        end
     end
 
 end
