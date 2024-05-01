@@ -48,10 +48,19 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 % `model_params`
 % : Vector of initial paramers to pass to fit_func
 %
+% `background_strategy` (optional)
+% : A string determining the type of background:
+%   * `planar` (default) - 2D planar background in |Q| and energy transfer
+%   * `independent` - 1D linear background as function of energy transfer
+%
+% `nQ` (optional)
+% : Scalar int correpsonding to number of Q-points to subdivide cuts into 
+%   for averaging
+%
 % ### Output Arguments
 % 
 % `'result'` 
-% : cell array containgin output of sw_fitpowder.optimizer
+% : cell array containing output of sw_fitpowder.optimizer
 %   For ndbase optimizers in the spinw package then the reuslt can be
 %   unpacked as follows
 %   ```
@@ -99,15 +108,18 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 % >> dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
 % >> 
 % >> % fit powder
-% >> fitpow = sw_fitpowder(mnf2, mnf2dat,  fit_func, [J1 J2 D], 'backgroundStrategy', 'planar');
+% >> backgroundStrategy = 'planar';  % 'planar' or 'independent'
+% >> nQ = 10;   % Number of Q-points to subdivide cuts into for averaging
+% >>
+% >> fitpow = sw_fitpowder(mnf2, mnf2dat,  fit_func, [J1 J2 D], backgroundStrategy, nQ);
 % >> fitpow.crop_energy_range(2.0, 8.0);
 % >> fitpow.powspec_args.dE = eres;
 % >> fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
+% >> fitpow.estimate_constant_background();
 % >> fitpow.estimate_scale_factor();
 % >> fitpow.set_model_parameter_bounds(1:3, [-1 0 -0.2], [0 1 0.2]) % Force J1 to be ferromagnetic to agree with structure
-% >> fitpow.set_parameter_bounds(3, 'lb', 0.0, 'background', true) % Set lb of constant bg = 0
-% >> fitpow.set_parameter(3, 0.02, 'background', true);  % set constant background
-% >> fitpow.fix_parameter(1:2, 'background', true); % fix slopes of background to 0
+% >> fitpow.set_bg_parameter_bounds(3, 0.0, []) % Set lb of constant bg = 0
+% >> fitpow.fix_bg_parameters(1:2); % fix slopes of background to 0
 % >> fitpow.cost_function = "Rsq";  % or "chisq"
 % >> fitpow.optimizer = @ndbase.simplex;
 % >> result = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
