@@ -297,7 +297,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function add_data(obj, data)
             if ~isa(data, "struct")
-                data = arrayfun(@convert_horace_to_struct, data);
+                data = arrayfun(@obj.convert_horace_to_struct, data);
             end
             if numel(data) == 1 && isa(data.x, "cell")
                 % 2D
