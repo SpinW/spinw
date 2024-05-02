@@ -582,15 +582,18 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             elseif isa(data, "d1d")
                 ndim = 1;
                 data_obj = data;
-            elseif is(data, "d2d")
+            elseif isa(data, "d2d")
                 ndim = 2;
                 data_obj = data;
             else
                 error('spinw:fitpow:invalidinput', 'Input must be a Horace object (sqw, d1d or d2d)')
             end
             assert(strcmp(data_obj.ulabel{1}, '|Q|'), 'spinw:fitpow:invalidinput', 'Input Horace object is not a powder cut');
-            % convert edges to bin centers
-            cens = cellfun(@(edges) (edges(1:end-1) + edges(2:end))/2, data_obj.p(1:ndim), 'UniformOutput', false);
+            % convert edges to bin centers (need energy first if 2D)
+            cens = cellfun(@(edges) (edges(1:end-1) + edges(2:end))/2, data_obj.p(ndim:-1:1), 'UniformOutput', false);
+            if ndim == 2
+                cens = {cens};  % otherwise MATLAB makes multiple structs 
+            end
             data_struct = struct('x', cens, 'y', data_obj.s, 'e', data_obj.e);
             if ndim == 1
                 % add q integration range
