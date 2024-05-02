@@ -1041,6 +1041,7 @@ else
 
     if param.fastmode
         V = V(:,1:nMagExt,:);
+        omega = D(1:nMagExt,:);
     end
 
     % Calculates correlation functions.
