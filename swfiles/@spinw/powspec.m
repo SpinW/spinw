@@ -165,6 +165,17 @@ function spectra = powspec(obj, hklA, varargin)
 % : Energy resolution (FWHM) can be function, or a numeric matrix that
 %   has length 1 or the number of energy bin centers.
 %
+% `'neutron_output'`
+% : If `true`, the spinwave will output only `Sperp`, the S(q,w) component
+%   perpendicular to Q that is measured by neutron scattering, and will
+%   *not* output the  full Sab tensor. (Usually sw_neutron is used to 
+%   calculate `Sperp`.) Default value is `false`.
+%
+% `'fastmode'`
+% : If `true`, will set `'neutron_output', true`, `'fitmode', true`,
+%   `'sortMode', false`, and will only output intensity for positive energy
+%   (neutron energy loss) modes. Default value is `false`.
+%
 % The function accepts some parameters of [spinw.scga] with the most important
 % parameters are:
 %
@@ -224,6 +235,12 @@ inpForm.fname  = [inpForm.fname  {'fid' , 'dE'}];
 inpForm.defval = [inpForm.defval {-1,      []}];
 inpForm.size   = [inpForm.size   {[1 1],   [-6, -7]}];
 inpForm.soft   = [inpForm.soft   {false    true}];
+
+inpForm.fname  = [inpForm.fname  {'neutron_output' 'fastmode'}];
+inpForm.defval = [inpForm.defval {false             false }];
+inpForm.size   = [inpForm.size   {[1 1]             [1 1] }];
+inpForm.soft   = [inpForm.soft   {false             false}];
+
 
 param  = sw_readparam(inpForm, varargin{:});
 
@@ -312,21 +329,23 @@ switch funIdx
         warnState = warning('off','sw_readparam:UnreadInput');
         specQ = param.specfun(obj,hkl,varargin{:});
         warning(warnState);
+        specQ = sw_neutron(specQ,'pol',false);
     case 1
         % @spinwave
         specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
             'Hermit',param.hermit,'formfact',param.formfact,...
             'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
-            'optmem',param.optmem,'tid',param.tid,'fid',0),'noCheck');
+            'optmem',param.optmem,'tid',param.tid,'fid',0, ...
+            'neutron_output', param.neutron_output, 'fastmode', ...
+            param.fastmode),'noCheck');
     case 2
         % @scga
         specQ = scga(obj,hkl,struct('fitmode',true,'formfact',param.formfact,...
             'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
             'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
             'plot',false),'noCheck');
+        specQ = sw_neutron(specQ,'pol',false);
 end
-
-specQ = sw_neutron(specQ,'pol',false);
 specQ.obj = obj;
 % use edge grid by default
 specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
