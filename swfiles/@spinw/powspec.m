@@ -329,7 +329,6 @@ switch funIdx
         warnState = warning('off','sw_readparam:UnreadInput');
         specQ = param.specfun(obj,hkl,varargin{:});
         warning(warnState);
-        specQ = sw_neutron(specQ,'pol',false);
     case 1
         % @spinwave
         specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
@@ -344,7 +343,9 @@ switch funIdx
             'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
             'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
             'plot',false),'noCheck');
-        specQ = sw_neutron(specQ,'pol',false);
+end
+if funIdx ~= 1 || (~param.neutron_output && ~param.fastmode)
+    specQ = sw_neutron(specQ,'pol',false);
 end
 specQ.obj = obj;
 % use edge grid by default
