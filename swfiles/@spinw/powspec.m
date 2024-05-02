@@ -161,6 +161,10 @@ function spectra = powspec(obj, hklA, varargin)
 %   * `1` Display the timing in the Command Window.
 %   * `2` Show the timing in a separat pup-up window.
 %
+% `dE`
+% : Energy resolution (FWHM) can be function, or a numeric matrix that
+%   has length 1 or the number of energy bin centers.
+%
 % The function accepts some parameters of [spinw.scga] with the most important
 % parameters are:
 %
@@ -204,18 +208,22 @@ tid0   = pref.tid;
 inpForm.fname  = {'nRand' 'Evect'    'T'   'formfact' 'formfactfun' 'tid' 'nInt'};
 inpForm.defval = {100     zeros(1,0) T0    false      @sw_mff       tid0  1e3   };
 inpForm.size   = {[1 1]   [1 -1]     [1 1] [1 -2]     [1 1]         [1 1] [1 1] };
+inpForm.soft   = {false   false      false false      false         false false   };
 
 inpForm.fname  = [inpForm.fname  {'hermit' 'gtensor' 'title' 'specfun' 'imagChk'}];
 inpForm.defval = [inpForm.defval {true     false     title0  @spinwave  true    }];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]     [1 -3]  [1 1]      [1 1]   }];
+inpForm.soft   = [inpForm.soft   {false    false     false   false      false}];
 
 inpForm.fname  = [inpForm.fname  {'extrap' 'fibo' 'optmem' 'binType' 'component'}];
 inpForm.defval = [inpForm.defval {false    false  0        'ebin'    'Sperp'    }];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]  [1 1]    [1 -4]     [1 -5]    }];
+inpForm.soft   = [inpForm.soft   {false    false  false    false      false}];
 
 inpForm.fname  = [inpForm.fname  {'fid' , 'dE'}];
 inpForm.defval = [inpForm.defval {-1,      []}];
 inpForm.size   = [inpForm.size   {[1 1],   [-6, -7]}];
+inpForm.soft   = [inpForm.soft   {false    true}];
 
 param  = sw_readparam(inpForm, varargin{:});
 
