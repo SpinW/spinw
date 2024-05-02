@@ -155,7 +155,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        nparams_bg
        params
        bounds
-       liveplot = false
+       liveplot_interval = 0
     end
 
     properties (SetAccess = private)
@@ -164,6 +164,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        do_cache = true
        ycalc_cached = []
        model_params_cached = []
+       liveplot_counter = 0
     end
         
     methods       
@@ -417,9 +418,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function resid_sq_sum = calc_cost_func(obj, params)
             % evaluate fit function
             [ycalc, ~] = calc_spinwave_spec(obj, params);
-            if obj.liveplot
-                obj.plot_1d_or_2d(ycalc);
-                drawnow;
+            if obj.liveplot_interval > 0
+                obj.liveplot_counter = obj.liveplot_counter + 1;
+                if obj.liveplot_counter == obj.liveplot_interval
+                    obj.plot_1d_or_2d(ycalc);
+                    drawnow;
+                    obj.liveplot_counter = 0;
+                end
             end
             resid = (obj.y - ycalc);
             if obj.cost_function == "chisq"
@@ -431,8 +436,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function result = fit(obj, varargin) 
-            if obj.liveplot
+            if obj.liveplot_interval > 0
                 figure("color","white");
+                obj.liveplot_counter = 0;
+            else
+                clf;
             end
             % setup cell for output of ndbase optimizer/minimizer
             result = cell(1,nargout(obj.optimizer));
@@ -479,7 +487,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_1d_cuts_on_data(obj, ycalc, varargin)
-            if ~obj.liveplot
+            if obj.liveplot_interval == 0
                 figure("color","white");
             else
                 clf;
@@ -502,7 +510,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function plot_2d_contour_on_data(obj, ycalc, varargin)
             % varargin passed to contour
-            if ~obj.liveplot
+            if obj.liveplot_interval == 0
                 figure("color","white");
             else
                 clf;
