@@ -1020,6 +1020,7 @@ else
             % Only transform the positive energy modes (first half of V)
             for ii = 1:nMagExt
                 V(:,ii,:) = bsxfun(@times, V(:,ii,:), sqrt(1 ./ sum(bsxfun(@times,gCommd,conj(V(:,ii,:)).*V(:,ii,:)))));
+                omega(ii,:) = D(ii,:);
             end
         else
             for ii = 1:nHklMEM
@@ -1041,7 +1042,6 @@ else
 
     if param.fastmode
         V = V(:,1:nMagExt,:);
-        omega = D(1:nMagExt,:);
     end
 
     % Calculates correlation functions.
