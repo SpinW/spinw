@@ -659,6 +659,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             nMode = size(spec1.omega, 1);
             testCase.verify_val(size(spec0.omega, 1), 2*nMode);
             testCase.verify_val(spec0.omega(1:nMode,:), spec1.omega, 'abs_tol', 1e-4);
+            testCase.verify_val(spec0.omega(1:nMode,:), spec2.omega, 'abs_tol', 1e-4);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec1.Sperp, 'abs_tol', 1e-8);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
         end
@@ -674,6 +675,7 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             nMode = size(spec1.omega, 1);
             testCase.verify_val(size(spec0.omega, 1), 2*nMode);
             testCase.verify_val(spec0.omega(1:nMode,:), spec2.omega, 'abs_tol', 1e-4);
+            testCase.verify_val(spec0.omega(1:nMode,:), spec1.omega, 'abs_tol', 1e-4);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec1.Sperp, 'abs_tol', 1e-8);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
         end
