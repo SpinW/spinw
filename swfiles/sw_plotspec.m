@@ -455,14 +455,14 @@ if ~powmode
         colors  = colors(2:(end-1),:);
     end
     
-    modeList = nMode/(2*nMagExt);
-    if modeList == 1
+    % Accounts for "fastmode" calculations where only +ve modes are present
+    if nMode == nMagExt || nMode == 2*nMagExt
         if param.imag
             lLabel = {'Real' 'Imaginary'};
         else
             lLabel = {'Real'};
         end
-    elseif modeList == 3
+    elseif nMode == 3*nMagExt || nMode == 6*nMagExt
         if param.imag
             lLabel = {'Q+k_m' 'Q' 'Q-k_m' 'Imaginary'};
         else
