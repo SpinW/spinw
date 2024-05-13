@@ -1270,7 +1270,11 @@ spectra.param.hermit    = param.hermit;
 spectra.title           = param.title;
 spectra.gtensor         = param.gtensor;
 
-if ~param.fitmode
+if param.fitmode
+    % Copies only fields needed by downstream functions (sw_egrid, sw_neutron, sw_plotspec)
+    spectra.obj = struct('single_ion', obj.single_ion, 'twin', obj.twin, ...
+        'unit', obj.unit, 'basisvector', obj.basisvector, 'nmagext', obj.nmagext);
+else
     spectra.dateend = datestr(now);
     spectra.obj = copy(obj);
 end

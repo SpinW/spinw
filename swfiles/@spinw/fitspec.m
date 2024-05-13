@@ -362,10 +362,6 @@ for ii = 1:nConv
         'tid',0,'optMem',param.optmem,'gtensor',any(obj.single_ion.g),'fid',0);
     % calculate neutron scattering cross section
     spec = sw_neutron(spec,'n',data.n,'pol',data.corr.type{1}(1) > 1);
-    if size(obj.twin.vol, 2) > 1
-        % Need to include the original SpinW for sw_egrid to handle twins correctly.
-        spec.obj = obj;
-    end
     % bin the data along energy
     try
         spec = sw_egrid(spec,'component',data.corr,'Evect',param.Evect,'imagChk',param.imagChk);

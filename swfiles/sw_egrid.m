@@ -499,7 +499,8 @@ if isfield(spectra,'omega')
     if param.T==0
         nBose = double(ebin_cens>=0);
     else
-        nBose = 1./(exp(abs(ebin_cens)./(spectra.obj.unit.kB*param.T))-1)+double(ebin_cens>=0);
+        kB = 0.086173324;
+        nBose = 1./(exp(abs(ebin_cens)./(kB*param.T))-1)+double(ebin_cens>=0);
     end
     
     % Sums up the intensities in DSF into swConv.
@@ -555,7 +556,7 @@ if param.sumtwin
     if isfield(spectra,'obj')
         vol = spectra.obj.twin.vol/sum(spectra.obj.twin.vol);
     else
-        vol = 1;
+        vol = ones(1,nTwin);
     end
     swConvT = cell(nConv,1);
     DSFT    = cell(nConv,1);

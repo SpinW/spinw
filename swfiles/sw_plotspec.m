@@ -822,7 +822,7 @@ if param.mode == 3
         dat.s(dat.I==0) = nan;
         dat.E(dat.I==0) = nan;
         % reciprocal lattice
-        RL   = spectra.obj.rl;
+        RL = 2*pi*inv(spectra.obj.basisvector);
         
         % distance of experimental data points from plotted data points
         D = sqrt(sum(bsxfun(@minus,permute(Qexp'*RL,[1 3 2]),permute(spectra.hkl'*RL,[3 1 2])).^2,3));
