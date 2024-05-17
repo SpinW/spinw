@@ -73,18 +73,30 @@ if param.compile
         mex('-R2018a',['COMPFLAGS= /I eigen-' eigen_ver],'swloop.cpp')
     elseif ismac
         % add =libiomp5 after -fopenmp?
+        if strcmp(mexext, 'mexmaca64')
+           mwlinklib = '-L$MATLABROOT/bin/maca64';
+        else
+           mwlinklib = '-L$MATLABROOT/sys/os/maci64'; 
+        end
+        if exist('/opt/homebrew/opt/libomp/include') == 7
+            omp_inc = '-I/opt/homebrew/opt/libomp/include';
+            omp_lib = '-lomp';
+        else
+            omp_inc = '-I/usr/local/opt/libomp/include';
+            omp_lib = '-liomp5';
+        end
         cd(eig_omp_dir);
         mex('-v','-largeArrayDims','eig_omp.cpp', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
-            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas -lmwlapack"', ...
-            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
+            ['LDFLAGS="$LDFLAGS ' mwlinklib ' ' omp_lib ' -lmwblas -lmwlapack"'], ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', omp_inc);
         cd(chol_omp_dir);
         mex('-v','-largeArrayDims','chol_omp.cpp', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
-            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas -lmwlapack"', ...
-            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
+            ['LDFLAGS="$LDFLAGS ' mwlinklib ' ' omp_lib ' -lmwblas -lmwlapack"'], ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', omp_inc);
         cd(mtimesx_dir);
         mex('-v','-largeArrayDims','sw_mtimesx.c', 'CXX_FLAGS="-Xclang -fopenmp -pthread"', ...
-            'LDFLAGS="$LDFLAGS -L$MATLABROOT/sys/os/maci64 -liomp5 -lmwblas"', ...
-            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', "-I/usr/local/opt/libomp/include");
+            ['LDFLAGS="$LDFLAGS ' mwlinklib ' ' omp_lib ' -lmwblas"'], ...
+            'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', omp_inc);
         cd(swloop_dir);
         mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
     else

@@ -21,11 +21,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out SpinW
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install Dependencies
+        run: ${{ matrix.INSTALL_DEPS }}
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        uses: matlab-actions/setup-matlab@v2
         with:
           release: ${{ matrix.matlab_version }}
 
@@ -41,13 +43,13 @@ jobs:
           rm external/mtimesx/sw_mtimesx.mexmaci64
           rm external/mtimesx/sw_mtimesx.mexw64
       - name: Run MEXing
-        uses: matlab-actions/run-command@v1
+        uses: matlab-actions/run-command@v2
         with:
           command: "addpath(genpath('swfiles')); addpath(genpath('external')); sw_mex('compile', true, 'test', false, 'swtest', false);"
       - name: Upload MEX results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: MEX
+          name: mex-${{ matrix.os }}
           path: ${{ github.workspace }}/external/**/*.mex*
 
   build_ctfs:
@@ -58,22 +60,22 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Check out SpinW
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download MEX artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: MEX
+          pattern: mex-*
           path: ${{ github.workspace }}/external
       - name: Build ctf
         run: |
           cd python
           /Applications/MATLAB_${{ matrix.matlab_version }}.app/bin/matlab -nodisplay -r "build_ctf; exit"
       - name: Upload CTF results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: CTF
+          name: ctf-${{ matrix.matlab_version }}
           path: ${{ github.workspace }}/python/ctf/*.ctf
 
   build_wheel:
@@ -83,11 +85,11 @@ jobs:
       contents: write
     steps:
       - name: Checkout SpinW
-        uses: actions/checkout@v3    
+        uses: actions/checkout@v4
       - name: Download CTF artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: CTF
+          pattern: ctf-*
           path: python/ctf
       - name: Set up Python environment
         uses: actions/setup-python@v4
@@ -98,15 +100,16 @@ jobs:
           cd python
           echo "PYSPINW_VERSION=$( cat pyproject.toml | grep "version = \"" | awk -F'"' '$0=$2' | sed 's/ //g' )" >> $GITHUB_ENV
           mkdir pyspinw/ctfs
-          mv ctf/*.ctf pyspinw/ctfs
+          find ctf/ -name "*.ctf" -exec mv '{}'  pyspinw/ctfs \;
       - name: Build Wheel
         run: |
           cd ${{ github.workspace }}/python
           python -m pip wheel --no-deps --wheel-dir build .
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v1 # v1.1.0 required for Windows/MacOS support
+        uses: matlab-actions/setup-matlab@v2
         with:
           release: R2023a
+          products: MATLAB_Compiler_SDK
       - name: Run python test
         run: |
           pip install scipy
@@ -115,7 +118,7 @@ jobs:
           cd tests
           python -m unittest
       - name: Create wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pySpinW Wheel
           path: ${{ github.workspace }}/python/build/*.whl        
@@ -124,3 +127,6 @@ jobs:
         run: |
           pip3 install requests
           python3 release.py --notest --github --token=${{ secrets.GH_TOKEN }}
+      - name: Setup tmate
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
