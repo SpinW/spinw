@@ -292,6 +292,11 @@ singWarn0 = warning('off','MATLAB:nearlySingularMatrix');
 % use mex file by default?
 useMex = pref.usemex;
 
+if isa(hkl, 'sym') && ~obj.symbolic
+    obj.symbolic(true);
+    setnosym = onCleanup(@()obj.symbolic(false));
+end
+
 % calculate symbolic spectrum if obj is in symbolic mode
 if obj.symbolic
     if numel(hkl) == 3
@@ -309,7 +314,7 @@ if obj.symbolic
         end
         spectra = obj.spinwavesym(varargin{:});
     else
-        spectra = obj.spinwavesym(varargin{:},'hkl',hkl);
+        spectra = obj.spinwavesym(varargin{:},'hkl',hkl(:));
     end
     return
 end

@@ -507,8 +507,8 @@ switch param.mode
                     'Color', colors(ii,:),'LineWidth',param.lineWidth); %#ok<*AGROW>
                 hLegend(incIdx) = hPlot(end);
                 if param.imag
-                    hPlot(end+1)        = plot(xAxis,ploti(ii,:),'ro-');
-                    hLegend(modeList+1) = hPlot(end);
+                    hPlot(end+1) = plot(xAxis,ploti(ii,:),'ro-');
+                    hLegend(incIdx+1) = hPlot(end);
                 end
             end
         end
@@ -613,18 +613,21 @@ if param.mode == 3
             % for 'auto' mode an equally space hue values are created for
             % use with multiple sectra plot
             if nPlot>1
-                param.colormap = hsv2rgb([(1:nPlot)'/nPlot ones(nPlot,2)])'*255;
+                param.colormap = flipud(hsv2rgb([(1:nPlot)'/nPlot ones(nPlot,2)])'*255);
             else
                 param.colormap = {pref.colormap};
             end
         end
         if ~iscell(param.colormap)
+            if numel(param.colormap) == 3
+                param.colormap = param.colormap(:);
+            end
             if (size(param.colormap,1) ~= 3) || (size(param.colormap,2)<nPlot)
                 error('sw_plotspec:ColormapError','The dimensions of the colormap should be [3 nPlot]');
             end
             tHandle = cell(1,nPlot);
             for ii = 1:nPlot
-                tHandle{ii} = @(numSteps)makecolormap(param.colormap(:,ii)'/255,[1 1 1],numSteps);
+                tHandle{ii} = @(numSteps)flipud(makecolormap(param.colormap(:,ii)'/255,[1 1 1],numSteps));
             end
             param.colormap = tHandle;
         end
@@ -708,7 +711,8 @@ if param.mode == 3
         
         % Use surf to hide the NaN numbers
         [X, Y] = meshgrid(xAxis,yAxis);
-        cMap = flipud(param.colormap{1}(param.nCol));
+        cMap = param.colormap{1}(param.nCol);
+        cMap(1,:) = [1 1 1];  % Makes zero intensity white
         
         if cMaxMax <1e-6
             %hSurf = param.plotf(X,Y,imageDisp'*0);
