@@ -213,9 +213,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if any(iparams > obj.nparams_model)
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            for iparam = iparams
-               obj.bounds(iparam, :) = obj.params(iparam);
-            end
+            obj.fix_parameters( iparams)
         end
 
         function fix_bg_parameters(obj, iparams_bg, icuts)
@@ -225,13 +223,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if nargin < 3
                 icuts = 0;
             end
-            for iparam = obj.get_index_of_background_parameters(iparams_bg, icuts)
-               obj.bounds(iparam, :) = obj.params(iparam);
-            end
+            obj.fix_parameters(obj.get_index_of_background_parameters(iparams_bg, icuts));
         end
 
         function fix_scale(obj)
-            obj.bounds(end, :) = obj.params(end);
+            obj.fix_parameters(numel(obj.params))
         end
 
         function set_model_parameters(obj, iparams, values)
@@ -265,12 +261,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
             for ibnd = 1:numel(iparams)
-                if ~isempty(lb)
-                    obj.bounds(iparams(ibnd), 1) = lb(ibnd);
-                end
-                if ~isempty(ub)
-                    obj.bounds(iparams(ibnd), 2) = ub(ibnd);
-                end
+                obj.set_bounds(iparams(ibnd), lb, ub, ibnd);
             end
         end
 
@@ -283,22 +274,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
             for ibnd = 1:numel(iparams_bg)
                 iparams = obj.get_index_of_background_parameters(iparams_bg(ibnd), icuts);
-                if ~isempty(lb)
-                    obj.bounds(iparams, 1) = lb(ibnd);
-                end
-                if ~isempty(ub)
-                    obj.bounds(iparams, 2) = ub(ibnd);
-                end
+                obj.set_bounds(iparams, lb, ub, ibnd);
             end
         end
 
         function set_scale_bounds(obj, lb, ub)
-            if ~isempty(lb)
-                obj.bounds(end, 1) = lb;
-            end
-            if ~isempty(ub)
-                obj.bounds(end, 2) = ub;
-            end
+            obj.set_bounds(size(obj.bounds,1), lb, ub);
         end
 
         function add_data(obj, data)
@@ -571,6 +552,25 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';
             obj.y = obj.y(ikeep, :);
             obj.e = obj.e(ikeep, :);
+        end
+        function set_bounds(obj, iparams, lb, ub, ibnd)
+            if ~isempty(lb)
+                if nargin == 5
+                    lb = lb(ibnd);
+                end
+                obj.bounds(iparams, 1) = lb;
+            end
+            if ~isempty(ub)
+                if nargin == 5
+                    ub = ub(ibnd);
+                end
+                obj.bounds(iparams, 2) = ub;
+            end
+        end
+        function fix_parameters(obj, iparams)
+            for iparam = iparams
+               obj.bounds(iparam, :) = obj.params(iparam);
+            end
         end
     end
     methods (Static=true, Hidden=true, Access = private)
