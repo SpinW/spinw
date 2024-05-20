@@ -161,6 +161,21 @@ function spectra = powspec(obj, hklA, varargin)
 %   * `1` Display the timing in the Command Window.
 %   * `2` Show the timing in a separat pup-up window.
 %
+% `dE`
+% : Energy resolution (FWHM) can be function, or a numeric matrix that
+%   has length 1 or the number of energy bin centers.
+%
+% `'neutron_output'`
+% : If `true`, the spinwave will output only `Sperp`, the S(q,w) component
+%   perpendicular to Q that is measured by neutron scattering, and will
+%   *not* output the  full Sab tensor. (Usually sw_neutron is used to 
+%   calculate `Sperp`.) Default value is `false`.
+%
+% `'fastmode'`
+% : If `true`, will set `'neutron_output', true`, `'fitmode', true`,
+%   `'sortMode', false`, and will only output intensity for positive energy
+%   (neutron energy loss) modes. Default value is `false`.
+%
 % The function accepts some parameters of [spinw.scga] with the most important
 % parameters are:
 %
@@ -204,18 +219,28 @@ tid0   = pref.tid;
 inpForm.fname  = {'nRand' 'Evect'    'T'   'formfact' 'formfactfun' 'tid' 'nInt'};
 inpForm.defval = {100     zeros(1,0) T0    false      @sw_mff       tid0  1e3   };
 inpForm.size   = {[1 1]   [1 -1]     [1 1] [1 -2]     [1 1]         [1 1] [1 1] };
+inpForm.soft   = {false   false      false false      false         false false   };
 
 inpForm.fname  = [inpForm.fname  {'hermit' 'gtensor' 'title' 'specfun' 'imagChk'}];
 inpForm.defval = [inpForm.defval {true     false     title0  @spinwave  true    }];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]     [1 -3]  [1 1]      [1 1]   }];
+inpForm.soft   = [inpForm.soft   {false    false     false   false      false}];
 
 inpForm.fname  = [inpForm.fname  {'extrap' 'fibo' 'optmem' 'binType' 'component'}];
 inpForm.defval = [inpForm.defval {false    false  0        'ebin'    'Sperp'    }];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]  [1 1]    [1 -4]     [1 -5]    }];
+inpForm.soft   = [inpForm.soft   {false    false  false    false      false}];
 
-inpForm.fname  = [inpForm.fname  {'fid'}];
-inpForm.defval = [inpForm.defval {-1   }];
-inpForm.size   = [inpForm.size   {[1 1]}];
+inpForm.fname  = [inpForm.fname  {'fid' , 'dE'}];
+inpForm.defval = [inpForm.defval {-1,      []}];
+inpForm.size   = [inpForm.size   {[1 1],   [-6, -7]}];
+inpForm.soft   = [inpForm.soft   {false    true}];
+
+inpForm.fname  = [inpForm.fname  {'neutron_output' 'fastmode'}];
+inpForm.defval = [inpForm.defval {false             false }];
+inpForm.size   = [inpForm.size   {[1 1]             [1 1] }];
+inpForm.soft   = [inpForm.soft   {false             false}];
+
 
 param  = sw_readparam(inpForm, varargin{:});
 
@@ -246,7 +271,6 @@ switch param.binType
 end
 
 nQ      = numel(hklA);
-powSpec = zeros(max(1,nE),nQ);
 
 fprintf0(fid,'Calculating powder spectra...\n');
 
@@ -260,6 +284,7 @@ fprintf0(fid,[yesNo{param.gtensor+1} ' g-tensor is included in the '...
 
 sw_timeit(0,1,param.tid,'Powder spectrum calculation');
 
+nk = param.nRand;
 if param.fibo
     % apply the Fibonacci numerical integration on a sphere
     % according to J. Phys. A: Math. Gen. 37 (2004) 11591
@@ -279,11 +304,13 @@ if param.fibo
     QF(1,:) = cos(theta).*sin(phi);
     QF(2,:) = cos(theta).*cos(phi);
     
+    nk = F;
 end
 
 % lambda value for SCGA, empty will make integration in first loop
 specQ.lambda = [];
 
+hkl = zeros(3, nk * nQ);
 for ii = 1:nQ
     if param.fibo
         Q = QF*hklA(ii);
@@ -291,40 +318,40 @@ for ii = 1:nQ
         rQ  = randn(3,param.nRand);
         Q   = bsxfun(@rdivide,rQ,sqrt(sum(rQ.^2)))*hklA(ii);
     end
-    hkl = (Q'*obj.basisvector)'/2/pi;
-    
-    switch funIdx
-        case 0
-            % general function call allow arbitrary additional parameters to
-            % pass to the spectral calculation function
-            warnState = warning('off','sw_readparam:UnreadInput');
-            specQ = param.specfun(obj,hkl,varargin{:});
-            warning(warnState);
-        case 1
-            % @spinwave
-            specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
-                'Hermit',param.hermit,'formfact',param.formfact,...
-                'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
-                'optmem',param.optmem,'tid',0,'fid',0),'noCheck');
-            
-        case 2
-            % @scga
-            specQ = scga(obj,hkl,struct('fitmode',true,'formfact',param.formfact,...
-                'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
-                'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
-                'plot',false),'noCheck');
-    end
-    
-    specQ = sw_neutron(specQ,'pol',false);
-    specQ.obj = obj;
-    % use edge grid by default
-    specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
-    'imagChk',param.imagChk,'component',param.component),'noCheck');
-    powSpec(:,ii) = sum(specQ.swConv,2)/param.nRand;
-    sw_timeit(ii/nQ*100,0,param.tid);
+    i0 = (ii-1) * nk + 1;
+    hkl(:, i0:(i0+nk-1)) = (Q'*obj.basisvector)'/2/pi;
 end
 
-sw_timeit(100,2,param.tid);
+switch funIdx
+    case 0
+        % general function call allow arbitrary additional parameters to
+        % pass to the spectral calculation function
+        warnState = warning('off','sw_readparam:UnreadInput');
+        specQ = param.specfun(obj,hkl,varargin{:});
+        warning(warnState);
+    case 1
+        % @spinwave
+        specQ = spinwave(obj,hkl,struct('fitmode',true,'notwin',true,...
+            'Hermit',param.hermit,'formfact',param.formfact,...
+            'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
+            'optmem',param.optmem,'tid',param.tid,'fid',0, ...
+            'neutron_output', param.neutron_output, 'fastmode', ...
+            param.fastmode),'noCheck');
+    case 2
+        % @scga
+        specQ = scga(obj,hkl,struct('fitmode',true,'formfact',param.formfact,...
+            'formfactfun',param.formfactfun,'gtensor',param.gtensor,...
+            'fid',0,'lambda',specQ.lambda,'nInt',param.nInt,'T',param.T,...
+            'plot',false),'noCheck');
+end
+if funIdx ~= 1 || (~param.neutron_output && ~param.fastmode)
+    specQ = sw_neutron(specQ,'pol',false);
+end
+specQ.obj = obj;
+% use edge grid by default
+specQ = sw_egrid(specQ,struct('Evect',param.Evect,'T',param.T,'binType',param.binType,...
+    'imagChk',param.imagChk,'component',param.component, 'dE', param.dE),'noCheck');
+powSpec = squeeze(sum(reshape(specQ.swConv, max(1, nE), nk, nQ), 2) / param.nRand);
 
 fprintf0(fid,'Calculation finished.\n');
 

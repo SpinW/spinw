@@ -16,7 +16,21 @@ function mem = sw_freemem
 % `mem`
 % : Size of free memory in bytes.
 %
+persistent t0 m0;
+if isempty(t0) || isempty(m0)
+    m0 = get_free();
+    t0 = tic;
+else
+    if isempty(t0) || toc(t0) > 10    % poll only every 10 seconds
+        m0 = get_free();
+        t0 = tic;
+    end
+end
+mem = m0;
 
+end
+
+function mem = get_free()
 mem = 0;
 
 try %#ok<TRYNC>
