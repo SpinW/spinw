@@ -286,6 +286,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if ~isa(data, "struct")
                 data = arrayfun(@obj.convert_horace_to_struct, data);
             end
+            obj.clear_cache();
             if numel(data) == 1 && isa(data.x, "cell")
                 % 2D
                 assert(all(isfield(data, {'x', 'y', 'e'})), ...
@@ -333,6 +334,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.modQ_cens = obj.modQ_cens(ikeep);
             obj.y = obj.y(:, ikeep);
             obj.e = obj.e(:, ikeep);
+            obj.clear_cache();
         end
 
         function bg = calc_background(obj, params)
@@ -552,6 +554,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';
             obj.y = obj.y(ikeep, :);
             obj.e = obj.e(ikeep, :);
+            obj.clear_cache();
         end
         function set_bounds(obj, iparams, lb, ub, ibnd)
             if ~isempty(lb)
