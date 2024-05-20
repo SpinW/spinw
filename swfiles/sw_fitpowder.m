@@ -336,10 +336,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function crop_energy_range(obj, emin, emax)
             % crop data
             ikeep = obj.ebin_cens >= emin & obj.ebin_cens <= emax;
-            obj.ebin_cens = obj.ebin_cens(ikeep);
-            obj.powspec_args.Evect = obj.ebin_cens(:)';
-            obj.y = obj.y(ikeep, :);
-            obj.e = obj.e(ikeep, :);
+            obj.apply_energy_mask(ikeep);
+        end
+
+        function exclude_energy_range(obj, elo, ehi)
+            ikeep = obj.ebin_cens < elo | obj.ebin_cens > ehi;
+            obj.apply_energy_mask(ikeep);
         end
 
         function crop_q_range(obj, qmin, qmax)
@@ -571,6 +573,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             else
                 obj.plot_2d_contour_on_data(ycalc, varargin{:})
             end
+        end
+        function apply_energy_mask(obj, ikeep)
+            obj.ebin_cens = obj.ebin_cens(ikeep);
+            obj.powspec_args.Evect = obj.ebin_cens(:)';
+            obj.y = obj.y(ikeep, :);
+            obj.e = obj.e(ikeep, :);
         end
     end
     methods (Static=true, Hidden=true, Access = private)

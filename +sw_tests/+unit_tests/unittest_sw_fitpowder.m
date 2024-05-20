@@ -227,6 +227,19 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                 expected_fitpow.ebin_cens)
         end
 
+        function test_exclude_energy_range(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.exclude_energy_range(1.5,2.5);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y = expected_fitpow.y([1,end],:);
+            expected_fitpow.e = expected_fitpow.e([1,end],:);
+            expected_fitpow.ebin_cens = expected_fitpow.ebin_cens([1,end]);
+            testCase.verify_results(out, expected_fitpow);
+            testCase.verify_val(out.powspec_args.Evect, ...
+                                expected_fitpow.ebin_cens)
+        end
+
         function test_crop_q_range(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
