@@ -445,8 +445,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if obj.liveplot_interval > 0
                 figure("color","white");
                 obj.liveplot_counter = 0;
-            else
-                clf;
             end
             % setup cell for output of ndbase optimizer/minimizer
             result = cell(1,nargout(obj.optimizer));
@@ -493,11 +491,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_1d_cuts_on_data(obj, ycalc, varargin)
-            if obj.liveplot_interval == 0
-                figure("color","white");
-            else
-                clf;
-            end
             modQs = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
             for icut = 1:obj.ncuts
                 ax =  subplot(1, obj.ncuts, icut);
@@ -515,12 +508,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_2d_contour_on_data(obj, ycalc, varargin)
-            % varargin passed to contour
-            if obj.liveplot_interval == 0
-                figure("color","white");
-            else
-                clf;
-            end
             ax = subplot(1,1,1);
             box on; hold on;
             h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, obj.y);
@@ -568,6 +555,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
         function plot_1d_or_2d(obj, ycalc, varargin)
+            if obj.liveplot_interval == 0
+                figure("color","white");
+            else
+                clf;
+            end
             if obj.ndim == 1
                 obj.plot_1d_cuts_on_data(ycalc, varargin{:})
             else
