@@ -332,6 +332,9 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             % fitmode automatically turns off sortMode
             expected_sw = testCase.swobj.spinwave(qpts, 'sortMode', false);
             expected_sw = rmfield(expected_sw, {'obj', 'datestart', 'dateend'});
+            obj = testCase.swobj;
+            expected_sw.obj = struct('single_ion', obj.single_ion, 'twin', obj.twin, ...
+                'unit', obj.unit, 'basisvector', obj.basisvector, 'nmagext', obj.nmagext);
             testCase.verify_spinwave(sw_out, expected_sw);
         end
         function test_incommensurate(testCase, mex)

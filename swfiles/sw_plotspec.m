@@ -203,7 +203,6 @@ inpForm.defval = [inpForm.defval {false @sw_surf 1000       [0 1] cell(1,0)}];
 inpForm.size   = [inpForm.size   {[1 1] [1 1]    [1 1]      [1 2] [1 -7]   }];
 
 param = sw_readparam(inpForm, varargin{:});
-pref = swpref;
 
 % plotmode string
 if numel(param.mode)>1
@@ -220,6 +219,78 @@ if numel(param.mode)>1
             param.mode = 4;
     end
 end
+
+if ~isfield(spectra,'omega')
+    param.mode = 3;
+end
+
+if param.mode == 4
+    % PLOT EASY PEASY
+    fHandle = [];
+    pHandle = [];
+    pColor = isfield(spectra,'swConv');
+
+    % Change to "actual" mode and override some properties
+    if pColor
+        if param.dE == 0
+            param.dE = (spectra.Evect(end) - spectra.Evect(1))/50;
+        end
+        param.mode = 3;
+        param.dashed = true;
+        param.colorbar = false;
+        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+    end
+    % Fallthrough - plots dispersion line on top of colormap if applicable
+    if numel(spectra.hklA) ~= length(spectra.hklA)
+        hold on
+        if pColor
+            cMap0 = [0 0 0];
+        else
+            cMap0 = 'auto';
+        end
+
+        if iscell(spectra.omega)
+            omegaTemp = cell2mat(spectra.omega);
+            Emax = max(real(omegaTemp(:)));
+            clear('omegaTemp');
+        else
+            Emax = max(real(spectra.omega(:)));
+        end
+
+        param.mode = 1;
+        param.colorbar = ~pColor;
+        param.dashed = false;
+        param.title = ~pColor;
+        param.legend = ~pColor;
+        param.imag = ~pColor & param.imag;
+        param.colormap = cMap0;
+        param.axLim = [0, 1.1*Emax];
+        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+    else
+        error('sw_plotspec:WrongInput', ['Input looks like a powder spectrum but has no '...
+            '''swConv'' field, something has gone wrong somewhere']);
+    end
+else
+    [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+end
+
+if ~isfield(spectra,'swConv') && param.mode>1 && param.mode<4
+    error('sw_plotspec:WrongInput',['Reference to non-existent field ''swConv'','...
+        'use ''sw_egrid'' to produce the convoluted spectra before plotting!'])
+end
+
+if nargout >0
+    fHandle0 = fHandle;
+end
+if nargout>1
+    pHandle0 = pHandle;
+end
+
+end
+
+function [fHandle0, pHandle0] = plotspec_internal(spectra, param)
+
+pref = swpref;
 
 % length, energy and temperature units
 unitL = spectra.obj.unit.label{1};
@@ -244,15 +315,6 @@ else
     param.twin = 1;
 end
 
-if ~isfield(spectra,'omega')
-    param.mode = 3;
-end
-
-if ~isfield(spectra,'swConv') && param.mode>1 && param.mode<4
-    error('sw_plotspec:WrongInput',['Reference to non-existent field ''swConv'','...
-        'use ''sw_egrid'' to produce the convoluted spectra before plotting!'])
-end
-
 % select twins for convoluted plots
 if param.mode>1 && param.mode<4 && iscell(spectra.swConv)
     % number of convoluted spectras to plot
@@ -269,62 +331,7 @@ else
 end
 
 % Determine powder mode
-powmode = false;
-if numel(spectra.hklA)==length(spectra.hklA)
-    powmode = true;
-end
-
-if param.mode == 4
-    % PLOT EASY PEASY
-    
-    fHandle = [];
-    pHandle = [];
-    pColor = isfield(spectra,'swConv');
-    
-    if pColor
-        if param.dE == 0
-            Eres = (spectra.Evect(end) - spectra.Evect(1))/50;
-        else
-            Eres = param.dE;
-        end
-        
-        [fHandle, pHandle] = sw_plotspec(spectra,'mode',3,'dE',Eres,...
-            'dashed',true,'colorbar',false,'axLim',param.axLim,...
-            'lineStyle',param.lineStyle,'maxPatch',...
-            param.maxPatch,'qLabel',param.qlabel,'dat',param.dat,...
-            'ddat',param.ddat,'datFormat',param.datFormat,...
-            'legend',param.legend);
-    end
-    if ~powmode
-        hold on
-        if pColor
-            cMap0 = [0 0 0];
-        else
-            cMap0 = 'auto';
-        end
-        
-        if iscell(spectra.omega)
-            omegaTemp = cell2mat(spectra.omega);
-            Emax = max(real(omegaTemp(:)));
-            clear('omegaTemp');
-        else
-            Emax = max(real(spectra.omega(:)));
-        end
-
-        [fHandle, pHandle] = sw_plotspec(spectra,'mode','disp','colorbar',~pColor,...
-            'dashed',false,'title',~pColor,'legend',~pColor,'imag',~pColor,...
-            'lineStyle',param.lineStyle,'colormap',cMap0,'axLim',[0 1.1*Emax],...
-            'qLabel',param.qlabel);
-    end
-    
-    if nargout >0
-        fHandle0 = fHandle;
-    end
-    if nargout>1
-        pHandle0 = pHandle;
-    end
-    return
-end
+powmode = numel(spectra.hklA) == length(spectra.hklA);
 
 % Label of the x-axis
 if powmode
@@ -428,10 +435,10 @@ if ~powmode
         % Defines colors for plotting modes.
         %colors  = flipud(fireprint(nMode+2));
         if isa(param.colormap,'function_handle')
-            colors = flipud(param.colormap(nMode+2));
+            colors = param.colormap(nMode+2);
         else
             if strcmpi(param.colormap,'auto')
-                colors = flipud(cm_fireprint(nMode+2));
+                colors = cm_fireprint(nMode+2);
             else
                 if numel(param.colormap) == 3
                     param.colormap = param.colormap(:);
@@ -448,14 +455,14 @@ if ~powmode
         colors  = colors(2:(end-1),:);
     end
     
-    modeList = nMode/(2*nMagExt);
-    if modeList == 1
+    % Accounts for "fastmode" calculations where only +ve modes are present
+    if nMode == nMagExt || nMode == 2*nMagExt
         if param.imag
             lLabel = {'Real' 'Imaginary'};
         else
             lLabel = {'Real'};
         end
-    elseif modeList == 3
+    elseif nMode == 3*nMagExt || nMode == 6*nMagExt
         if param.imag
             lLabel = {'Q+k_m' 'Q' 'Q-k_m' 'Imaginary'};
         else
@@ -500,8 +507,8 @@ switch param.mode
                     'Color', colors(ii,:),'LineWidth',param.lineWidth); %#ok<*AGROW>
                 hLegend(incIdx) = hPlot(end);
                 if param.imag
-                    hPlot(end+1)        = plot(xAxis,ploti(ii,:),'ro-');
-                    hLegend(modeList+1) = hPlot(end);
+                    hPlot(end+1) = plot(xAxis,ploti(ii,:),'ro-');
+                    hLegend(incIdx+1) = hPlot(end);
                 end
             end
         end
@@ -606,18 +613,21 @@ if param.mode == 3
             % for 'auto' mode an equally space hue values are created for
             % use with multiple sectra plot
             if nPlot>1
-                param.colormap = hsv2rgb([(1:nPlot)'/nPlot ones(nPlot,2)])'*255;
+                param.colormap = flipud(hsv2rgb([(1:nPlot)'/nPlot ones(nPlot,2)])'*255);
             else
                 param.colormap = {pref.colormap};
             end
         end
         if ~iscell(param.colormap)
+            if numel(param.colormap) == 3
+                param.colormap = param.colormap(:);
+            end
             if (size(param.colormap,1) ~= 3) || (size(param.colormap,2)<nPlot)
                 error('sw_plotspec:ColormapError','The dimensions of the colormap should be [3 nPlot]');
             end
             tHandle = cell(1,nPlot);
             for ii = 1:nPlot
-                tHandle{ii} = @(numSteps)makecolormap(param.colormap(:,ii)'/255,[1 1 1],numSteps);
+                tHandle{ii} = @(numSteps)flipud(makecolormap(param.colormap(:,ii)'/255,[1 1 1],numSteps));
             end
             param.colormap = tHandle;
         end
@@ -701,7 +711,8 @@ if param.mode == 3
         
         % Use surf to hide the NaN numbers
         [X, Y] = meshgrid(xAxis,yAxis);
-        cMap = flipud(param.colormap{1}(param.nCol));
+        cMap = param.colormap{1}(param.nCol);
+        cMap(1,:) = [1 1 1];  % Makes zero intensity white
         
         if cMaxMax <1e-6
             %hSurf = param.plotf(X,Y,imageDisp'*0);
@@ -725,7 +736,7 @@ if param.mode == 3
         for ii = 1:nPlot
             vMat(:,:,ii) = swConv{ii};%.*mask{ii};
         end
-        cMat = sw_multicolor(vMat, param.colormap, axLim, param.nCol,true);
+        cMat = sw_multicolor(vMat, param.colormap, axLim, param.nCol);
         % plot image piece-by-pice for the different Q directions
         if iscell(xLabel)
             xCut  = xLabel{end};
@@ -815,7 +826,7 @@ if param.mode == 3
         dat.s(dat.I==0) = nan;
         dat.E(dat.I==0) = nan;
         % reciprocal lattice
-        RL   = spectra.obj.rl;
+        RL = 2*pi*inv(spectra.obj.basisvector);
         
         % distance of experimental data points from plotted data points
         D = sqrt(sum(bsxfun(@minus,permute(Qexp'*RL,[1 3 2]),permute(spectra.hkl'*RL,[3 1 2])).^2,3));

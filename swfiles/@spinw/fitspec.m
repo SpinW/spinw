@@ -264,13 +264,13 @@ while idx <= nRun
             [x(idx,:),~, output(idx)] = ndbase.pso(dat,@(x,p)spec_fitfun(obj, data, param.func, p, param0),x0,'lb',param.xmin,'ub',param.xmax,...
                 'TolX',param.tolx,'TolFun',param.tolfun,'MaxIter',param.maxiter);
             
-            redX2(idx) = output.redX2;
+            redX2(idx) = output(idx).redX2;
             
         case 'simplex'
             [x(idx,:),~, output(idx)] = ndbase.simplex(dat,@(x,p)spec_fitfun(obj, data, param.func, p, param0),x0,'lb',param.xmin,'ub',param.xmax,...
                 'TolX',param.tolx,'TolFun',param.tolfun,'MaxIter',param.maxiter);
             
-            redX2(idx) = output.redX2;
+            redX2(idx) = output(idx).redX2;
             
         case 'lm'
             % does not work due to the binning of the spectrum
@@ -448,7 +448,7 @@ R = R/numel(yCalc);
 if param.plot
     text(0.05,0.9,['x = [' sprintf('%6.4f ',x) sprintf(']\nRw = %6.4f',sqrt(R))],'Units','normalized','fontsize',12);
     axis([0.5 Qc+0.5 param.Evect(1) param.Evect(end)]);
-    legend(pHandle(1:2),'simulation','data')
+    legend(pHandle([1, length(simE)+2]),'simulation','data')
     xlabel('Scan index')
     ylabel('Energy transfer (meV)')
     title('Spin wave dispersion fit')

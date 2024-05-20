@@ -292,6 +292,11 @@ singWarn0 = warning('off','MATLAB:nearlySingularMatrix');
 % use mex file by default?
 useMex = pref.usemex;
 
+if isa(hkl, 'sym') && ~obj.symbolic
+    obj.symbolic(true);
+    setnosym = onCleanup(@()obj.symbolic(false));
+end
+
 % calculate symbolic spectrum if obj is in symbolic mode
 if obj.symbolic
     if numel(hkl) == 3
@@ -309,7 +314,7 @@ if obj.symbolic
         end
         spectra = obj.spinwavesym(varargin{:});
     else
-        spectra = obj.spinwavesym(varargin{:},'hkl',hkl);
+        spectra = obj.spinwavesym(varargin{:},'hkl',hkl(:));
     end
     return
 end
@@ -397,6 +402,11 @@ if ~incomm && param.saveSabp
     warning('spinw:spinwave:CommensurateSabp', ['The dynamical structure '...
             'factor in the rotating frame has been requested, but the ', ...
             'structure is commensurate so this will have no effect.']);
+end
+
+% If only one hkl value, convert to column vector
+if numel(hkl) == 3
+    hkl = hkl(:);
 end
 
 % Transform the momentum values to the new lattice coordinate system
@@ -1266,7 +1276,11 @@ spectra.param.hermit    = param.hermit;
 spectra.title           = param.title;
 spectra.gtensor         = param.gtensor;
 
-if ~param.fitmode
+if param.fitmode
+    % Copies only fields needed by downstream functions (sw_egrid, sw_neutron, sw_plotspec)
+    spectra.obj = struct('single_ion', obj.single_ion, 'twin', obj.twin, ...
+        'unit', obj.unit, 'basisvector', obj.basisvector, 'nmagext', obj.nmagext);
+else
     spectra.dateend = datestr(now);
     spectra.obj = copy(obj);
 end
