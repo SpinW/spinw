@@ -357,8 +357,8 @@ if converged
     tmp = repmat(1./sqrt(diag(cov)),[1,NpFree]);
     cor = tmp.*cov.*tmp';
 else
-    sigP = []
-    iter=0
+    sigP = [];
+    iter=0;
     chisqr = chi2Best/nnorm;
     ok     = true;
     warning('WARNING: Convergence not achieved')
