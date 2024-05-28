@@ -499,18 +499,22 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_2d_contour_on_data(obj, ycalc, varargin)
+            ax = obj.plot_2d_data(obj.y);
+            contour(ax, obj.modQ_cens, obj.ebin_cens, ycalc, varargin{:});
+            legend('Calculated');
+        end
+
+        function ax = plot_2d_data(obj, y)
             ax = subplot(1,1,1);
             box on; hold on;
-            h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, obj.y);
+            h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, y);
             h.AlphaData = obj.y > 0;  % make empty bins transparent
-            contour(ax, obj.modQ_cens, obj.ebin_cens, ycalc, varargin{:});
             cbar = colorbar(ax);
             cbar.Label.String = "Intensity";
             xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
             ylabel(ax, "Energy (meV)");
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
-            legend('Calculated');
         end
     end
 
