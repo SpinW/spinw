@@ -420,7 +420,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 resid = resid./(obj.e);
             end
             % exclude nans in both ycalc and input data
-            ikeep = ~isnan(resid);
+            ikeep = isfinite(resid);
             resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
