@@ -562,12 +562,17 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
         function apply_energy_mask(obj, ikeep)
-            obj.ebin_cens = obj.ebin_cens(ikeep);
-            obj.powspec_args.Evect = obj.ebin_cens(:)';
-            obj.y = obj.y(ikeep, :);
-            obj.e = obj.e(ikeep, :);
-            obj.clear_cache();
-        end
+            if obj.ndim == 1
+                obj.ebin_cens = obj.ebin_cens(ikeep);
+                obj.powspec_args.Evect = obj.ebin_cens(:)';
+                obj.y = obj.y(ikeep, :);
+                obj.e = obj.e(ikeep, :);
+            else
+                obj.y(~ikeep, :) = NaN;
+                obj.e(~ikeep, :) = NaN;
+            end
+             obj.clear_cache();
+         end
         function set_bounds(obj, iparams, lb, ub, ibnd)
             if ~isempty(lb)
                 if nargin == 5
