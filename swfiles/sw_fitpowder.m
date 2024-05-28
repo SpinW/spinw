@@ -299,6 +299,14 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.modQ_cens = data.x{2};
             else
                 % 1D
+                if obj.ndim == 2
+                    % clear previously added 2D data
+                    obj.modQ_cens = [];
+                    obj.y = [];
+                    obj.e = [];
+                    warning('spinw:sw_fitpowder:add_data', ...
+                            'Clearing 2D data previously added.');
+                end
                 obj.ndim = 1;
                 obj.ebin_cens = data(1).x;
                 obj.ncuts = numel(data);

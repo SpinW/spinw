@@ -298,6 +298,15 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             cost = out.calc_cost_func(out.params);
             testCase.verify_val(cost, 25.3, 'abs_tol', 0.1);
         end
+
+        function test_add_1Dcuts_after_2D_data(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.add_data(testCase.data_1d_cuts);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = 3.55:0.1:5.45; % integrtate over nQ pts
+            testCase.verify_results(out, expected_fitpow);
+        end
     end
 
 end
