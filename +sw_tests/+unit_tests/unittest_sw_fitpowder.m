@@ -11,7 +11,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         j1 = 2;
         default_fitpow = [];
         default_fields = [];
-        default_modQ_cens_1d = 3.55:0.1:5.45; % integrtate over nQ pts
+        default_modQ_cens_1d = 3.55:0.1:5.45; % integrate over nQ pts
     end
 
     methods (TestClassSetup)

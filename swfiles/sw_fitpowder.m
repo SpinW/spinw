@@ -459,10 +459,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
             bg = ysort(int32(numel(ysort)/2)); % default to median
             prev_skew = inf;
-            for ipt = 2:numel(ysort)
+            for ipt = 1:numel(ysort)
                 this_mean = mean(ysort(ipt:end));
                 this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
-                if this_skew < 0
+                if this_skew < 0 || this_skew > prev_skew
                     bg = this_mean;
                     break
                 else
@@ -571,7 +571,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.y(~ikeep, :) = NaN;
                 obj.e(~ikeep, :) = NaN;
             end
-             obj.clear_cache();
+            obj.clear_cache();
          end
         function set_bounds(obj, iparams, lb, ub, ibnd)
             if ~isempty(lb)
