@@ -11,6 +11,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         j1 = 2;
         default_fitpow = [];
         default_fields = [];
+        default_modQ_cens_1d = 3.55:0.1:5.45; % integrate over nQ pts
     end
 
     methods (TestClassSetup)
@@ -55,7 +56,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1);
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.modQ_cens = 3.55:0.1:5.45; % integrtate over nQ pts
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             testCase.verify_results(out, expected_fitpow);
         end
 
@@ -63,7 +64,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "independent");
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.modQ_cens = 3.55:0.1:5.45; % integrtate over nQ pts
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             % add extra background param
             expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
             expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
@@ -214,11 +215,12 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
-        function test_crop_energy_range(testCase)
-            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+        function test_crop_energy_range_1d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1);
             out.crop_energy_range(2,5);
             expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             expected_fitpow.y = expected_fitpow.y(2:end,:);
             expected_fitpow.e = expected_fitpow.e(2:end,:);
             expected_fitpow.ebin_cens = expected_fitpow.ebin_cens(2:end);
@@ -226,12 +228,24 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_val(out.powspec_args.Evect, ...
                                 expected_fitpow.ebin_cens)
         end
-
-        function test_exclude_energy_range(testCase)
+        function test_crop_energy_range_2d(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.crop_energy_range(2,5);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y(1,:) = NaN;
+            expected_fitpow.e(1,:) = NaN;
+            testCase.verify_results(out, expected_fitpow);
+            testCase.verify_val(out.powspec_args.Evect, ...
+                                expected_fitpow.ebin_cens)
+        end
+
+        function test_exclude_energy_range_1d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1);
             out.exclude_energy_range(1.5,2.5);
             expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             expected_fitpow.y = expected_fitpow.y([1,end],:);
             expected_fitpow.e = expected_fitpow.e([1,end],:);
             expected_fitpow.ebin_cens = expected_fitpow.ebin_cens([1,end]);
@@ -297,6 +311,15 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.powspec_args.hermit = true;
             cost = out.calc_cost_func(out.params);
             testCase.verify_val(cost, 25.3, 'abs_tol', 0.1);
+        end
+
+        function test_add_1Dcuts_after_2D_data(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.add_data(testCase.data_1d_cuts);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d; % integrtate over nQ pts
+            testCase.verify_results(out, expected_fitpow);
         end
     end
 

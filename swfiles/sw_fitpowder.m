@@ -299,6 +299,14 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.modQ_cens = data.x{2};
             else
                 % 1D
+                if obj.ndim == 2
+                    % clear previously added 2D data
+                    obj.modQ_cens = [];
+                    obj.y = [];
+                    obj.e = [];
+                    warning('spinw:sw_fitpowder:add_data', ...
+                            'Clearing 2D data previously added.');
+                end
                 obj.ndim = 1;
                 obj.ebin_cens = data(1).x;
                 obj.ncuts = numel(data);
@@ -420,7 +428,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 resid = resid./(obj.e);
             end
             % exclude nans in both ycalc and input data
-            ikeep = ~isnan(resid);
+            ikeep = isfinite(resid);
             resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
@@ -451,10 +459,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
             bg = ysort(int32(numel(ysort)/2)); % default to median
             prev_skew = inf;
-            for ipt = 2:numel(ysort)
+            for ipt = 1:numel(ysort)
                 this_mean = mean(ysort(ipt:end));
                 this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
-                if this_skew < 0
+                if this_skew < 0 || this_skew > prev_skew
                     bg = this_mean;
                     break
                 else
@@ -491,18 +499,22 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_2d_contour_on_data(obj, ycalc, varargin)
+            ax = obj.plot_2d_data(obj.y);
+            contour(ax, obj.modQ_cens, obj.ebin_cens, ycalc, varargin{:});
+            legend('Calculated');
+        end
+
+        function ax = plot_2d_data(obj, y)
             ax = subplot(1,1,1);
             box on; hold on;
-            h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, obj.y);
+            h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, y);
             h.AlphaData = obj.y > 0;  % make empty bins transparent
-            contour(ax, obj.modQ_cens, obj.ebin_cens, ycalc, varargin{:});
             cbar = colorbar(ax);
             cbar.Label.String = "Intensity";
             xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
             ylabel(ax, "Energy (meV)");
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
-            legend('Calculated');
         end
     end
 
@@ -550,12 +562,17 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
         function apply_energy_mask(obj, ikeep)
-            obj.ebin_cens = obj.ebin_cens(ikeep);
-            obj.powspec_args.Evect = obj.ebin_cens(:)';
-            obj.y = obj.y(ikeep, :);
-            obj.e = obj.e(ikeep, :);
+            if obj.ndim == 1
+                obj.ebin_cens = obj.ebin_cens(ikeep);
+                obj.powspec_args.Evect = obj.ebin_cens(:)';
+                obj.y = obj.y(ikeep, :);
+                obj.e = obj.e(ikeep, :);
+            else
+                obj.y(~ikeep, :) = NaN;
+                obj.e(~ikeep, :) = NaN;
+            end
             obj.clear_cache();
-        end
+         end
         function set_bounds(obj, iparams, lb, ub, ibnd)
             if ~isempty(lb)
                 if nargin == 5
