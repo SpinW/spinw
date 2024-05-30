@@ -39,6 +39,8 @@ class Matlab(libpymcr.Matlab):
             super().__init__(VERSION, mlPath=matlab_path)
         elif matlab_version is None:
             for version in _VERSIONS:
+                if INITIALIZED:
+                    break
                 try:
                     print(f"Trying MATLAB version: {version['version']} ({version['file']}))")
                     super().__init__(version['file'], mlPath=matlab_path)
@@ -66,3 +68,4 @@ class Matlab(libpymcr.Matlab):
                 f"installation.")
 
 from .matlab_wrapped import *
+from .matlab_plotting import *
