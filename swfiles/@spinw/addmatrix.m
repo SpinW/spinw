@@ -83,7 +83,10 @@ newMat = sw_readparam(inpForm, varargin{:});
 if ~isnumeric(newMat.value) && ~isa(newMat.value,'sym')
     error('spinw:addmatrix:WrongInput','Matrix value has to be numeric or symbolic variable!')
 end
-newMat.value = double(newMat.value);
+
+if isnumeric(newMat.value)
+    newMat.value = double(newMat.value);
+end
 
 if ~isempty(newMat.value)
     newMat.mat = newMat.value;
