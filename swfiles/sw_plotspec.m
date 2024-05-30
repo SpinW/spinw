@@ -238,7 +238,7 @@ if param.mode == 4
         param.mode = 3;
         param.dashed = true;
         param.colorbar = false;
-        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+        [fHandle, pHandle] = plotspec_internal(spectra, param);
     end
     % Fallthrough - plots dispersion line on top of colormap if applicable
     if numel(spectra.hklA) ~= length(spectra.hklA)
@@ -265,13 +265,13 @@ if param.mode == 4
         param.imag = ~pColor & param.imag;
         param.colormap = cMap0;
         param.axLim = [0, 1.1*Emax];
-        [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+        [fHandle, pHandle] = plotspec_internal(spectra, param);
     else
         error('sw_plotspec:WrongInput', ['Input looks like a powder spectrum but has no '...
             '''swConv'' field, something has gone wrong somewhere']);
     end
 else
-    [fHandle0, pHandle0] = plotspec_internal(spectra, param);
+    [fHandle, pHandle] = plotspec_internal(spectra, param);
 end
 
 if ~isfield(spectra,'swConv') && param.mode>1 && param.mode<4

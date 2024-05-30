@@ -47,10 +47,11 @@ include = [ { path = "pyspinw/ctfs/*" } ]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<=3.12"
-libpymcr = ">=0.1.3"
+libpymcr = ">=0.1.7"
 numpy = "^1.21.4"
-pyqt5="~5.15"
-vispy=">=0.14.1"
+pyqt5 = "~5.15"
+vispy = ">=0.14.1"
+scipy = ">=1.0.0"
 
 # Optional dependencies
 pytest = {version = ">=7.0.0", optional = true}

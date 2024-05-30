@@ -101,15 +101,20 @@ jobs:
           echo "PYSPINW_VERSION=$( cat pyproject.toml | grep "version = \"" | awk -F'"' '$0=$2' | sed 's/ //g' )" >> $GITHUB_ENV
           mkdir pyspinw/ctfs
           find ctf/ -name "*.ctf" -exec mv '{}'  pyspinw/ctfs \;
-      - name: Build Wheel
-        run: |
-          cd ${{ github.workspace }}/python
-          python -m pip wheel --no-deps --wheel-dir build .
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
           release: R2023a
           products: MATLAB_Compiler_SDK
+      - name: Generate wrappers
+        run: |
+          python -m pip install libpymcr
+          matlab2python -a swfiles -a external --preamble "import pyspinw; m = pyspinw.Matlab()"
+          mv matlab_wrapped python/pyspinw
+      - name: Build Wheel
+        run: |
+          cd ${{ github.workspace }}/python
+          python -m pip wheel --no-deps --wheel-dir build .
       - name: Run python test
         run: |
           pip install scipy
