@@ -17,7 +17,7 @@ authors:
   - family-names: "Waite"
     given-names: "Richard"
 title: "libpymcr"
-version: "3.2.0"
+version: "4.0.0"
 date-released: "2023-06-12"
 license: "GPL-3.0-only"
 repository: "https://github.com/spinw/spinw"

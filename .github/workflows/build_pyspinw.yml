@@ -54,9 +54,6 @@ jobs:
 
   build_ctfs:
     needs: compile_mex
-    strategy:
-      matrix:
-        matlab_version: [R2021a, R2021b, R2022a, R2022b, R2023a]
     runs-on: self-hosted
     steps:
       - name: Check out SpinW
@@ -71,11 +68,12 @@ jobs:
       - name: Build ctf
         run: |
           cd python
-          /Applications/MATLAB_${{ matrix.matlab_version }}.app/bin/matlab -nodisplay -r "build_ctf; exit"
+          mkdir ctf
+          python mcc_all.py
       - name: Upload CTF results
         uses: actions/upload-artifact@v4
         with:
-          name: ctf-${{ matrix.matlab_version }}
+          name: ctf-all
           path: ${{ github.workspace }}/python/ctf/*.ctf
 
   build_wheel:
@@ -106,10 +104,17 @@ jobs:
         with:
           release: R2023a
           products: MATLAB_Compiler_SDK
+      # Cannot run matlab directly from the setup (gives license error) need to download a runner with the run-command actions
+      - name: Download Matlab command runner
+        uses: matlab-actions/run-command@v2
+        with:
+          command: "ver"
       - name: Generate wrappers
         run: |
           python -m pip install libpymcr
-          matlab2python -a swfiles -a external --preamble "import pyspinw; m = pyspinw.Matlab()"
+          wget https://gist.github.com/mducle/9186d062b42f05507d831af3d6677a5d/raw/cd0b0d3ed059f4e13d0364e98312dcddc2690ced/run_gh_matlab.sh
+          chmod 777 run_gh_matlab.sh
+          matlab2python -a swfiles -a external --preamble "import pyspinw; m = pyspinw.Matlab()" --matlabexec `pwd`/run_gh_matlab.sh
           mv matlab_wrapped python/pyspinw
       - name: Build Wheel
         run: |
