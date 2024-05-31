@@ -17,6 +17,9 @@ for file in os.scandir(_VERSION_DIR):
                           'version': 'R' + file.name.split('.')[0].split('SpinW_')[1]
                           })
 
+VERSION = ''
+INITIALIZED = False
+
 
 class Matlab(libpymcr.Matlab):
     def __init__(self, matlab_path: Optional[str] = None, matlab_version: Optional[str] = None):
@@ -30,31 +33,39 @@ class Matlab(libpymcr.Matlab):
         than 1 MATLAB installation.
         """
 
-        initialized = False
-        if matlab_version is None:
+        global INITIALIZED
+        global VERSION
+        if INITIALIZED:
+            super().__init__(VERSION, mlPath=matlab_path)
+        elif matlab_version is None:
             for version in _VERSIONS:
-                if initialized:
+                if INITIALIZED:
                     break
                 try:
                     print(f"Trying MATLAB version: {version['version']} ({version['file']}))")
                     super().__init__(version['file'], mlPath=matlab_path)
-                    initialized = True
+                    INITIALIZED = True
+                    VERSION = version['version']
                 except RuntimeError:
                     continue
         else:
-            ctf = [version['file'] for version in _VERSIONS if version['version'].lower() == matlab_version.lower()]
+            ctf = [version for version in _VERSIONS if version['version'].lower() == matlab_version.lower()]
             if len(ctf) == 0:
                 raise RuntimeError(
                     f"Compiled library for MATLAB version {matlab_version} not found. Please use: [{', '.join([version['version'] for version in _VERSIONS])}]\n ")
             else:
                 ctf = ctf[0]
             try:
-                super().__init__(ctf, mlPath=matlab_path)
-                initialized = True
+                super().__init__(ctf['file'], mlPath=matlab_path)
+                INITIALIZED = True
+                VERSION = ctf['version']
             except RuntimeError:
                 pass
-        if not initialized:
+        if not INITIALIZED:
             raise RuntimeError(
-                f"No MATLAB versions found. Please use: [{', '.join([version['version'] for version in _VERSIONS])}]\n "
+                f"No supported MATLAB versions [{', '.join([version['version'] for version in _VERSIONS])}] found.\n "
                 f"If installed, please specify the root directory (`matlab_path` and `matlab_version`) of the MATLAB "
                 f"installation.")
+
+from .matlab_wrapped import *
+from .matlab_plotting import *

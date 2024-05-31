@@ -1,10 +1,11 @@
-# [Unreleased](https://github.com/spinw/spinw/compare/v3.2.0...master)
+# [v4.0.0](https://github.com/spinw/spinw/compare/v3.2.0...v4.0.0)
 
 ## New Features
 
 - Add a function to output Mantid MDHistogramWorkspaces (`sw_spec2MDHisto`)
 - Add Python plotting of magnetic structure using [vispy](https://vispy.org/)
 - Add mex files to compute main loop in `spinwave()` enabling a 2x - 4x speed up depending on system size
+- Add python wrapper for all Matlab functions so e.g. `sw_plotspec` etc can be called without the `m.` prefix in pyspinw:q
 
 ## Improvements
 

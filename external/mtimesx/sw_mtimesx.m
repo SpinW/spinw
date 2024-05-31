@@ -110,8 +110,8 @@
 % exception is a sparse scalar times an nD full array. In that special case,
 % mtimesx will treat the sparse scalar as a full scalar and return a full nD result.
 % 
-% Note: The ‘N’, ‘T’, and ‘C’ have the same meanings as the direct inputs to the BLAS
-% routines. The ‘G’ input has no direct BLAS counterpart, but was relatively easy to
+% Note: The N, T, and C have the same meanings as the direct inputs to the BLAS
+% routines. The G input has no direct BLAS counterpart, but was relatively easy to
 % implement in mtimesx and saves time (as opposed to computing conj(A) or conj(B)
 % explicitly before calling mtimesx).
 % 
