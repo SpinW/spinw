@@ -169,6 +169,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        ycalc_cached = []
        model_params_cached = []
        liveplot_counter = 0
+       ibg = []
     end
         
     methods       
@@ -373,6 +374,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function clear_cache(obj)
             obj.ycalc_cached = [];
             obj.model_params_cached = [];
+            obj.ibg = [];
         end
 
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
@@ -456,18 +458,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function estimate_constant_background(obj)
-            ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
-            bg = ysort(int32(numel(ysort)/2)); % default to median
-            prev_skew = inf;
-            for ipt = 1:numel(ysort)
-                this_mean = mean(ysort(ipt:end));
-                this_skew = mean((ysort(ipt:end) - this_mean).^3);
-                if this_skew < 0 || this_skew > prev_skew
-                    bg = this_mean;
-                    break
-                else
-                    prev_skew = this_skew;
-                end
+            if isempty(obj.ibg)
+                bg = obj.find_indices_and_mean_of_bg_bins();
+            else
+                bg = mean(obj.y(obj.ibg));
             end
             if obj.background_strategy == "planar" && obj.ndim == 1
                 bg = bg/obj.nQ;
@@ -592,6 +586,25 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             for iparam = iparams
                obj.bounds(iparam, :) = obj.params(iparam);
             end
+        end
+        function bg = find_indices_and_mean_of_bg_bins(obj)
+             % start with a seed of indices of likely non-signal bins
+            iseed = find(isfinite(obj.y) & obj.y < mean(obj.y(:), 'omitnan'));
+            [ysort, isort] = sort(obj.y(iseed), 'descend');
+            bg = ysort(isort(int32(numel(isort)/2))); % default to median
+            prev_skew = inf;
+            for ipt = 1:numel(isort)
+                this_mean = mean(ysort(ipt:end));
+                this_skew = mean((ysort(ipt:end) - this_mean).^3);
+                if this_skew < 0 || this_skew > prev_skew
+                    bg = this_mean;
+                    break
+                else
+                    prev_skew = this_skew;
+                end
+            end
+            % store indices of background bins
+           obj.ibg = iseed(isort(ipt:end));
         end
     end
     methods (Static=true, Hidden=true, Access = private)
