@@ -461,7 +461,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             prev_skew = inf;
             for ipt = 1:numel(ysort)
                 this_mean = mean(ysort(ipt:end));
-                this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
+                this_skew = mean((ysort(ipt:end) - this_mean).^3);
                 if this_skew < 0 || this_skew > prev_skew
                     bg = this_mean;
                     break
@@ -516,6 +516,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
         end
+
     end
 
     % private
