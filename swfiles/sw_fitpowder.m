@@ -521,6 +521,39 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
         end
 
+        function plot_1d_cuts_of_2d_data(obj, qmins, qmaxs, params)
+            % optionally plot ycalc provided, otherwise will plot
+            % fitpow.ycalc if not empty
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            if nargin > 3
+                [ycalc, ~] = obj.calc_spinwave_spec(params);
+            else
+                ycalc = [];
+            end
+            figure("color","white");
+            ncuts = numel(qmins);
+            for icut = 1:ncuts
+                ikeep = obj.modQ_cens > qmins(icut) & obj.modQ_cens <= qmaxs(icut);
+                ax =  subplot(1, ncuts, icut);
+                hold on; box on;
+                ycut = sum(obj.y(:,ikeep), 2);
+                plot(ax, obj.ebin_cens, ycut, 'ok');
+                if ~isempty(ycalc)
+                    plot(ax, obj.ebin_cens, sum(ycalc(:,ikeep), 2), '-r');
+                end
+                % calc xlims
+                ifinite = isfinite(ycut);
+                istart = find(ifinite, 1, 'first');
+                iend = find(ifinite, 1, 'last');
+                xlim(ax, [obj.ebin_cens(istart), obj.ebin_cens(iend)]);
+                xlabel(ax, 'Energy (meV)')
+                ylabel(ax, 'Intensity');
+                title(ax, num2str(0.5*(qmaxs(icut)+qmins(icut)), 2) + " $\AA^{-1}$", 'interpreter','latex')
+            end
+        end
+
     end
 
     % private
