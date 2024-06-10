@@ -470,6 +470,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
         end
 
+        function set_errors_of_bg_bins(obj, val)
+            if isempty(obj.ibg)
+                obj.find_indices_and_mean_of_bg_bins();
+            end
+            if nargin < 2
+                val = max(obj.e(obj.ibg));
+            end
+            obj.e(obj.ibg) = val;
+        end
+
         function plot_result(obj, params, varargin)
             [ycalc, ~] = obj.calc_spinwave_spec(params);
             obj.plot_1d_or_2d(ycalc, varargin{:});
