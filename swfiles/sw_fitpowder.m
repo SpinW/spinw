@@ -324,6 +324,19 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';  % row vect
         end
 
+        function replace_2D_data_with_1D_cuts(obj, qmins, qmaxs, background_strategy)
+            assert(numel(qmins)==numel(qmaxs), 'sw_fitpowder:invalidinput', ...
+                  'Must pass same number of mins and maxs to make cuts.');
+            if nargin > 3
+                obj.background_strategy = background_strategy;
+            end
+            cuts = [];
+            for icut = 1:numel(qmins)
+                cuts = [cuts obj.cut_2d_data(qmins(icut), qmaxs(icut))];
+            end
+            obj.add_data(cuts);
+        end
+
         function crop_energy_range(obj, emin, emax)
             % crop data
             ikeep = obj.ebin_cens >= emin & obj.ebin_cens <= emax;
@@ -558,6 +571,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
     % private
     methods (Hidden=true, Access = private)
+        function cut = cut_2d_data(obj, qmin, qmax)
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
+            ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
+            cut.y = sum(obj.y(:, ikeep), 2);
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2));
+        end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
             ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
