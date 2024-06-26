@@ -169,6 +169,16 @@ def _upload_assets(upload_url, token):
                              "Content-type": "application/octet-stream"},
                     data=f.read())
                 print(upload_response.text)
+    mltbx = os.path.join('mltbx', 'spinw.mltbx')
+    if os.path.exist(mltbx):
+        print('Uploading mltbx')
+        with open(mltbx, 'rb') as f:
+            upload_response = requests.post(
+                f"{upload_url}?name={wheelfile}",
+                headers={"Authorization": "token " + token,
+                         "Content-type": "application/octet-stream"},
+                data=f.read())
+            print(upload_response.text)
     return None
 
 
