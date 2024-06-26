@@ -327,14 +327,27 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function replace_2D_data_with_1D_cuts(obj, qmins, qmaxs, background_strategy)
             assert(numel(qmins)==numel(qmaxs), 'sw_fitpowder:invalidinput', ...
                   'Must pass same number of mins and maxs to make cuts.');
-            if nargin > 3
-                obj.background_strategy = background_strategy;
-            end
             cuts = [];
             for icut = 1:numel(qmins)
                 cuts = [cuts obj.cut_2d_data(qmins(icut), qmaxs(icut))];
             end
             obj.add_data(cuts);
+            if nargin > 3 && background_strategy == "independent"
+                warning('spinw:sw_fitpowder:replace_2D_data_with_1D_cuts', ...
+                        ['Background strategy changed - background ' ...
+                        'parameters and bounds will be cleared.']);
+                obj.background_strategy = background_strategy;
+                obj.fbg = obj.fbg_indep;
+                obj.nparams_bg = obj.get_nparams_in_background_func();
+                nparams_bg_total = obj.ncuts * obj.nparams_bg;
+                obj.params = [obj.params(1:obj.nparams_model);
+                              zeros(nparams_bg_total, 1);
+                              obj.params(end)];
+                obj.bounds = [obj.bounds(1:obj.nparams_model,:);
+                             [-inf, inf].*ones(nparams_bg_total, 1);
+                             obj.bounds(end,:)];
+                 obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            end
         end
 
         function crop_energy_range(obj, emin, emax)

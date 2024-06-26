@@ -71,6 +71,30 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_replace_2D_data_with_1D_cuts(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            qcens = [4, 5];
+            out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5)
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_replace_2D_data_with_1D_cuts_sepcify_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            qcens = [4, 5];
+            out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5,...
+                                             "independent")
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            % add extra background param
+            expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
+            expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
+            testCase.verify_results(out, expected_fitpow);
+        end
+
         function test_init_data_1d_specify_nQ(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "planar", 1);
