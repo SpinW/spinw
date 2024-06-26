@@ -169,6 +169,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        ycalc_cached = []
        model_params_cached = []
        liveplot_counter = 0
+       ibg = []
     end
         
     methods       
@@ -323,6 +324,32 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';  % row vect
         end
 
+        function replace_2D_data_with_1D_cuts(obj, qmins, qmaxs, background_strategy)
+            assert(numel(qmins)==numel(qmaxs), 'sw_fitpowder:invalidinput', ...
+                  'Must pass same number of mins and maxs to make cuts.');
+            cuts = [];
+            for icut = 1:numel(qmins)
+                cuts = [cuts obj.cut_2d_data(qmins(icut), qmaxs(icut))];
+            end
+            obj.add_data(cuts);
+            if nargin > 3 && background_strategy == "independent"
+                warning('spinw:sw_fitpowder:replace_2D_data_with_1D_cuts', ...
+                        ['Background strategy changed - background ' ...
+                        'parameters and bounds will be cleared.']);
+                obj.background_strategy = background_strategy;
+                obj.fbg = obj.fbg_indep;
+                obj.nparams_bg = obj.get_nparams_in_background_func();
+                nparams_bg_total = obj.ncuts * obj.nparams_bg;
+                obj.params = [obj.params(1:obj.nparams_model);
+                              zeros(nparams_bg_total, 1);
+                              obj.params(end)];
+                obj.bounds = [obj.bounds(1:obj.nparams_model,:);
+                             [-inf, inf].*ones(nparams_bg_total, 1);
+                             obj.bounds(end,:)];
+                 obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            end
+        end
+
         function crop_energy_range(obj, emin, emax)
             % crop data
             ikeep = obj.ebin_cens >= emin & obj.ebin_cens <= emax;
@@ -373,6 +400,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function clear_cache(obj)
             obj.ycalc_cached = [];
             obj.model_params_cached = [];
+            obj.ibg = [];
         end
 
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
@@ -428,7 +456,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 resid = resid./(obj.e);
             end
             % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid);
+            ikeep = isfinite(resid) & obj.e > 10*eps;
             resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
@@ -456,24 +484,26 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function estimate_constant_background(obj)
-            ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
-            bg = ysort(int32(numel(ysort)/2)); % default to median
-            prev_skew = inf;
-            for ipt = 1:numel(ysort)
-                this_mean = mean(ysort(ipt:end));
-                this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
-                if this_skew < 0 || this_skew > prev_skew
-                    bg = this_mean;
-                    break
-                else
-                    prev_skew = this_skew;
-                end
+            if isempty(obj.ibg)
+                bg = obj.find_indices_and_mean_of_bg_bins();
+            else
+                bg = mean(obj.y(obj.ibg));
             end
             if obj.background_strategy == "planar" && obj.ndim == 1
                 bg = bg/obj.nQ;
             end
             % set constant background assuming last bg parameter
             obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
+        end
+
+        function set_errors_of_bg_bins(obj, val)
+            if isempty(obj.ibg)
+                obj.find_indices_and_mean_of_bg_bins();
+            end
+            if nargin < 2
+                val = max(obj.e(obj.ibg));
+            end
+            obj.e(obj.ibg) = val;
         end
 
         function plot_result(obj, params, varargin)
@@ -516,10 +546,53 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
         end
+
+        function plot_1d_cuts_of_2d_data(obj, qmins, qmaxs, params)
+            % optionally plot ycalc provided, otherwise will plot
+            % fitpow.ycalc if not empty
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            if nargin > 3
+                [ycalc, ~] = obj.calc_spinwave_spec(params);
+            else
+                ycalc = [];
+            end
+            figure("color","white");
+            ncuts = numel(qmins);
+            for icut = 1:ncuts
+                ikeep = obj.modQ_cens > qmins(icut) & obj.modQ_cens <= qmaxs(icut);
+                ax =  subplot(1, ncuts, icut);
+                hold on; box on;
+                ycut = sum(obj.y(:,ikeep), 2);
+                plot(ax, obj.ebin_cens, ycut, 'ok');
+                if ~isempty(ycalc)
+                    plot(ax, obj.ebin_cens, sum(ycalc(:,ikeep), 2), '-r');
+                end
+                % calc xlims
+                ifinite = isfinite(ycut);
+                istart = find(ifinite, 1, 'first');
+                iend = find(ifinite, 1, 'last');
+                xlim(ax, [obj.ebin_cens(istart), obj.ebin_cens(iend)]);
+                xlabel(ax, 'Energy (meV)')
+                ylabel(ax, 'Intensity');
+                title(ax, num2str(0.5*(qmaxs(icut)+qmins(icut)), 2) + " $\AA^{-1}$", 'interpreter','latex')
+            end
+        end
+
     end
 
     % private
     methods (Hidden=true, Access = private)
+        function cut = cut_2d_data(obj, qmin, qmax)
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
+            ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
+            cut.y = sum(obj.y(:, ikeep), 2);
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2));
+        end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
             ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
@@ -591,6 +664,25 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             for iparam = iparams
                obj.bounds(iparam, :) = obj.params(iparam);
             end
+        end
+        function bg = find_indices_and_mean_of_bg_bins(obj)
+             % start with a seed of indices of likely non-signal bins
+            iseed = find(isfinite(obj.y) & obj.y < mean(obj.y(:), 'omitnan'));
+            [ysort, isort] = sort(obj.y(iseed), 'descend');
+            bg = ysort(isort(int32(numel(isort)/2))); % default to median
+            prev_skew = inf;
+            for ipt = 1:numel(isort)
+                this_mean = mean(ysort(ipt:end));
+                this_skew = mean((ysort(ipt:end) - this_mean).^3);
+                if this_skew < 0 || this_skew > prev_skew
+                    bg = this_mean;
+                    break
+                else
+                    prev_skew = this_skew;
+                end
+            end
+            % store indices of background bins
+           obj.ibg = iseed(isort(ipt:end));
         end
     end
     methods (Static=true, Hidden=true, Access = private)
