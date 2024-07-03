@@ -372,19 +372,18 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.clear_cache();
         end
 
-        function bg = calc_background(obj, params)
+        function bg = calc_background(obj, bg_params)
             % add background
-            istart = obj.nparams_model + 1;
+            bg_params = num2cell(bg_params);
             if obj.background_strategy == "planar"
-                bg_params = num2cell(params(istart:istart+obj.nparams_bg-1));
                 bg = obj.fbg(obj.ebin_cens, obj.modQ_cens, bg_params{:});
             elseif obj.ndim == 1
                 % add energy dependent background to each cut
                 bg = zeros(size(obj.y));
+                istart = 1;
                 for icut = 1:obj.ncuts
-                    iend = istart + +obj.nparams_bg - 1;
-                    bg_params = num2cell(params(istart:iend));
-                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params{:});
+                    iend = istart + obj.nparams_bg - 1;
+                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params{istart:iend});
                     istart = iend + 1;
                 end
             end
@@ -424,7 +423,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % scale
             ycalc = params(end)*ycalc;
             % calc background
-            bg = calc_background(obj, params);
+            bg = calc_background(obj, params(obj.nparams_model + 1:end-1));
             if obj.background_strategy == "planar"
                 ycalc = ycalc + bg;  % add planar bg before any rebinning
                 if obj.ndim == 1
@@ -451,13 +450,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     obj.liveplot_counter = 0;
                 end
             end
-            resid = (obj.y - ycalc);
-            if obj.cost_function == "chisq"
-                resid = resid./(obj.e);
+            resid_sq_sum = obj.eval_cost(obj.y, obj.e, ycalc);
+        end
+
+        function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
+            bg = obj.calc_background(bg_params);
+            if obj.ndim == 1
+                % integrate nQ |Q| points for each cut
+                bg = obj.rebin_powspec_to_1D_cuts(bg);
             end
-            % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid) & obj.e > 10*eps;
-            resid_sq_sum = resid(ikeep)'*resid(ikeep);
+            resid_sq_sum = obj.eval_cost(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
         end
 
         function result = fit(obj, varargin) 
@@ -472,6 +474,24 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                                        'lb', obj.bounds(:,1)', ...
                                        'ub', obj.bounds(:,2)', ...
                                        varargin{:});
+        end
+
+        function fit_background(obj, varargin)
+            if isempty(obj.ibg)
+                obj.find_indices_and_mean_of_bg_bins();
+            end
+            ibg_par = (obj.nparams_model+1):(numel(obj.params)-1);
+            [bg_params, ~, stat] = ndbase.simplex([], @obj.calc_cost_func_of_background, ...
+                                                  obj.params(ibg_par)', ...
+                                                 'lb', obj.bounds(ibg_par,1)', ...
+                                                 'ub', obj.bounds(ibg_par,2)', ...
+                                                  varargin{:});
+            if stat.exitFlag == 1
+                obj.params(ibg_par) = bg_params;
+            else
+                warning('spinw:sw_fitpowder:fit_background', ...
+                        'Fit failed - parameters not updated.');
+            end
         end
 
         function estimate_scale_factor(obj)
@@ -584,6 +604,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
     % private
     methods (Hidden=true, Access = private)
+        function resid_sq_sum = eval_cost(obj, y, e, ycalc)
+            resid = (y - ycalc);
+            if obj.cost_function == "chisq"
+                resid = resid./e;
+            end
+            % exclude nans in both ycalc and input data
+            ikeep = isfinite(resid) & e > 10*eps;
+            resid_sq_sum = resid(ikeep)'*resid(ikeep);
+        end
+
         function cut = cut_2d_data(obj, qmin, qmax)
             assert(obj.ndim ==2, ...
                    'sw_fitpowder:invalidinput', ...

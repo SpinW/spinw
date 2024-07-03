@@ -300,6 +300,21 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_fit_background(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.fix_bg_parameters(1:2); % fix slopes of background to 0
+            out.set_bg_parameters(3, 1.5); % initial guess
+            out.fit_background()
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(end-1) = 1;
+            expected_fitpow.bounds(2:3,:) = 0; % fixed bg slopes
+            expected_fitpow.ibg = [4];
+            testCase.verify_results(out, expected_fitpow, ...
+                                    testCase.default_fields, ...
+                                    'abs_tol', 1e-3);
+        end
+
         function test_set_errors_of_bg_bins(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
