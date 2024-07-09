@@ -173,7 +173,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
 
    properties (Constant)
-      zero_error_tol = 10*eps
+      zero_abs_tol = 10*eps
    end
         
     methods       
@@ -484,7 +484,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if isempty(obj.ibg)
                 obj.find_indices_and_mean_of_bg_bins();
             end
+            % check if enough bins for parameters
             ibg_par = (obj.nparams_model+1):(numel(obj.params)-1);
+            lb = obj.bounds(ibg_par,1)';
+            ub = obj.bounds(ibg_par,2)';
+            ifixed = sum(abs(lb - ub) < obj.zero_abs_tol);
+            if numel(obj.ibg) < numel(ibg_par) - ifixed
+                error('spinw:sw_fitpowder:fit_background', ...
+                      'Not enough points to fit the function.');
+            end
             [bg_params, ~, stat] = ndbase.simplex([], @obj.calc_cost_func_of_background, ...
                                                   obj.params(ibg_par)', ...
                                                  'lb', obj.bounds(ibg_par,1)', ...
@@ -614,7 +622,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 resid = resid./e;
             end
             % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid) & e > obj.zero_error_tol;
+            ikeep = isfinite(resid) & e > obj.zero_abs_tol;
             resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
@@ -703,7 +711,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
              % start with a seed of indices of likely non-signal bins
             iseed = find(isfinite(obj.y) & obj.y < mean(obj.y(:), 'omitnan'));
             [ysort, isort] = sort(obj.y(iseed), 'descend');
-            bg = ysort(isort(int32(numel(isort)/2))); % default to median
+            bg = NaN;
             prev_skew = inf;
             for ipt = 1:numel(isort)
                 this_mean = mean(ysort(ipt:end));
@@ -716,7 +724,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 end
             end
             % store indices of background bins
-           obj.ibg = iseed(isort(ipt:end));
+            if ~isfinite(bg)
+                error('spinw:find_indices_and_mean_of_bg_bins', ...
+                      'Could not estimate background.');
+            else
+                obj.ibg = iseed(isort(ipt:end));
+            end
         end
     end
     methods (Static=true, Hidden=true, Access = private)
