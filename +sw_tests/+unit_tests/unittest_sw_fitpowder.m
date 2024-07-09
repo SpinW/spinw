@@ -341,6 +341,18 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_reset_errors_of_bg_bins(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.y(1) = 10;  % high so other bins are background
+            out.set_errors_of_bg_bins(100);
+            out.reset_errors_of_bg_bins();
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y(1) = 10;
+            expected_fitpow.ibg = [3;6;2;5;4];
+            testCase.verify_results(out, expected_fitpow);
+        end
+
         function test_estimate_scale_factor(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);

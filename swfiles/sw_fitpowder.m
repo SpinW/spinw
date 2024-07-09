@@ -170,6 +170,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        model_params_cached = []
        liveplot_counter = 0
        ibg = []
+       bg_errors = []
     end
 
    properties (Constant)
@@ -404,6 +405,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.ycalc_cached = [];
             obj.model_params_cached = [];
             obj.ibg = [];
+            obj.reset_errors_of_bg_bins()
         end
 
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
@@ -535,7 +537,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if nargin < 2
                 val = max(obj.e(obj.ibg));
             end
+            obj.bg_errors = obj.e(obj.ibg); % save values so can reset
             obj.e(obj.ibg) = val;
+        end
+
+        function reset_errors_of_bg_bins(obj)
+            if ~isempty(obj.ibg) && ~isempty(obj.bg_errors)
+                obj.e(obj.ibg) = obj.bg_errors;
+            end
+            obj.bg_errors = [];
         end
 
         function plot_result(obj, params, varargin)
