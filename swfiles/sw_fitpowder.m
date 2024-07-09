@@ -171,6 +171,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        liveplot_counter = 0
        ibg = []
     end
+
+   properties (Constant)
+      zero_error_tol = 10*eps
+   end
         
     methods       
         function obj = sw_fitpowder(swobj, data, fit_func, model_params, background_strategy, nQ)
@@ -610,7 +614,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 resid = resid./e;
             end
             % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid) & e > 10*eps;
+            ikeep = isfinite(resid) & e > obj.zero_error_tol;
             resid_sq_sum = resid(ikeep)'*resid(ikeep);
         end
 
