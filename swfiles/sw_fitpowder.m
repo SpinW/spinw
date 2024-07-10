@@ -151,7 +151,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        % functions
        fit_func
        cost_function = "Rsq";  % "Rsq" or "chisq"
-       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg
        % fit and parameters
        optimizer = @ndbase.simplex
@@ -163,6 +162,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
 
     properties (SetAccess = private)
+       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
        fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
        do_cache = true
@@ -182,26 +182,26 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % constructor
             obj.swobj = swobj;
             obj.fit_func = fit_func;
-            if nargin == 6
+            if nargin < 5
+                background_strategy = "planar";
+            elseif nargin==6
                 obj.nQ = nQ; % set this before add data
             end
             obj.add_data(data)
-            if nargin < 5
-                obj.background_strategy = "planar";
-            else
-                obj.background_strategy = background_strategy;
-            end
-            if obj.background_strategy == "planar"
-                obj.fbg = obj.fbg_planar;
-            else
-                obj.fbg = obj.fbg_indep;
-            end
+            obj.set_background_strategy(background_strategy);
             obj.initialise_parameters_and_bounds(model_params)
         end
 
         function initialise_parameters_and_bounds(obj, model_params)
             obj.nparams_model = numel(model_params);
-            obj.nparams_bg = obj.get_nparams_in_background_func();
+            % last parameter is scale factor (default to 1)
+            obj.params = [model_params(:); 1];
+            obj.bounds = [-inf, inf].*ones(numel(obj.params), 1);
+            obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            obj.initialise_background_parameters_and_bounds();
+        end
+
+        function initialise_background_parameters_and_bounds(obj)
             % zero intialise background parameters
             if obj.background_strategy == "independent"
                 nparams_bg_total = obj.ncuts * obj.nparams_bg;
@@ -209,17 +209,37 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 nparams_bg_total = obj.nparams_bg;
             end
             bg_params = zeros(nparams_bg_total, 1);
-            % last parameter is scale factor (default to 1)
-            obj.params = [model_params(:); bg_params(:); 1];
-            obj.bounds = [-inf, inf].*ones(numel(obj.params), 1);
-            obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            bg_bounds = [-inf, inf].*ones(nparams_bg_total, 1);
+            % insert in middle of params and bound
+            obj.params = [obj.params(1:obj.nparams_model); bg_params; obj.params(end)];
+            obj.bounds = [obj.bounds(1:obj.nparams_model,:); bg_bounds; obj.bounds(end, :)];
+        end
+
+        function set_background_strategy(obj, strategy)
+            if (strategy == "independent" && obj.ndim==1) || strategy == "planar"
+                obj.background_strategy = strategy;
+            else
+                error('sw_fitpowder:set_background_strategy', ...
+                      'Parameter indices supplied must be within number of model parameters');
+            end
+            if obj.background_strategy == "planar"
+                obj.fbg = obj.fbg_planar;
+            else
+                obj.fbg = obj.fbg_indep;
+            end
+            obj.nparams_bg = obj.get_nparams_in_background_func();
+            if ~isempty(obj.params)
+                warning('sw_fitpowder:set_background_strategy', ...
+                        'Overwriting background parmaweters with 0.');
+                obj.initialise_background_parameters_and_bounds();
+            end
         end
 
         function fix_model_parameters(obj, iparams)
             if any(iparams > obj.nparams_model)
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            obj.fix_parameters( iparams)
+            obj.fix_parameters(iparams)
         end
 
         function fix_bg_parameters(obj, iparams_bg, icuts)
@@ -240,9 +260,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if any(iparams > obj.nparams_model)
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            for ival = 1:numel(values)
-               obj.params(iparams(ival)) = values(ival);
-            end
+            obj.params(iparams) = values;
         end
 
         function set_bg_parameters(obj, iparams_bg, values, icuts)
@@ -337,21 +355,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 cuts = [cuts obj.cut_2d_data(qmins(icut), qmaxs(icut))];
             end
             obj.add_data(cuts);
-            if nargin > 3 && background_strategy == "independent"
+            if nargin > 3 && background_strategy ~= obj.background_strategy
+                obj.set_background_strategy(background_strategy)
                 warning('spinw:sw_fitpowder:replace_2D_data_with_1D_cuts', ...
                         ['Background strategy changed - background ' ...
                         'parameters and bounds will be cleared.']);
-                obj.background_strategy = background_strategy;
-                obj.fbg = obj.fbg_indep;
-                obj.nparams_bg = obj.get_nparams_in_background_func();
-                nparams_bg_total = obj.ncuts * obj.nparams_bg;
-                obj.params = [obj.params(1:obj.nparams_model);
-                              zeros(nparams_bg_total, 1);
-                              obj.params(end)];
-                obj.bounds = [obj.bounds(1:obj.nparams_model,:);
-                             [-inf, inf].*ones(nparams_bg_total, 1);
-                             obj.bounds(end,:)];
-                 obj.bounds(end,1) = 0; % set lower bound of scale to be 0
             end
         end
 
