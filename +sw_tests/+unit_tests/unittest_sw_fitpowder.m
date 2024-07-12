@@ -28,7 +28,8 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                                         -Inf   Inf;
                                                         -Inf   Inf;
                                                         -Inf   Inf;
-                                                           0   Inf]);
+                                                           0   Inf], ...
+                                              'ibg', []);
             testCase.default_fields = fieldnames(testCase.default_fitpow);
         end
     end
@@ -63,6 +64,39 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         function test_init_data_1d_indep_bg(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "independent");
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            % add extra background param
+            expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
+            expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_background_strategy(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent");
+            out.set_background_strategy("planar");
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_replace_2D_data_with_1D_cuts(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            qcens = [4, 5];
+            out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5)
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_replace_2D_data_with_1D_cuts_specify_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            qcens = [4, 5];
+            out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5,...
+                                             "independent")
             expected_fitpow = testCase.default_fitpow;
             expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             % add extra background param
@@ -265,12 +299,66 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_estimate_constant_background_fails(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            % background estimation fails as no minimum in skew
+            testCase.verifyError(...
+                @() out.estimate_constant_background(), ...
+                'spinw:find_indices_and_mean_of_bg_bins');
+            testCase.verify_results(out, testCase.default_fitpow);
+        end
+
         function test_estimate_constant_background(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
-            out.estimate_constant_background()
+            out.y(1) = 10;  % higher so other bins are background
+            out.estimate_constant_background();
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.params(end-1) = 1;
+            expected_fitpow.y(1) = 10;
+            expected_fitpow.ibg = [3;6;2;5;4];
+            expected_fitpow.params(end-1) = 2.2;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_fit_background(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.y(1) = 10;  % higher so other bins are background
+            out.fix_bg_parameters(1:2); % fix slopes of background to 0
+            out.set_bg_parameters(3, 1.5); % initial guess
+            out.fit_background()
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y(1) = 10;
+            expected_fitpow.ibg = [3;6;2;5;4];
+            expected_fitpow.params(end-1) = 2.2002;
+            expected_fitpow.bounds(2:3,:) = 0; % fixed bg slopes
+            testCase.verify_results(out, expected_fitpow, ...
+                                    testCase.default_fields, ...
+                                    'abs_tol', 1e-4);
+        end
+
+        function test_set_errors_of_bg_bins(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.y(1) = 10;  % high so other bins are background
+            out.set_errors_of_bg_bins(100);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y(1) = 10;
+            expected_fitpow.ibg = [3;6;2;5;4];
+            expected_fitpow.e(expected_fitpow.ibg) = 100;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_reset_errors_of_bg_bins(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.y(1) = 10;  % high so other bins are background
+            out.set_errors_of_bg_bins(100);
+            out.reset_errors_of_bg_bins();
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.y(1) = 10;
+            expected_fitpow.ibg = [3;6;2;5;4];
             testCase.verify_results(out, expected_fitpow);
         end
 

@@ -151,7 +151,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        % functions
        fit_func
        cost_function = "Rsq";  % "Rsq" or "chisq"
-       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg
        % fit and parameters
        optimizer = @ndbase.simplex
@@ -163,39 +162,46 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
 
     properties (SetAccess = private)
+       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
        fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
        fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
        do_cache = true
        ycalc_cached = []
        model_params_cached = []
        liveplot_counter = 0
+       ibg = []
+       bg_errors = []
     end
+
+   properties (Constant)
+      zero_abs_tol = 10*eps
+   end
         
     methods       
         function obj = sw_fitpowder(swobj, data, fit_func, model_params, background_strategy, nQ)
             % constructor
             obj.swobj = swobj;
             obj.fit_func = fit_func;
-            if nargin == 6
+            if nargin < 5
+                background_strategy = "planar";
+            elseif nargin==6
                 obj.nQ = nQ; % set this before add data
             end
             obj.add_data(data)
-            if nargin < 5
-                obj.background_strategy = "planar";
-            else
-                obj.background_strategy = background_strategy;
-            end
-            if obj.background_strategy == "planar"
-                obj.fbg = obj.fbg_planar;
-            else
-                obj.fbg = obj.fbg_indep;
-            end
+            obj.set_background_strategy(background_strategy);
             obj.initialise_parameters_and_bounds(model_params)
         end
 
         function initialise_parameters_and_bounds(obj, model_params)
             obj.nparams_model = numel(model_params);
-            obj.nparams_bg = obj.get_nparams_in_background_func();
+            % last parameter is scale factor (default to 1)
+            obj.params = [model_params(:); 1];
+            obj.bounds = [-inf, inf].*ones(numel(obj.params), 1);
+            obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            obj.initialise_background_parameters_and_bounds();
+        end
+
+        function initialise_background_parameters_and_bounds(obj)
             % zero intialise background parameters
             if obj.background_strategy == "independent"
                 nparams_bg_total = obj.ncuts * obj.nparams_bg;
@@ -203,17 +209,37 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 nparams_bg_total = obj.nparams_bg;
             end
             bg_params = zeros(nparams_bg_total, 1);
-            % last parameter is scale factor (default to 1)
-            obj.params = [model_params(:); bg_params(:); 1];
-            obj.bounds = [-inf, inf].*ones(numel(obj.params), 1);
-            obj.bounds(end,1) = 0; % set lower bound of scale to be 0
+            bg_bounds = [-inf, inf].*ones(nparams_bg_total, 1);
+            % insert in middle of params and bound
+            obj.params = [obj.params(1:obj.nparams_model); bg_params; obj.params(end)];
+            obj.bounds = [obj.bounds(1:obj.nparams_model,:); bg_bounds; obj.bounds(end, :)];
+        end
+
+        function set_background_strategy(obj, strategy)
+            if (strategy == "independent" && obj.ndim==1) || strategy == "planar"
+                obj.background_strategy = strategy;
+            else
+                error('sw_fitpowder:set_background_strategy', ...
+                      'Parameter indices supplied must be within number of model parameters');
+            end
+            if obj.background_strategy == "planar"
+                obj.fbg = obj.fbg_planar;
+            else
+                obj.fbg = obj.fbg_indep;
+            end
+            obj.nparams_bg = obj.get_nparams_in_background_func();
+            if ~isempty(obj.params)
+                warning('sw_fitpowder:set_background_strategy', ...
+                        'Overwriting background parmaweters with 0.');
+                obj.initialise_background_parameters_and_bounds();
+            end
         end
 
         function fix_model_parameters(obj, iparams)
             if any(iparams > obj.nparams_model)
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            obj.fix_parameters( iparams)
+            obj.fix_parameters(iparams)
         end
 
         function fix_bg_parameters(obj, iparams_bg, icuts)
@@ -234,9 +260,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if any(iparams > obj.nparams_model)
                 error('sw_fitpowder', 'Parameter indices supplied must be within number of model parameters');
             end
-            for ival = 1:numel(values)
-               obj.params(iparams(ival)) = values(ival);
-            end
+            obj.params(iparams) = values;
         end
 
         function set_bg_parameters(obj, iparams_bg, values, icuts)
@@ -323,6 +347,22 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.powspec_args.Evect = obj.ebin_cens(:)';  % row vect
         end
 
+        function replace_2D_data_with_1D_cuts(obj, qmins, qmaxs, background_strategy)
+            assert(numel(qmins)==numel(qmaxs), 'sw_fitpowder:invalidinput', ...
+                  'Must pass same number of mins and maxs to make cuts.');
+            cuts = [];
+            for icut = 1:numel(qmins)
+                cuts = [cuts obj.cut_2d_data(qmins(icut), qmaxs(icut))];
+            end
+            obj.add_data(cuts);
+            if nargin > 3 && background_strategy ~= obj.background_strategy
+                obj.set_background_strategy(background_strategy)
+                warning('spinw:sw_fitpowder:replace_2D_data_with_1D_cuts', ...
+                        ['Background strategy changed - background ' ...
+                        'parameters and bounds will be cleared.']);
+            end
+        end
+
         function crop_energy_range(obj, emin, emax)
             % crop data
             ikeep = obj.ebin_cens >= emin & obj.ebin_cens <= emax;
@@ -345,19 +385,18 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.clear_cache();
         end
 
-        function bg = calc_background(obj, params)
+        function bg = calc_background(obj, bg_params)
             % add background
-            istart = obj.nparams_model + 1;
+            bg_params = num2cell(bg_params);
             if obj.background_strategy == "planar"
-                bg_params = num2cell(params(istart:istart+obj.nparams_bg-1));
                 bg = obj.fbg(obj.ebin_cens, obj.modQ_cens, bg_params{:});
             elseif obj.ndim == 1
                 % add energy dependent background to each cut
                 bg = zeros(size(obj.y));
+                istart = 1;
                 for icut = 1:obj.ncuts
-                    iend = istart + +obj.nparams_bg - 1;
-                    bg_params = num2cell(params(istart:iend));
-                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params{:});
+                    iend = istart + obj.nparams_bg - 1;
+                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params{istart:iend});
                     istart = iend + 1;
                 end
             end
@@ -373,6 +412,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function clear_cache(obj)
             obj.ycalc_cached = [];
             obj.model_params_cached = [];
+            obj.ibg = [];
+            obj.reset_errors_of_bg_bins()
         end
 
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
@@ -396,7 +437,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % scale
             ycalc = params(end)*ycalc;
             % calc background
-            bg = calc_background(obj, params);
+            bg = calc_background(obj, params(obj.nparams_model + 1:end-1));
             if obj.background_strategy == "planar"
                 ycalc = ycalc + bg;  % add planar bg before any rebinning
                 if obj.ndim == 1
@@ -423,13 +464,16 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     obj.liveplot_counter = 0;
                 end
             end
-            resid = (obj.y - ycalc);
-            if obj.cost_function == "chisq"
-                resid = resid./(obj.e);
+            resid_sq_sum = obj.eval_cost(obj.y, obj.e, ycalc);
+        end
+
+        function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
+            bg = obj.calc_background(bg_params);
+            if obj.ndim == 1
+                % integrate nQ |Q| points for each cut
+                bg = obj.rebin_powspec_to_1D_cuts(bg);
             end
-            % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid);
-            resid_sq_sum = resid(ikeep)'*resid(ikeep);
+            resid_sq_sum = obj.eval_cost(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
         end
 
         function result = fit(obj, varargin) 
@@ -446,6 +490,32 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                                        varargin{:});
         end
 
+        function fit_background(obj, varargin)
+            if isempty(obj.ibg)
+                obj.find_indices_and_mean_of_bg_bins();
+            end
+            % check if enough bins for parameters
+            ibg_par = (obj.nparams_model+1):(numel(obj.params)-1);
+            lb = obj.bounds(ibg_par,1)';
+            ub = obj.bounds(ibg_par,2)';
+            ifixed = sum(abs(lb - ub) < obj.zero_abs_tol);
+            if numel(obj.ibg) < numel(ibg_par) - ifixed
+                error('spinw:sw_fitpowder:fit_background', ...
+                      'Not enough points to fit the function.');
+            end
+            [bg_params, ~, stat] = ndbase.simplex([], @obj.calc_cost_func_of_background, ...
+                                                  obj.params(ibg_par)', ...
+                                                 'lb', obj.bounds(ibg_par,1)', ...
+                                                 'ub', obj.bounds(ibg_par,2)', ...
+                                                  varargin{:});
+            if stat.exitFlag == 1
+                obj.params(ibg_par) = bg_params;
+            else
+                warning('spinw:sw_fitpowder:fit_background', ...
+                        'Fit failed - parameters not updated.');
+            end
+        end
+
         function estimate_scale_factor(obj)
             % set scale factor to 1
             params = obj.params;
@@ -456,24 +526,34 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function estimate_constant_background(obj)
-            ysort = sort(obj.y(obj.y < mean(obj.y, 'omitnan')), 'descend');
-            bg = ysort(int32(numel(ysort)/2)); % default to median
-            prev_skew = inf;
-            for ipt = 1:numel(ysort)
-                this_mean = mean(ysort(ipt:end));
-                this_skew = mean((ysort(ipt:end) - this_mean).^3)/(std(ysort(ipt:end)).^3);
-                if this_skew < 0 || this_skew > prev_skew
-                    bg = this_mean;
-                    break
-                else
-                    prev_skew = this_skew;
-                end
+            if isempty(obj.ibg)
+                bg = obj.find_indices_and_mean_of_bg_bins();
+            else
+                bg = mean(obj.y(obj.ibg));
             end
             if obj.background_strategy == "planar" && obj.ndim == 1
                 bg = bg/obj.nQ;
             end
             % set constant background assuming last bg parameter
             obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
+        end
+
+        function set_errors_of_bg_bins(obj, val)
+            if isempty(obj.ibg)
+                obj.find_indices_and_mean_of_bg_bins();
+            end
+            if nargin < 2
+                val = max(obj.e(obj.ibg));
+            end
+            obj.bg_errors = obj.e(obj.ibg); % save values so can reset
+            obj.e(obj.ibg) = val;
+        end
+
+        function reset_errors_of_bg_bins(obj)
+            if ~isempty(obj.ibg) && ~isempty(obj.bg_errors)
+                obj.e(obj.ibg) = obj.bg_errors;
+            end
+            obj.bg_errors = [];
         end
 
         function plot_result(obj, params, varargin)
@@ -516,10 +596,63 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
         end
+
+        function plot_1d_cuts_of_2d_data(obj, qmins, qmaxs, params)
+            % optionally plot ycalc provided, otherwise will plot
+            % fitpow.ycalc if not empty
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            if nargin > 3
+                [ycalc, ~] = obj.calc_spinwave_spec(params);
+            else
+                ycalc = [];
+            end
+            figure("color","white");
+            ncuts = numel(qmins);
+            for icut = 1:ncuts
+                ikeep = obj.modQ_cens > qmins(icut) & obj.modQ_cens <= qmaxs(icut);
+                ax =  subplot(1, ncuts, icut);
+                hold on; box on;
+                ycut = sum(obj.y(:,ikeep), 2);
+                plot(ax, obj.ebin_cens, ycut, 'ok');
+                if ~isempty(ycalc)
+                    plot(ax, obj.ebin_cens, sum(ycalc(:,ikeep), 2), '-r');
+                end
+                % calc xlims
+                ifinite = isfinite(ycut);
+                istart = find(ifinite, 1, 'first');
+                iend = find(ifinite, 1, 'last');
+                xlim(ax, [obj.ebin_cens(istart), obj.ebin_cens(iend)]);
+                xlabel(ax, 'Energy (meV)')
+                ylabel(ax, 'Intensity');
+                title(ax, num2str(0.5*(qmaxs(icut)+qmins(icut)), 2) + " $\AA^{-1}$", 'interpreter','latex')
+            end
+        end
+
     end
 
     % private
     methods (Hidden=true, Access = private)
+        function resid_sq_sum = eval_cost(obj, y, e, ycalc)
+            resid = (y - ycalc);
+            if obj.cost_function == "chisq"
+                resid = resid./e;
+            end
+            % exclude nans in both ycalc and input data
+            ikeep = isfinite(resid) & e > obj.zero_abs_tol;
+            resid_sq_sum = resid(ikeep)'*resid(ikeep);
+        end
+
+        function cut = cut_2d_data(obj, qmin, qmax)
+            assert(obj.ndim ==2, ...
+                   'sw_fitpowder:invalidinput', ...
+                   'This function is only valid for 2D data');
+            cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
+            ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
+            cut.y = sum(obj.y(:, ikeep), 2);
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2));
+        end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
             ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
@@ -590,6 +723,30 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function fix_parameters(obj, iparams)
             for iparam = iparams
                obj.bounds(iparam, :) = obj.params(iparam);
+            end
+        end
+        function bg = find_indices_and_mean_of_bg_bins(obj)
+             % start with a seed of indices of likely non-signal bins
+            iseed = find(isfinite(obj.y) & obj.y < mean(obj.y(:), 'omitnan'));
+            [ysort, isort] = sort(obj.y(iseed), 'descend');
+            bg = NaN;
+            prev_skew = inf;
+            for ipt = 1:numel(isort)
+                this_mean = mean(ysort(ipt:end));
+                this_skew = mean((ysort(ipt:end) - this_mean).^3);
+                if this_skew < 0 || this_skew > prev_skew
+                    bg = this_mean;
+                    break
+                else
+                    prev_skew = this_skew;
+                end
+            end
+            % store indices of background bins
+            if ~isfinite(bg)
+                error('spinw:find_indices_and_mean_of_bg_bins', ...
+                      'Could not estimate background.');
+            else
+                obj.ibg = iseed(isort(ipt:end));
             end
         end
     end
