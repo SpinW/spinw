@@ -531,9 +531,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             else
                 bg = mean(obj.y(obj.ibg));
             end
-            if obj.background_strategy == "planar" && obj.ndim == 1
-                bg = bg/obj.nQ;
-            end
             % set constant background assuming last bg parameter
             obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
         end
@@ -650,13 +647,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                    'This function is only valid for 2D data');
             cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
             ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
-            cut.y = sum(obj.y(:, ikeep), 2);
-            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2));
+            cut.y = mean(obj.y(:, ikeep), 2, 'omitnan');
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2))/sum(ikeep);
         end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
             ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
-            ycalc = squeeze(sum(ycalc, 2, 'omitnan'));
+            ycalc = squeeze(mean(ycalc, 2, 'omitnan'));
         end
 
         function nbg_pars = get_nparams_in_background_func(obj)
