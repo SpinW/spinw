@@ -469,7 +469,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
             bg = obj.calc_background(bg_params);
-            if obj.ndim == 1
+            if obj.ndim == 1 && obj.background_strategy=="planar"
                 % integrate nQ |Q| points for each cut
                 bg = obj.rebin_powspec_to_1D_cuts(bg);
             end
