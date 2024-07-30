@@ -122,9 +122,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 % >> fitpow.fix_bg_parameters(1:2); % fix slopes of background to 0
 % >> fitpow.cost_function = "Rsq";  % or "chisq"
 % >> fitpow.optimizer = @ndbase.simplex;
-% >> result = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
-% >> 
-% >> [pfit,cost_val,stat] = result{:};
+% >> [pfit,cost_val,stat] = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
+% >>
 % >> fitpow.plot_result(pfit, 26, 'EdgeAlpha', 0.9, 'LineWidth', 2)
 % ```
 %
@@ -476,15 +475,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             resid_sq_sum = obj.eval_cost(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
         end
 
-        function result = fit(obj, varargin) 
+        function varargout = fit(obj, varargin) 
             if obj.liveplot_interval > 0
                 figure("color","white");
                 obj.liveplot_counter = 0;
             end
             % setup cell for output of ndbase optimizer/minimizer
-            result = cell(1,nargout(obj.optimizer));
+            varargout = cell(1,nargout(obj.optimizer));
             % pass params and bounds as rows for ndbase optimisers
-            [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
+            [varargout{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
                                        'lb', obj.bounds(:,1)', ...
                                        'ub', obj.bounds(:,2)', ...
                                        varargin{:});
