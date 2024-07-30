@@ -2,7 +2,10 @@
 % This tutorial fits a spinwave model to simulated powder data.
 
 %% Define instrument resolution parameters for MARI
-% These parameters will depend on the insturment used.
+% This is a simplified parameterisation of the resolution of a
+% Time-of-flight spectrometer whic hwill be used to broaden the simulated
+% data. These parameters will depend on the insturment used - the instrument
+% contact should be able to provide these.
 
 Ei = 5; % meV
 
@@ -23,7 +26,7 @@ a4 = ws/L2; % Angular width of sample seen from detector
 dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
 
 %% Generate data
-% Simulate a powder spectrum of a triangular AFM  with constant background
+% Simulate a powder spectrum of a triangular AFM with constant background
 % and normally distributed noise.
 
 
@@ -33,8 +36,6 @@ tri = sw_model('triAF',1);
 % calculate powder spectrum
 E = linspace(0,4,80);
 Q = linspace(0.1,3,60);
-% E = linspace(0,4,25);
-% Q = linspace(0.1,3,60);
 spec = tri.powspec(Q,'Evect',E,'nRand',2e2);
 % add noise and background
 bg = 0.1*mean(spec.swConv, 'all');
@@ -53,9 +54,22 @@ data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
 
 %% Initialise the sw_fitpowder class and plot data to inspect initial guess
 % The class object is initialised with the spinw object, the data (can be
-% xye structs for 1D and 2D data, or HORACE objects - see sw_fitpowder 
-% help for more details), a fit function which alters the matrices on the 
-% spinw object and a vector of initial guesses for the fit parameters.
+% xye structs for 2D data a cell array of xye structs for 1D data, or
+% HORACE objects - see sw_fitpowder help for more details) and a fit function 
+% which alters the matrices on the spinw object and a vector of initial
+% guesses for the fit parameters.
+%
+% Optinally a background startegy can be specified as a 5th positional 
+% argument ("planar" background in energy transfer and |Q| or "independent"
+% background for each 1D cut (1D only)).
+%
+% The class will call other spinw algorithms such as powspec and
+% sw_instrument. The parameters used in these calls can be set by the user
+% by modifying structs as shown below.
+%
+% Data can be cropped in |Q| and energy transfer - for example it is
+% advisible not to include the low-energy transfers within close to the
+% elastic line (relatice to the resolution). 
 
 
 fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', {'J_1'}, 'init', true);
@@ -68,7 +82,8 @@ fitpow.set_caching(true); % will store last calculated spectra
 fitpow.powspec_args.dE = eres; % emergy resolution
 fitpow.powspec_args.fastmode = true;
 fitpow.powspec_args.neutron_output = true;
-fitpow.powspec_args.nRand = 1e2; % low for speed (typically want > 1e3)
+fitpow.powspec_args.nRand = 2e2; % low for speed (typically want > 1e3)
+fitpow.powspec_args.hermit = true;
 % set parameters passsed to sw_instrument
 fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
 
@@ -89,12 +104,17 @@ fitpow.estimate_scale_factor();
 fitpow.plot_result(fitpow.params, 'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k');
 
 
-
 %% Fit and inspect the result
 % It can be desirable to set bounds on fit parameters and fix some
 % parameters initially to get a reasonable fit with as few degrees of
-% freedom as possible.  For example one might assume the background is 
+% freedom as possible. For example one might assume the background is 
 % constant in an initial fit.
+%
+% The cost function minimised in the fit can be chi-squared ("chisq") or 
+% the unweighted sum of the squared residuals ("Rsq"). Also the minimiser
+% can be set to any callable as long as it shares the API of the ndbase
+% minimisers. Typically users would be recommended ndbase.lm or
+% ndbase.simplex.
 
 % set cost function and minimser
 fitpow.cost_function = "Rsq";  % "Rsq" or "chisq"
@@ -112,12 +132,12 @@ fitpow.fix_bg_parameters(3); % fix fitted constant bg
 % set bounds on first (and only in this case) model parameter
 fitpow.set_model_parameter_bounds(1, 0, []) % Force J_1 to be AFM
 
-result = fitpow.fit();
+[pfit, cost_val, stat] = fitpow.fit();
 
 % plot 2D colorfill
-[pfit, cost_val, stat] = result{:};
+% [pfit, cost_val, stat] = result{:};
 % pfit = result{1};
-fitpow.plot_result(pfit, 6,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k')
+fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k')
 
 % make 1D plots
 qcens = [0.8:0.4:1.6];
@@ -125,44 +145,16 @@ dq = 0.05;
 fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 
 
-[J1s,scales] = meshgrid(0.75:0.025:1.1, 0:0.02:1.5);
-costs = zeros(size(J1s));
-par = fitpow.params;
-for ifit = 1:numel(J1s)
-    par(1) = J1s(ifit);
-    par(end) = scales(ifit);
-    costs(ifit) = fitpow.calc_cost_func(par);
-end
-
-figure("color", "white")
-ax = subplot(1,1,1);
-hold on; box on;
-imagesc(ax, J1s(1,:), scales(:,1),costs);
-plot(ax, fitpow.params(1), fitpow.params(end), 'xr')
-plot(ax, 1, 1, 'or')
-xlabel(ax, "J1");
-ylabel(ax, "scale");
-title(fitpow.cost_function)
-clim(ax,[0,2]); %Rsq
-clim(ax,[0,2e9]); %chisq
-
-[~, imin] = min(costs(:));
-par(1) = J1s(imin);
-par(end) = scales(imin);
-fitpow.plot_result(par)
-
-
 %% Fit 1D cuts
 % sw_fitpowder class can be initialised with a sequence of 1D cuts at 
 % constant |Q|- or having loaded in 2D data, the data can be replaced with 
-% constanrt |Q| cuts. The background for 1D cuts can be handled in two
-% ways: as a planar background as in the 2D case, or a linear background in
-% energy transfer that is independent for each 1D cut.
-% The the background parameters and bounds are reset if the backgroudnd
-% strategy is changed to independent
+% constanrt |Q| cuts. As disucssed, the background for 1D cuts can be 
+% handled in two ways: as a planar background as in the 2D case, or a 
+% linear background in energy transfer that is independent for each 1D cut.
+% The background parameters and bounds are reset if the background
+% strategy is changed to independent.
 
 % change background to independent (planar is default)
-fitpow.nQ = 5; % set this before replace data
 fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq, "independent");
 
 % independent linear background for all cuts with parameters:
@@ -175,40 +167,9 @@ fitpow.estimate_constant_background();
 fitpow.fit_background();
 fitpow.fix_bg_parameters(2); % fix fitted constant bg
 
-% fitpow.plot_result(fitpow.params)
+[pfit, cost_val, stat]  = fitpow.fit();
 
-result = fitpow.fit();
-[pfit, cost_val, stat] = result{:};
-% pfit = result{1};
 fitpow.plot_result(pfit)
 
-fitpow.cost_function = "chisq";  % "Rsq" or "chisq"
-fitpow.optimizer = @ndbase.simplex; % or e.g. ndbase.simplex
-
-[J1s,scales] = meshgrid(0.75:0.025:1.1, 0:0.02:1.5);
-costs = zeros(size(J1s));
-par = fitpow.params;
-for ifit = 1:numel(J1s)
-    par(1) = J1s(ifit);
-    par(end) = scales(ifit);
-    costs(ifit) = fitpow.calc_cost_func(par);
-end
-
-figure("color", "white")
-ax = subplot(1,1,1);
-hold on; box on;
-imagesc(ax, J1s(1,:), scales(:,1),costs);
-plot(ax, fitpow.params(1), fitpow.params(end), 'xr')
-plot(ax, 1, 1, 'or')
-xlabel(ax, "J1");
-ylabel(ax, "scale");
-title(fitpow.cost_function)
-clim(ax,[0,0.05]); %Rsq
-clim(ax,[0,1e8]); %chisq
-
-[~, imin] = min(costs(:));
-par(1) = J1s(imin);
-par(end) = 1; % scales(imin);
-fitpow.plot_result(par)
 
 

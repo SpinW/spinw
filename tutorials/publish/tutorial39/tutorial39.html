@@ -1,0 +1,362 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Description</title><meta name="generator" content="MATLAB 9.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2024-07-30"><meta name="DC.source" content="tutorial39.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Description</h1><!--introduction--><p>This tutorial fits a spinwave model to simulated powder data.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Define instrument resolution parameters for MARI</a></li><li><a href="#2">Generate data</a></li><li><a href="#3">Initialise the sw_fitpowder class and plot data to inspect initial guess</a></li><li><a href="#4">Fit and inspect the result</a></li><li><a href="#5">Fit 1D cuts</a></li></ul></div><h2 id="1">Define instrument resolution parameters for MARI</h2><p>This is a simplified parameterisation of the resolution of a Time-of-flight spectrometer whic hwill be used to broaden the simulated data. These parameters will depend on the insturment used - the instrument contact should be able to provide these.</p><pre class="codeinput">Ei = 5; <span class="comment">% meV</span>
+
+<span class="comment">% Resolution (from PyChop)</span>
+eres = @(en) 512.17*sqrt((Ei-en).^3 .* ( 8.26326e-10*(0.169+0.4*(Ei./(Ei-en)).^1.5).^2 + 2.81618e-11*(1.169+0.4*(Ei./(Ei-en)).^1.5).^2));
+<span class="comment">% Q-resolution (parameters for MARI)</span>
+e2k = @(en) sqrt( en .* (2*1.67492728e-27*1.60217653e-22) )./1.05457168e-34./1e10;
+L1 = 11.8;  <span class="comment">% Moderator to Sample distance in m</span>
+L2 = 2.5;   <span class="comment">% Sample to detector distance in m</span>
+ws = 0.05;  <span class="comment">% Width of sample in m</span>
+wm = 0.12;  <span class="comment">% Width of moderator in m</span>
+wd = 0.025; <span class="comment">% Width of detector in m</span>
+ki = e2k(Ei);
+a1 = ws/L1; <span class="comment">% Angular width of sample seen from moderator</span>
+a2 = wm/L1; <span class="comment">% Angular width of moderator seen from sample</span>
+a3 = wd/L2; <span class="comment">% Angular width of detector seen from sample</span>
+a4 = ws/L2; <span class="comment">% Angular width of sample seen from detector</span>
+dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
+</pre><h2 id="2">Generate data</h2><p>Simulate a powder spectrum of a triangular AFM with constant background and normally distributed noise.</p><pre class="codeinput"><span class="comment">% intialise spinw model</span>
+tri = sw_model(<span class="string">'triAF'</span>,1);
+
+<span class="comment">% calculate powder spectrum</span>
+E = linspace(0,4,80);
+Q = linspace(0.1,3,60);
+spec = tri.powspec(Q,<span class="string">'Evect'</span>,E,<span class="string">'nRand'</span>,2e2);
+<span class="comment">% add noise and background</span>
+bg = 0.1*mean(spec.swConv, <span class="string">'all'</span>);
+spec.swConv = spec.swConv + bg;
+e = (1e-4)*sqrt(spec.swConv);
+spec.swConv = spec.swConv + e.*randn(size(spec.swConv));
+<span class="comment">% crop to kinematic range of instrument and apply some arbitrary resolution</span>
+spec = sw_instrument(spec, <span class="string">'dQ'</span>, 0.01, <span class="string">'dE'</span>, eres, <span class="string">'ThetaMin'</span>, 3.5, <span class="string">'Ei'</span>, Ei);
+
+<span class="comment">% make xye struct containing data</span>
+data = struct(<span class="string">'x'</span>, {{0.5*(E(1:end-1) + E(2:end)), Q}}, <span class="keyword">...</span>
+              <span class="string">'y'</span>, spec.swConv', <span class="keyword">...</span>
+              <span class="string">'e'</span>, e');
+</pre><h2 id="3">Initialise the sw_fitpowder class and plot data to inspect initial guess</h2><p>The class object is initialised with the spinw object, the data (can be xye structs for 2D data a cell array of xye structs for 1D data, or HORACE objects - see sw_fitpowder help for more details) and a fit function which alters the matrices on the spinw object and a vector of initial guesses for the fit parameters.</p><p>Optinally a background startegy can be specified as a 5th positional argument ("planar" background in energy transfer and <tt>Q</tt> or "independent" background for each 1D cut (1D only)).</p><p>The class will call other spinw algorithms such as powspec and sw_instrument. The parameters used in these calls can be set by the user by modifying structs as shown below.</p><p>Data can be cropped in <tt>Q</tt> and energy transfer - for example it is advisible not to include the low-energy transfers within close to the elastic line (relatice to the resolution).</p><pre class="codeinput">fit_func =  @(obj, p) matparser(obj, <span class="string">'param'</span>, p, <span class="string">'mat'</span>, {<span class="string">'J_1'</span>}, <span class="string">'init'</span>, true);
+J1 = 0.85;
+
+fitpow = sw_fitpowder(tri, data,  fit_func, [J1]);
+fitpow.set_caching(true); <span class="comment">% will store last calculated spectra</span>
+
+<span class="comment">% set parameters passed to powspec</span>
+fitpow.powspec_args.dE = eres; <span class="comment">% emergy resolution</span>
+fitpow.powspec_args.fastmode = true;
+fitpow.powspec_args.neutron_output = true;
+fitpow.powspec_args.nRand = 2e2; <span class="comment">% low for speed (typically want &gt; 1e3)</span>
+fitpow.powspec_args.hermit = true;
+<span class="comment">% set parameters passsed to sw_instrument</span>
+fitpow.sw_instrument_args = struct(<span class="string">'dQ'</span>, dQ, <span class="string">'ThetaMin'</span>, 3.5, <span class="string">'Ei'</span>, Ei);
+
+<span class="comment">% crop data</span>
+fitpow.crop_energy_range(0.2, inf); <span class="comment">% typically want to avoid elastic line</span>
+fitpow.crop_q_range(0.25, 3);
+fitpow.powspec_args.dE = eres;
+fitpow.powspec_args.fastmode = true;
+fitpow.powspec_args.neutron_output = true;
+
+<span class="comment">% estimate background and scale factor</span>
+fitpow.estimate_constant_background();
+fitpow.estimate_scale_factor();
+
+
+<span class="comment">% plot data to inspect - any arguments after parameters are passed to</span>
+<span class="comment">% contour plot (which shows the result the calculated intensity)</span>
+fitpow.plot_result(fitpow.params, <span class="string">'EdgeAlpha'</span>, 0.9, <span class="string">'LineWidth'</span>, 1 ,<span class="string">'EdgeColor'</span>, <span class="string">'k'</span>);
+</pre><img vspace="5" hspace="5" src="tutorial39_01.png" alt=""> <h2 id="4">Fit and inspect the result</h2><p>It can be desirable to set bounds on fit parameters and fix some parameters initially to get a reasonable fit with as few degrees of freedom as possible. For example one might assume the background is constant in an initial fit.</p><p>The cost function minimised in the fit can be chi-squared ("chisq") or the unweighted sum of the squared residuals ("Rsq"). Also the minimiser can be set to any callable as long as it shares the API of the ndbase minimisers. Typically users would be recommended ndbase.lm or ndbase.simplex.</p><pre class="codeinput"><span class="comment">% set cost function and minimser</span>
+fitpow.cost_function = <span class="string">"Rsq"</span>;  <span class="comment">% "Rsq" or "chisq"</span>
+fitpow.optimizer = @ndbase.simplex; <span class="comment">% or e.g. ndbase.simplex</span>
+
+<span class="comment">% Fix background parameters (planar background of form</span>
+<span class="comment">% default background is planar with parameters:</span>
+<span class="comment">% [slope_energy, slope_modQ,  intercept]</span>
+fitpow.fix_bg_parameters(1:2); <span class="comment">% fix slopes to initial value (0)</span>
+fitpow.set_bg_parameter_bounds(3, 0.0, []) <span class="comment">% Set lb of constant bg = 0</span>
+<span class="comment">% fit background</span>
+fitpow.fit_background();
+fitpow.fix_bg_parameters(3); <span class="comment">% fix fitted constant bg</span>
+
+<span class="comment">% set bounds on first (and only in this case) model parameter</span>
+fitpow.set_model_parameter_bounds(1, 0, []) <span class="comment">% Force J_1 to be AFM</span>
+
+[pfit, cost_val, stat] = fitpow.fit();
+
+<span class="comment">% plot 2D colorfill</span>
+<span class="comment">% [pfit, cost_val, stat] = result{:};</span>
+<span class="comment">% pfit = result{1};</span>
+fitpow.plot_result(pfit, 10,  <span class="string">'EdgeAlpha'</span>, 0.9, <span class="string">'LineWidth'</span>, 1 ,<span class="string">'EdgeColor'</span>, <span class="string">'k'</span>)
+
+<span class="comment">% make 1D plots</span>
+qcens = [0.8:0.4:1.6];
+dq = 0.05;
+fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
+</pre><img vspace="5" hspace="5" src="tutorial39_02.png" alt=""> <img vspace="5" hspace="5" src="tutorial39_03.png" alt=""> <h2 id="5">Fit 1D cuts</h2><p>sw_fitpowder class can be initialised with a sequence of 1D cuts at constant <tt>Q</tt>- or having loaded in 2D data, the data can be replaced with constanrt <tt>Q</tt> cuts. As disucssed, the background for 1D cuts can be handled in two ways: as a planar background as in the 2D case, or a linear background in energy transfer that is independent for each 1D cut. The background parameters and bounds are reset if the background strategy is changed to independent.</p><pre class="codeinput"><span class="comment">% change background to independent (planar is default)</span>
+fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq, <span class="string">"independent"</span>);
+
+<span class="comment">% independent linear background for all cuts with parameters:</span>
+<span class="comment">% [slope_energy,  intercept]</span>
+fitpow.fix_bg_parameters(1); <span class="comment">% fix slopes to initial value (0) for all cuts</span>
+<span class="comment">% e.g. fitpow.fix_bg_parameters(1, 2) would fix the bg slope of the second cut</span>
+fitpow.set_bg_parameter_bounds(2, 0.0, []) <span class="comment">% Set lb of constant bg = 0</span>
+<span class="comment">% fit background</span>
+fitpow.estimate_constant_background();
+fitpow.fit_background();
+fitpow.fix_bg_parameters(2); <span class="comment">% fix fitted constant bg</span>
+
+[pfit, cost_val, stat]  = fitpow.fit();
+
+fitpow.plot_result(pfit)
+</pre><pre class="codeoutput">Warning: Clearing 2D data previously added. 
+Warning: Overwriting background parmaweters with 0. 
+Warning: Background strategy changed - background parameters and bounds will be
+cleared. 
+</pre><img vspace="5" hspace="5" src="tutorial39_04.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Description
+% This tutorial fits a spinwave model to simulated powder data.
+
+%% Define instrument resolution parameters for MARI
+% This is a simplified parameterisation of the resolution of a
+% Time-of-flight spectrometer whic hwill be used to broaden the simulated
+% data. These parameters will depend on the insturment used - the instrument
+% contact should be able to provide these.
+
+Ei = 5; % meV
+
+% Resolution (from PyChop)
+eres = @(en) 512.17*sqrt((Ei-en).^3 .* ( 8.26326e-10*(0.169+0.4*(Ei./(Ei-en)).^1.5).^2 + 2.81618e-11*(1.169+0.4*(Ei./(Ei-en)).^1.5).^2));
+% Q-resolution (parameters for MARI)
+e2k = @(en) sqrt( en .* (2*1.67492728e-27*1.60217653e-22) )./1.05457168e-34./1e10;
+L1 = 11.8;  % Moderator to Sample distance in m
+L2 = 2.5;   % Sample to detector distance in m
+ws = 0.05;  % Width of sample in m
+wm = 0.12;  % Width of moderator in m
+wd = 0.025; % Width of detector in m
+ki = e2k(Ei);
+a1 = ws/L1; % Angular width of sample seen from moderator
+a2 = wm/L1; % Angular width of moderator seen from sample
+a3 = wd/L2; % Angular width of detector seen from sample
+a4 = ws/L2; % Angular width of sample seen from detector
+dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
+
+%% Generate data
+% Simulate a powder spectrum of a triangular AFM with constant background
+% and normally distributed noise.
+
+
+% intialise spinw model
+tri = sw_model('triAF',1);
+
+% calculate powder spectrum
+E = linspace(0,4,80);
+Q = linspace(0.1,3,60);
+spec = tri.powspec(Q,'Evect',E,'nRand',2e2);
+% add noise and background
+bg = 0.1*mean(spec.swConv, 'all');
+spec.swConv = spec.swConv + bg;
+e = (1e-4)*sqrt(spec.swConv);
+spec.swConv = spec.swConv + e.*randn(size(spec.swConv));
+% crop to kinematic range of instrument and apply some arbitrary resolution
+spec = sw_instrument(spec, 'dQ', 0.01, 'dE', eres, 'ThetaMin', 3.5, 'Ei', Ei);
+
+% make xye struct containing data
+data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
+              'y', spec.swConv', ...
+              'e', e');
+
+
+
+%% Initialise the sw_fitpowder class and plot data to inspect initial guess
+% The class object is initialised with the spinw object, the data (can be
+% xye structs for 2D data a cell array of xye structs for 1D data, or
+% HORACE objects - see sw_fitpowder help for more details) and a fit function 
+% which alters the matrices on the spinw object and a vector of initial
+% guesses for the fit parameters.
+%
+% Optinally a background startegy can be specified as a 5th positional 
+% argument ("planar" background in energy transfer and |Q| or "independent"
+% background for each 1D cut (1D only)).
+%
+% The class will call other spinw algorithms such as powspec and
+% sw_instrument. The parameters used in these calls can be set by the user
+% by modifying structs as shown below.
+%
+% Data can be cropped in |Q| and energy transfer - for example it is
+% advisible not to include the low-energy transfers within close to the
+% elastic line (relatice to the resolution). 
+
+
+fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', {'J_1'}, 'init', true);
+J1 = 0.85;
+
+fitpow = sw_fitpowder(tri, data,  fit_func, [J1]);
+fitpow.set_caching(true); % will store last calculated spectra
+
+% set parameters passed to powspec
+fitpow.powspec_args.dE = eres; % emergy resolution
+fitpow.powspec_args.fastmode = true;
+fitpow.powspec_args.neutron_output = true;
+fitpow.powspec_args.nRand = 2e2; % low for speed (typically want > 1e3)
+fitpow.powspec_args.hermit = true;
+% set parameters passsed to sw_instrument
+fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
+
+% crop data
+fitpow.crop_energy_range(0.2, inf); % typically want to avoid elastic line
+fitpow.crop_q_range(0.25, 3);
+fitpow.powspec_args.dE = eres;
+fitpow.powspec_args.fastmode = true;
+fitpow.powspec_args.neutron_output = true;
+
+% estimate background and scale factor
+fitpow.estimate_constant_background();
+fitpow.estimate_scale_factor();
+
+
+% plot data to inspect - any arguments after parameters are passed to 
+% contour plot (which shows the result the calculated intensity)
+fitpow.plot_result(fitpow.params, 'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k');
+
+
+%% Fit and inspect the result
+% It can be desirable to set bounds on fit parameters and fix some
+% parameters initially to get a reasonable fit with as few degrees of
+% freedom as possible. For example one might assume the background is 
+% constant in an initial fit.
+%
+% The cost function minimised in the fit can be chi-squared ("chisq") or 
+% the unweighted sum of the squared residuals ("Rsq"). Also the minimiser
+% can be set to any callable as long as it shares the API of the ndbase
+% minimisers. Typically users would be recommended ndbase.lm or
+% ndbase.simplex.
+
+% set cost function and minimser
+fitpow.cost_function = "Rsq";  % "Rsq" or "chisq"
+fitpow.optimizer = @ndbase.simplex; % or e.g. ndbase.simplex
+
+% Fix background parameters (planar background of form 
+% default background is planar with parameters:
+% [slope_energy, slope_modQ,  intercept]
+fitpow.fix_bg_parameters(1:2); % fix slopes to initial value (0)
+fitpow.set_bg_parameter_bounds(3, 0.0, []) % Set lb of constant bg = 0
+% fit background
+fitpow.fit_background();
+fitpow.fix_bg_parameters(3); % fix fitted constant bg
+
+% set bounds on first (and only in this case) model parameter
+fitpow.set_model_parameter_bounds(1, 0, []) % Force J_1 to be AFM
+
+[pfit, cost_val, stat] = fitpow.fit();
+
+% plot 2D colorfill
+% [pfit, cost_val, stat] = result{:};
+% pfit = result{1};
+fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k')
+
+% make 1D plots
+qcens = [0.8:0.4:1.6];
+dq = 0.05;
+fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
+
+
+%% Fit 1D cuts
+% sw_fitpowder class can be initialised with a sequence of 1D cuts at 
+% constant |Q|- or having loaded in 2D data, the data can be replaced with 
+% constanrt |Q| cuts. As disucssed, the background for 1D cuts can be 
+% handled in two ways: as a planar background as in the 2D case, or a 
+% linear background in energy transfer that is independent for each 1D cut.
+% The background parameters and bounds are reset if the background
+% strategy is changed to independent.
+
+% change background to independent (planar is default)
+fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq, "independent");
+
+% independent linear background for all cuts with parameters:
+% [slope_energy,  intercept]
+fitpow.fix_bg_parameters(1); % fix slopes to initial value (0) for all cuts
+% e.g. fitpow.fix_bg_parameters(1, 2) would fix the bg slope of the second cut 
+fitpow.set_bg_parameter_bounds(2, 0.0, []) % Set lb of constant bg = 0
+% fit background
+fitpow.estimate_constant_background();
+fitpow.fit_background();
+fitpow.fix_bg_parameters(2); % fix fitted constant bg
+
+[pfit, cost_val, stat]  = fitpow.fit();
+
+fitpow.plot_result(pfit)
+
+
+
+
+##### SOURCE END #####
+--></body></html>
