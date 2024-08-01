@@ -18,10 +18,11 @@ classdef unittest_ndbase_estimate_hessian < sw_tests.unit_tests.unittest_super
             out = ndbase.estimate_hessian(testCase.fcost, testCase.minimum);
             testCase.verify_val(out, testCase.expected_hessian(testCase.minimum), 'abs_tol', 1e-6);
         end
-        function test_automatic_step_size_not_at_minimum(testCase)
+        function test_outputs_cost(testCase)
             pars = [1,0];
-            out = ndbase.estimate_hessian(testCase.fcost, pars);
+            [out, cost] = ndbase.estimate_hessian(testCase.fcost, pars);
             testCase.verify_val(out, testCase.expected_hessian(pars), 'abs_tol', 1e-6);
+            testCase.verify_val(cost, testCase.fcost(pars));
         end
         function test_absolute_step_size(testCase)
             pars = [1,0];

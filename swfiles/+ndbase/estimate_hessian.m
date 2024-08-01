@@ -1,7 +1,9 @@
-function hessian = estimate_hessian(fcost, params, varargin)
+function [hessian, varargout] = estimate_hessian(fcost, params, varargin)
 % ### Syntax
 % 
 % `hessian = ndbase.estimate_hessian(func_cost, params)`
+%
+% `[hessian, cost_val] = ndbase.estimate_hessian(func_cost, params)`
 %
 % `hessian = ndbase.estimate_hessian(func_cost, params, 'step', step_size)`
 %
@@ -168,5 +170,5 @@ function hessian = estimate_hessian(fcost, params, varargin)
         end
         params(ipar_row) = params(ipar_row) - step_size(ipar_row);
     end
-
+    varargout = {initial_cost};
 end
