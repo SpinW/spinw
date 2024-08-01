@@ -455,7 +455,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function resid_sq_sum = calc_cost_func(obj, params)
             % evaluate fit function
-            [ycalc, ~] = calc_spinwave_spec(obj, params);
+            [ycalc, ~] = obj.calc_spinwave_spec(params);
             if obj.liveplot_interval > 0
                 obj.liveplot_counter = obj.liveplot_counter + 1;
                 if obj.liveplot_counter == obj.liveplot_interval
@@ -488,6 +488,33 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                                        'lb', obj.bounds(:,1)', ...
                                        'ub', obj.bounds(:,2)', ...
                                        varargin{:});
+        end
+
+        function [param_errors, varargout] = calc_uncertainty(obj, params, varargin)
+        % Function to estimate parameter errors by evaluating hessian.
+        % By defualt will only evaluate derivatives for parameters
+        % which are free to vary in the fit. The index of the
+        % parameters is optionally output. The second optional output
+        % is the full covariance matrix.
+        %
+        % ### Usage
+        %
+        % errors = sw_fitpowder_obj.calc_uncertainty(params)
+        % [errors, ipars] = sw_fitpowder_obj.calc_uncertainty(params)
+        % [errors, ipars, cov_mat] = sw_fitpowder_obj.calc_uncertainty(params)
+            if ~any(cellfun(@(elem) elem =="ivary", varargin(1:2:end)))
+                % set parameters varied in fit from bounds
+                ivary = find(obj.bounds(:,2) - obj.bounds(:,1) > obj.zero_abs_tol);
+                varargin(end+1:end+2) = {"ivary", ivary};
+            end
+            [hess, cost] = ndbase.estimate_hessian(@obj.calc_cost_func, params, varargin{:});
+            % determine num DoF
+            nbins = sum(isfinite(obj.y) & obj.e > obj.zero_abs_tol, 'all');
+            ndof = nbins - size(hess,1);
+            % calc errors
+            cov = inv(hess) * 2.0 * cost/ ndof;
+            param_errors = sqrt(diag(cov));
+            varargout = {ivary, cov}; 
         end
 
         function fit_background(obj, varargin)
