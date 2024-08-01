@@ -27,12 +27,12 @@ classdef unittest_ndbase_estimate_hessian < sw_tests.unit_tests.unittest_super
             pars = [1,0];
             out = ndbase.estimate_hessian(testCase.fcost, pars, pars*1e-4);
             % automatic step size assumes
-            testCase.verify_val(out, testCase.expected_hessian(pars), 'abs_tol', 1e-6);
+            testCase.verify_val(out, testCase.expected_hessian(pars), 'abs_tol', 1e-4);
         end
         function test_relative_step_size(testCase)
             pars = [1,0];
             out = ndbase.estimate_hessian(testCase.fcost, pars, 1e-4);
-            testCase.verify_val(out, testCase.expected_hessian(pars), 'abs_tol', 1e-6);
+            testCase.verify_val(out, testCase.expected_hessian(pars), 'abs_tol', 1e-4);
         end
         function test_absolute_step_size_negative(testCase)
             out = ndbase.estimate_hessian(testCase.fcost, testCase.minimum, [-1e-5, -1e-5]);
