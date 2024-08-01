@@ -1,9 +1,11 @@
-function hessian = estimate_hessian(fcost, params, step_size)
+function hessian = estimate_hessian(fcost, params, varargin)
 % ### Syntax
 % 
 % `hessian = ndbase.estimate_hessian(func_cost, params)`
 %
-% `hessian = ndbase.estimate_hessian(func_cost, params, step_size)`
+% `hessian = ndbase.estimate_hessian(func_cost, params, 'step', step_size)`
+%
+% `hessian = ndbase.estimate_hessian(func_cost, params, 'ivary', ivary)`
 % 
 % ### Description
 % 
@@ -35,7 +37,9 @@ function hessian = estimate_hessian(fcost, params, step_size)
 % `params`
 % : Vector of best-fit parameters
 %
-% `step_size` (optional)
+% ### Name-Value Pair Arguments
+%
+% `step` (optional)
 % : Scalar double or vector of doubles (same size as params) governing the
 %   step used in the finite difference derivatives:
 %
@@ -47,6 +51,12 @@ function hessian = estimate_hessian(fcost, params, step_size)
 %     starting from a minimum fractional step_size of sqrt(eps) ~ 1e-8.
 %     Note this may require additional function evauations - which may be
 %     expensive.
+%
+% `ivary` (optional)
+% : indices of parameters which were varied in the fit - the final hessian
+%   will be a sqare matrix of size [numel(ivary) x numel(ivary)].
+%   If not provided all parameters will be varied.
+
 %
 % ### Output Arguments
 % 
@@ -74,23 +84,35 @@ function hessian = estimate_hessian(fcost, params, step_size)
 % >> perr = sqrt(diag(cov)); % errors on best fit parameters
 %'''
 %
-    npar = numel(params);
-    optimise_step = false;
+    % defaults
+    optimise_step = true;
     min_step = sqrt(eps);
+    step_size = params.*min_step;
     max_niter = 16; % default number of iterations in optimising step size
-    if nargin > 2
-        if numel(step_size)==1
-            % interpret as fractional step size
-            step_size = params.*step_size;
-        elseif numel(step_size) ~= npar
-            error("ndbase:estimate_hessian", ...
-                  "If step_size is provided it must be a scalar or vector " + ...
-                  "with same number of elements as params");
+    npar = numel(params);
+    ivary = 1:npar;
+    % parse parameters
+    for ikey = 1:2:numel(varargin)
+        switch varargin{ikey}
+            case 'step'
+                optimise_step=false;
+                step_size = varargin{ikey+1};
+                if numel(step_size)==1
+                    % interpret as fractional step size
+                    step_size = params.*step_size;
+                end
+            case 'ivary'
+                ivary = varargin{ikey+1};
+                npar = numel(ivary);
         end
-    else
-        step_size = params.*min_step;
-        optimise_step=true;
     end
+
+    if numel(step_size) ~= numel(params)
+        error("ndbase:estimate_hessian", ...
+              "If step_size is provided it must be a scalar or vector " + ...
+              "with same number of elements as params");
+    end
+    % enforce minimum step size
     step_size(abs(step_size) < min_step) = min_step;
     
     % calculate jacobian at param
@@ -98,12 +120,13 @@ function hessian = estimate_hessian(fcost, params, step_size)
     initial_cost = fcost(params);
     jac_one_step = zeros(1, npar);
     cost_one_step = zeros(1, npar);
-    for ipar = 1:npar
+    for irow = 1:npar
+        ipar = ivary(irow);
         success = false;
         for niter = 1:max_niter
             params(ipar) = params(ipar) + step_size(ipar);
-            cost_one_step(ipar) = fcost(params);
-            delta_cost = (cost_one_step(ipar) - initial_cost);
+            cost_one_step(irow) = fcost(params);
+            delta_cost = (cost_one_step(irow) - initial_cost);
             params(ipar) = params(ipar) - step_size(ipar);
             if abs(delta_cost) > min_step || ~optimise_step
                 success = true;
@@ -115,20 +138,22 @@ function hessian = estimate_hessian(fcost, params, step_size)
         if optimise_step && ~success
             warning("ndbase:estimate_hessian", "Failed to optimise step size for parameter index %d", ipar);
         end
-        jac_one_step(ipar) = delta_cost/step_size(ipar);
+        jac_one_step(irow) = delta_cost/step_size(ipar);
     end
     % compute hessian
     for irow = 1:npar
-        params(irow) = params(irow) + step_size(irow);
+        ipar_row = ivary(irow);
+        params(ipar_row) = params(ipar_row) + step_size(ipar_row);
         for icol = irow:npar
-            params(icol) = params(icol) + step_size(icol);
+            ipar_col = ivary(icol);
+            params(ipar_col) = params(ipar_col) + step_size(ipar_col);
             cost_two_step = fcost(params);
-            jac_two_step = (cost_two_step - cost_one_step(irow))/step_size(icol);
-            hessian(irow, icol) = (jac_two_step - jac_one_step(icol))/step_size(irow);
+            jac_two_step = (cost_two_step - cost_one_step(irow))/step_size(ipar_col);
+            hessian(irow, icol) = (jac_two_step - jac_one_step(icol))/step_size(ipar_row);
             hessian(icol,irow) = hessian(irow, icol);
-            params(icol) = params(icol) - step_size(icol);
+            params(ipar_col) = params(ipar_col) - step_size(ipar_col);
         end
-        params(irow) = params(irow) - step_size(irow);
+        params(ipar_row) = params(ipar_row) - step_size(ipar_row);
     end
 
 end
