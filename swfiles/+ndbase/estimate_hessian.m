@@ -56,7 +56,15 @@ function hessian = estimate_hessian(fcost, params, varargin)
 % : indices of parameters which were varied in the fit - the final hessian
 %   will be a sqare matrix of size [numel(ivary) x numel(ivary)].
 %   If not provided all parameters will be varied.
-
+%
+% `niter` (optional)
+% : Number of iterations in optimising step size (step doubled in each
+%   iteration from minimum value of sqrt(eps))
+%
+% `cost_tol` (optional)
+% : Minimum difference in cost function value for a step size to be
+%   considered appropriate. Step size optimisation will be terminated once
+%   this condition is met.
 %
 % ### Output Arguments
 % 
@@ -88,9 +96,10 @@ function hessian = estimate_hessian(fcost, params, varargin)
     optimise_step = true;
     min_step = sqrt(eps);
     step_size = params.*min_step;
-    max_niter = 16; % default number of iterations in optimising step size
     npar = numel(params);
     ivary = 1:npar;
+    max_niter = 16; % default number of iterations in optimising step size
+    cost_tol = min_step; % used in step size automation
     % parse parameters
     for ikey = 1:2:numel(varargin)
         switch varargin{ikey}
@@ -104,6 +113,10 @@ function hessian = estimate_hessian(fcost, params, varargin)
             case 'ivary'
                 ivary = varargin{ikey+1};
                 npar = numel(ivary);
+            case 'niter'
+                max_niter = varargin{ikey+1};
+            case 'cost_tol'
+                cost_tol = varargin{ikey+1};
         end
     end
 
@@ -128,7 +141,7 @@ function hessian = estimate_hessian(fcost, params, varargin)
             cost_one_step(irow) = fcost(params);
             delta_cost = (cost_one_step(irow) - initial_cost);
             params(ipar) = params(ipar) - step_size(ipar);
-            if abs(delta_cost) > min_step || ~optimise_step
+            if abs(delta_cost) > cost_tol || ~optimise_step
                 success = true;
                 break
             else
