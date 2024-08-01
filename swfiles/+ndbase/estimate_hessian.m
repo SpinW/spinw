@@ -91,7 +91,7 @@ function hessian = estimate_hessian(fcost, params, step_size)
         step_size = params.*min_step;
         optimise_step=true;
     end
-    step_size(step_size < min_step) = min_step;
+    step_size(abs(step_size) < min_step) = min_step;
     
     % calculate jacobian at param
     hessian = zeros(npar);
@@ -105,7 +105,7 @@ function hessian = estimate_hessian(fcost, params, step_size)
             cost_one_step(ipar) = fcost(params);
             delta_cost = (cost_one_step(ipar) - initial_cost);
             params(ipar) = params(ipar) - step_size(ipar);
-            if delta_cost > min_step || ~optimise_step
+            if abs(delta_cost) > min_step || ~optimise_step
                 success = true;
                 break
             else
