@@ -3,8 +3,8 @@
 
 %% Define instrument resolution parameters for MARI
 % This is a simplified parameterisation of the resolution of a
-% Time-of-flight spectrometer whic hwill be used to broaden the simulated
-% data. These parameters will depend on the insturment used - the instrument
+% Time-of-Flight spectrometer which will be used to broaden the simulated
+% data. These parameters will depend on the instrument used - the instrument
 % contact should be able to provide these.
 
 Ei = 5; % meV
@@ -27,7 +27,8 @@ dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
 
 %% Generate data
 % Simulate a powder spectrum of a triangular AFM with constant background
-% and normally distributed noise.
+% and normally distributed noise. This can also be done using the powder
+% fitting class if an empty data array is passed.
 
 
 % intialise spinw model
@@ -53,13 +54,14 @@ data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
 
 
 %% Initialise the sw_fitpowder class and plot data to inspect initial guess
-% The class object is initialised with the spinw object, the data (can be
-% xye structs for 2D data a cell array of xye structs for 1D data, or
-% HORACE objects - see sw_fitpowder help for more details) and a fit function 
-% which alters the matrices on the spinw object and a vector of initial
-% guesses for the fit parameters.
+% To initialise the powder fitting class (sw_fitpowder) object requires a 
+% spinw model with a magnetic strucutre and couplings added. 
+% Additional arguments are the data (can be xye structs for 2D data a cell
+% array of xye structs for 1D data, or HORACE objects - see sw_fitpowder
+% help for more details), a fit function which alters the matrices on the 
+% spinw object and a vector of initial guesses for the fit parameters.
 %
-% Optinally a background startegy can be specified as a 5th positional 
+% Optinally a background strategy can be specified as a 5th positional 
 % argument ("planar" background in energy transfer and |Q| or "independent"
 % background for each 1D cut (1D only)).
 %
@@ -68,8 +70,8 @@ data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
 % by modifying structs as shown below.
 %
 % Data can be cropped in |Q| and energy transfer - for example it is
-% advisible not to include the low-energy transfers within close to the
-% elastic line (relatice to the resolution). 
+% advisible not to include the low-energy transfer region close to the
+% elastic line (relative to the resolution). 
 
 
 fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', {'J_1'}, 'init', true);
@@ -135,8 +137,6 @@ fitpow.set_model_parameter_bounds(1, 0, []) % Force J_1 to be AFM
 [pfit, cost_val, stat] = fitpow.fit();
 
 % plot 2D colorfill
-% [pfit, cost_val, stat] = result{:};
-% pfit = result{1};
 fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k')
 
 % make 1D plots
@@ -146,15 +146,27 @@ fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 
 
 %% Fit 1D cuts
-% sw_fitpowder class can be initialised with a sequence of 1D cuts at 
-% constant |Q|- or having loaded in 2D data, the data can be replaced with 
-% constanrt |Q| cuts. As disucssed, the background for 1D cuts can be 
-% handled in two ways: as a planar background as in the 2D case, or a 
-% linear background in energy transfer that is independent for each 1D cut.
+% As discussed the sw_fitpowder class can be initialised with a cell array
+% of xye structs correpsonding to 1D cuts at constant |Q|.
+% Alternatively, having loaded in 2D data the sw_fitpowder class has a 
+% convenient method to take 1D cuts and replace the data. 
+% 
+% To evaluate the cost function for 1D cuts, the class averages the model 
+% over nQ points. Depending on the size of the 2D data and the value of nQ
+% it can be much quicker to fit 1D cuts.
+% 
+% The background for 1D cuts can be handled in two ways:
+%
+%  - A planar background as in the 2D case
+%
+%  - A linear background in energy transfer that's independent for each cut.
+%
 % The background parameters and bounds are reset if the background
 % strategy is changed to independent.
 
-% change background to independent (planar is default)
+% set nQ before replacing data (reduced from default, 10, for speed)
+fitpow.nQ = 5;
+% change background strategyto independent (planar is default)
 fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq, "independent");
 
 % independent linear background for all cuts with parameters:
