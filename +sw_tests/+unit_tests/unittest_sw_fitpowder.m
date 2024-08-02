@@ -338,6 +338,28 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                     'abs_tol', 1e-4);
         end
 
+        function test_calc_cost_func_of_background_indep(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent", 2);
+            out.y(1) = 10;  % higher so other bins are background
+            bg_pars = out.params(2:end-1);
+            bg_pars(2:2:end) = 1;
+            out.estimate_constant_background(); % so ibg is set
+            cost = out.calc_cost_func_of_background(bg_pars);
+            testCase.verify_val(cost, 10);
+        end
+
+        function test_calc_cost_func_of_background_planar(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "planar", 2);
+            out.y(1) = 10;  % higher so other bins are background
+            bg_pars = out.params(2:end-1);
+            bg_pars(end) = 1;
+            out.estimate_constant_background(); % so ibg is set
+            cost = out.calc_cost_func_of_background(bg_pars);
+            testCase.verify_val(cost, 10);
+        end
+
         function test_set_errors_of_bg_bins(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
