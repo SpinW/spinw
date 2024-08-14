@@ -155,7 +155,10 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
             end
         end
         if optimise_step && ~success
-            warning("ndbase:estimate_hessian", "Failed to optimise step size for parameter index %d", ipar);
+            step_size(ipar) = step_size(ipar)/2; % undo last doubling
+            warning("ndbase:estimate_hessian", ...
+                    "Failed to optimise step size for parameter index %d -" + ...
+                    " maximum step size used was %.2e", ipar, step_size(ipar));
         end
         jac_one_step(irow) = delta_cost/step_size(ipar);
     end
