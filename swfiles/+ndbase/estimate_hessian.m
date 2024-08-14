@@ -1,4 +1,4 @@
-function [hessian, varargout] = estimate_hessian(fcost, params, varargin)
+function [hessian, varargout] = estimate_hessian(fcost, params, options)
 % ### Syntax
 % 
 % `hessian = ndbase.estimate_hessian(func_cost, params)`
@@ -94,33 +94,34 @@ function [hessian, varargout] = estimate_hessian(fcost, params, varargin)
 % >> perr = sqrt(diag(cov)); % errors on best fit parameters
 %'''
 %
-    % defaults
+    arguments
+        fcost function_handle
+        params double
+        options.step double = 0
+        options.ivary double = 0
+        options.niter (1,1) double = 16
+        options.cost_tol (1,1) double = sqrt(eps)
+    end
     optimise_step = true;
     min_step = sqrt(eps);
     step_size = params.*min_step;
     npar = numel(params);
     ivary = 1:npar;
-    max_niter = 16; % default number of iterations in optimising step size
-    cost_tol = min_step; % used in step size automation
-    % parse parameters
-    for ikey = 1:2:numel(varargin)
-        switch varargin{ikey}
-            case 'step'
-                optimise_step=false;
-                step_size = varargin{ikey+1};
-                if numel(step_size)==1
-                    % interpret as fractional step size
-                    step_size = params.*step_size;
-                end
-            case 'ivary'
-                ivary = varargin{ikey+1};
-                npar = numel(ivary);
-            case 'niter'
-                max_niter = varargin{ikey+1};
-            case 'cost_tol'
-                cost_tol = varargin{ikey+1};
+    if options.step
+        optimise_step = false;
+        step_size = options.step;
+        if numel(step_size)==1
+            % interpret as fractional step size
+            step_size = params .* step_size;
         end
     end
+    if options.ivary
+        ivary = options.ivary;
+        npar = numel(ivary);
+    end
+    max_niter = options.niter;
+    cost_tol = options.cost_tol;
+
 
     if numel(step_size) ~= numel(params)
         error("ndbase:estimate_hessian", ...
