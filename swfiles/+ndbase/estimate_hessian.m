@@ -73,8 +73,12 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
 % `hessian` 
 % : Hessian matrix from which covariance matrix can be calculated.
 %
-% `cost_val` 
-% : Value of cost function evaluated at input parameters in params vector.
+% `stats` (optional)
+% : Struct with following fields
+%
+%   * `cost_val`:  Cost function evaluted at input parameters
+%   * `step_size`: Vector of steps in finite-difference method for each
+%                  parameter.
 %
 % ### Examples
 %```
@@ -177,5 +181,7 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
         end
         params(ipar_row) = params(ipar_row) - step_size(ipar_row);
     end
-    varargout = {initial_cost};
+    out_struct.cost_val = initial_cost;
+    out_struct.step_size = step_size;
+    varargout = {out_struct};
 end

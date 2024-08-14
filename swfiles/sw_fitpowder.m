@@ -512,12 +512,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 ivary = find(obj.bounds(:,2) - obj.bounds(:,1) > obj.zero_abs_tol);
                 varargin(end+1:end+2) = {"ivary", ivary};
             end
-            [hess, cost] = ndbase.estimate_hessian(@obj.calc_cost_func, params, varargin{:});
+            [hess, stats] = ndbase.estimate_hessian(@obj.calc_cost_func, params, varargin{:});
             % determine num DoF
             nbins = sum(isfinite(obj.y) & obj.e > obj.zero_abs_tol, 'all');
             ndof = nbins - size(hess,1);
             % calc errors
-            cov = inv(hess) * 2.0 * cost/ ndof;
+            cov = inv(hess) * 2.0 * stats.cost_val/ ndof;
             param_errors = sqrt(diag(cov));
             varargout = {ivary, cov}; 
         end
