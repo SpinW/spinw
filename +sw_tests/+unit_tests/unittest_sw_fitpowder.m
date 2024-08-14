@@ -372,10 +372,9 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.fix_bg_parameters(1:2);
             out.fix_scale()
             out.set_bg_parameters(3, mean(out.y, 'all'));
-            [param_errors, ivary] = out.calc_uncertainty(out.params);
-            % test erros determined for only 1 parameter (const bg)
-            testCase.verify_val(param_errors, 0.3651, 'abs_tol', 1e-4);
-            testCase.verify_val(ivary, 4, 'abs_tol', 1e-4);
+            [param_errors, cov] = out.calc_uncertainty(out.params);
+            % test errors determined for only 1 parameter (const bg)
+            testCase.verify_val(param_errors, [0; 0; 0; 0.3651; 0], 'abs_tol', 1e-4);
         end
 
         function test_estimate_scale_factor(testCase)

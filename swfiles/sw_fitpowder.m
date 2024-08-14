@@ -500,8 +500,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         % ### Usage
         %
         % errors = sw_fitpowder_obj.calc_uncertainty(params)
-        % [errors, ipars] = sw_fitpowder_obj.calc_uncertainty(params)
-        % [errors, ipars, cov_mat] = sw_fitpowder_obj.calc_uncertainty(params)
+        % [errors, cov] = sw_fitpowder_obj.calc_uncertainty(params)
         %
         % ### See Also
         % 
@@ -518,8 +517,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ndof = nbins - size(hess,1);
             % calc errors
             cov = inv(hess) * 2.0 * stats.cost_val/ ndof;
-            param_errors = sqrt(diag(cov));
-            varargout = {ivary, cov}; 
+            param_errors = zeros(size(params));
+            param_errors(ivary) = sqrt(diag(cov));
+            varargout = {cov}; 
         end
 
         function fit_background(obj, varargin)
