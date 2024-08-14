@@ -66,12 +66,15 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
 % `cost_tol` (optional)
 % : Minimum difference in cost function value for a step size to be
 %   considered appropriate. Step size optimisation will be terminated once
-%   this condition is met.
+%   this condition is met. Default is sqrt(epse) ~ 1e-8.
 %
 % ### Output Arguments
 % 
 % `hessian` 
 % : Hessian matrix from which covariance matrix can be calculated.
+%
+% `cost_val` 
+% : Value of cost function evaluated at input parameters in params vector.
 %
 % ### Examples
 %```

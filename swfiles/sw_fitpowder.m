@@ -492,7 +492,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function [param_errors, varargout] = calc_uncertainty(obj, params, varargin)
         % Function to estimate parameter errors by evaluating hessian.
-        % By defualt will only evaluate derivatives for parameters
+        % By default will only evaluate derivatives for parameters
         % which are free to vary in the fit. The index of the
         % parameters is optionally output. The second optional output
         % is the full covariance matrix.
@@ -502,6 +502,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         % errors = sw_fitpowder_obj.calc_uncertainty(params)
         % [errors, ipars] = sw_fitpowder_obj.calc_uncertainty(params)
         % [errors, ipars, cov_mat] = sw_fitpowder_obj.calc_uncertainty(params)
+        %
+        % ### See Also
+        % 
+        % [ndbase.estimate_hessian]
+        %
             if ~any(cellfun(@(elem) elem =="ivary", varargin(1:2:end)))
                 % set parameters varied in fit from bounds
                 ivary = find(obj.bounds(:,2) - obj.bounds(:,1) > obj.zero_abs_tol);
