@@ -7,14 +7,14 @@
 % data. These parameters will depend on the instrument used - the instrument
 % contact should be able to provide these.
 
-Ei = 5; % meV
+Ei = 20; % meV
 
-% Resolution (from PyChop)
-eres = @(en) 512.17*sqrt((Ei-en).^3 .* ( 8.26326e-10*(0.169+0.4*(Ei./(Ei-en)).^1.5).^2 + 2.81618e-11*(1.169+0.4*(Ei./(Ei-en)).^1.5).^2));
+% Resolution for MARI with Gd chopper running at 200Hz and Ei=20meV (from PyChop)
+eres = @(en) 2.1750e-04*sqrt((Ei-en).^3 .* ( (32.27217*(0.168+0.400*(Ei./(Ei-en)).^1.5)).^2 + (14.53577*(1.168+0.400*(Ei./(Ei-en)).^1.5)).^2) );
 % Q-resolution (parameters for MARI)
 e2k = @(en) sqrt( en .* (2*1.67492728e-27*1.60217653e-22) )./1.05457168e-34./1e10;
 L1 = 11.8;  % Moderator to Sample distance in m
-L2 = 2.5;   % Sample to detector distance in m
+L2 = 4.0;   % Sample to detector distance in m
 ws = 0.05;  % Width of sample in m
 wm = 0.12;  % Width of moderator in m
 wd = 0.025; % Width of detector in m
