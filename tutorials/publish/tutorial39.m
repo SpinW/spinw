@@ -33,25 +33,24 @@ dQ = 2.35 * sqrt( (ki*a1)^2/12 + (ki*a2)^2/12 + (ki*a3)^2/12 + (ki*a4)^2/12 );
 
 % intialise spinw model
 tri = sw_model('triAF',1);
+scale = 1000;
 
 % calculate powder spectrum
 E = linspace(0,4,80);
 Q = linspace(0.1,3,60);
 spec = tri.powspec(Q,'Evect',E,'nRand',2e2);
-% add noise and background
-bg = 0.1*mean(spec.swConv, 'all');
-spec.swConv = spec.swConv + bg;
-e = (1e-4)*sqrt(spec.swConv);
-spec.swConv = spec.swConv + e.*randn(size(spec.swConv));
+% scale data and add background
+spec.swConv= scale*(spec.swConv + 0.1*mean(spec.swConv, 'all'));
 % crop to kinematic range of instrument and apply some arbitrary resolution
-spec = sw_instrument(spec, 'dQ', 0.01, 'dE', eres, 'ThetaMin', 3.5, 'Ei', Ei);
+spec = sw_instrument(spec, 'dQ', dQ, 'dE', eres, 'ThetaMin', 3.5, 'Ei', Ei);
+% add noise
+e = sqrt(spec.swConv);
+spec.swConv = spec.swConv + e.*randn(size(spec.swConv));
 
 % make xye struct containing data
 data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
               'y', spec.swConv', ...
               'e', e');
-
-
 
 %% Initialise the sw_fitpowder class and plot data to inspect initial guess
 % To initialise the powder fitting class (sw_fitpowder) object requires a 
