@@ -89,7 +89,7 @@ fitpow.powspec_args.hermit = true;
 fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
 
 % crop data
-fitpow.crop_energy_range(0.2, inf); % typically want to avoid elastic line
+fitpow.crop_energy_range(1.5*eres(0), inf); % typically want to avoid elastic line
 fitpow.crop_q_range(0.25, 3);
 fitpow.powspec_args.dE = eres;
 fitpow.powspec_args.fastmode = true;
