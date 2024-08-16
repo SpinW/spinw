@@ -122,9 +122,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 % >> fitpow.fix_bg_parameters(1:2); % fix slopes of background to 0
 % >> fitpow.cost_function = "Rsq";  % or "chisq"
 % >> fitpow.optimizer = @ndbase.simplex;
-% >> result = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
-% >> 
-% >> [pfit,cost_val,stat] = result{:};
+% >> [pfit,cost_val,stat] = fitpow.fit('MaxIter', 1);  % passes varargin to optimizer
+% >>
 % >> fitpow.plot_result(pfit, 26, 'EdgeAlpha', 0.9, 'LineWidth', 2)
 % ```
 %
@@ -469,22 +468,22 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
             bg = obj.calc_background(bg_params);
-            if obj.ndim == 1
+            if obj.ndim == 1 && obj.background_strategy=="planar"
                 % integrate nQ |Q| points for each cut
                 bg = obj.rebin_powspec_to_1D_cuts(bg);
             end
             resid_sq_sum = obj.eval_cost(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
         end
 
-        function result = fit(obj, varargin) 
+        function varargout = fit(obj, varargin) 
             if obj.liveplot_interval > 0
                 figure("color","white");
                 obj.liveplot_counter = 0;
             end
             % setup cell for output of ndbase optimizer/minimizer
-            result = cell(1,nargout(obj.optimizer));
+            varargout = cell(1,nargout(obj.optimizer));
             % pass params and bounds as rows for ndbase optimisers
-            [result{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
+            [varargout{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
                                        'lb', obj.bounds(:,1)', ...
                                        'ub', obj.bounds(:,2)', ...
                                        varargin{:});
@@ -562,9 +561,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 bg = obj.find_indices_and_mean_of_bg_bins();
             else
                 bg = mean(obj.y(obj.ibg));
-            end
-            if obj.background_strategy == "planar" && obj.ndim == 1
-                bg = bg/obj.nQ;
             end
             % set constant background assuming last bg parameter
             obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
@@ -682,13 +678,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                    'This function is only valid for 2D data');
             cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
             ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
-            cut.y = sum(obj.y(:, ikeep), 2);
-            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2));
+            cut.y = mean(obj.y(:, ikeep), 2, 'omitnan');
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2))/sum(ikeep);
         end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
             ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
-            ycalc = squeeze(sum(ycalc, 2, 'omitnan'));
+            ycalc = squeeze(mean(ycalc, 2, 'omitnan'));
         end
 
         function nbg_pars = get_nparams_in_background_func(obj)
