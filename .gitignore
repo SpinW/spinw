@@ -38,3 +38,13 @@ unresolvedSymbols.txt
 
 coverage*xml
 junit*xml
+coverageReport
+coverage.html
+
+mltbx/mltbx/CITATION.cff
+mltbx/mltbx/license.txt
+mltbx/spinw.mltbx
+
+*.mexa64
+*.mexmaci64
+*.mexw64
