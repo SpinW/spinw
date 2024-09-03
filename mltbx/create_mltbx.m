@@ -1,5 +1,8 @@
 currdir = fileparts(mfilename('fullpath'));
-rmdir(fullfile(currdir, 'mltbx'), 's');
+mltbx_dir = fullfile(currdir, 'mltbx');
+if exist(mltbx_dir)
+    rmdir(mltbx_dir, 's');
+end
 mkdir(fullfile(currdir, 'mltbx'));
 copyfile(fullfile(currdir, '..', 'CITATION.cff'), fullfile(currdir, 'mltbx'));
 copyfile(fullfile(currdir, '..', 'license.txt'), fullfile(currdir, 'mltbx'));

@@ -70,11 +70,11 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
-          release: ${{ matrix.matlab_version }}
+          release: latest
       - name: Build mltbx
         uses: matlab-actions/run-command@v2
         with:
-          command: "create_mltbx"
+          command: "cd mltbx; create_mltbx"
       - name: Upload mltbx
         uses: actions/upload-artifact@v4
         with:
