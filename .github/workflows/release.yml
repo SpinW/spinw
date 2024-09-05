@@ -13,10 +13,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - if: |
+      - uses: actions/setup-python@v4
+      - name: Create Release
+        if: |
           contains(github.event.pull_request.title, 'RELEASE') &&
           github.event.pull_request.merged
         shell: bash -l {0}
         run: |
-          pip3 install requests
-          python3 release.py --notest --github --create_tag --token=${{ secrets.GH_TOKEN }}
+          python -m pip install requests
+          python release.py --notest --github --create_tag --token=${{ secrets.GH_TOKEN }}

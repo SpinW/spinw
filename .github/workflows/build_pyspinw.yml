@@ -156,7 +156,7 @@ jobs:
       - name: Build Wheel
         run: |
           cd ${{ github.workspace }}/python
-          python -m pip wheel --no-deps --wheel-dir build .
+          python -m pip wheel --no-deps --wheel-dir wheelhouse .
       - name: Run python test
         run: |
           pip install scipy
@@ -172,8 +172,8 @@ jobs:
       - name: Upload release wheels
         if: ${{ github.event_name == 'release' }}
         run: |
-          pip3 install requests
-          python3 release.py --notest --github --token=${{ secrets.GH_TOKEN }}
+          python -m pip install requests
+          python release.py --notest --github --token=${{ secrets.GH_TOKEN }}
       - name: Setup tmate
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3

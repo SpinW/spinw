@@ -47,8 +47,8 @@ if param.compile
     swloop_dir = [sw_rootdir filesep 'external' filesep 'swloop'];
     swqconv_dir = [sw_rootdir filesep 'external' filesep 'sw_qconv'];
     eigen_ver = '3.4.0';
-    if ~exist([swloop_dir filesep 'eigen-' eigen_ver], 'dir')
-        cd(swloop_dir);
+    if ~exist([sw_rootdir filesep 'eigen-' eigen_ver], 'dir')
+        cd(sw_rootdir);
         disp('Downloading Eigen')
         mkdir(['eigen-' eigen_ver]);
         cd(['eigen-' eigen_ver]);
@@ -70,7 +70,7 @@ if param.compile
         mex('-v','-largeArrayDims','sw_mtimesx.c','-lmwblas','COMPFLAGS=$COMPFLAGS /openmp',...
             'LINKFLAGS=$LINKFLAGS /nodefaultlib:vcomp "$MATLABROOT\bin\win64\libiomp5md.lib"')
         cd(swloop_dir);
-        mex('-R2018a',['COMPFLAGS= /I eigen-' eigen_ver],'swloop.cpp')
+        mex('-R2018a',['COMPFLAGS= /I ' sw_rootdir filesep 'eigen-' eigen_ver],'swloop.cpp')
     elseif ismac
         % add =libiomp5 after -fopenmp?
         if strcmp(mexext, 'mexmaca64')
@@ -98,7 +98,7 @@ if param.compile
             ['LDFLAGS="$LDFLAGS ' mwlinklib ' ' omp_lib ' -lmwblas"'], ...
             'CXXOPTIMFLAGS="$CXXOPTIMFLAGS -Xclang -fopenmp"', omp_inc);
         cd(swloop_dir);
-        mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
+        mex('-v','-R2018a',['-I' sw_rootdir filesep 'eigen-' eigen_ver],'swloop.cpp')
     else
         % linux?
         cd(eig_omp_dir);
@@ -108,7 +108,7 @@ if param.compile
         cd(mtimesx_dir);
         mex('-v','-largeArrayDims','sw_mtimesx.c','-lmwblas','CXXFLAGS=$CXXFLAGS -fopenmp -pthread','LDFLAGS=$LDFLAGS -fopenmp')
         cd(swloop_dir);
-        mex('-v','-R2018a',['-Ieigen-' eigen_ver],'swloop.cpp')
+        mex('-v','-R2018a',['-I' sw_rootdir filesep 'eigen-' eigen_ver],'swloop.cpp')
     end
     cd(swqconv_dir);
     mex('-R2018a','sw_qconv.cpp')

@@ -179,6 +179,8 @@ def _upload_assets(upload_url, token):
                          "Content-type": "application/octet-stream"},
                 data=f.read())
             print(upload_response.text)
+    elif wheelpaths is None:
+        raise RuntimeError('No wheels or matlab-toolboxes found in folder. Cannot upload anything')
     return None
 
 
