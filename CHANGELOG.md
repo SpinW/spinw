@@ -1,3 +1,7 @@
+# [v4.0.1](https://github.com/spinw/spinw/compare/v4.0.0...v4.0.1)
+
+Bugfix release
+
 # [v4.0.0](https://github.com/spinw/spinw/compare/v3.2.0...v4.0.0)
 
 ## New Features
