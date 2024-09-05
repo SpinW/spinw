@@ -156,8 +156,10 @@ def _create_gh_release(payload, token):
 def _upload_assets(upload_url, token):
     assert token is not None, 'Need token for this action'
     import requests
-    if os.path.exists('wheelhouse'):
-        wheelpaths = [os.path.join('wheelhouse', ff) for ff in os.listdir('wheelhouse')]
+    wheelpaths = None
+    wheelhouse = os.path.join('python', 'wheelhouse')
+    if os.path.exists(wheelhouse):
+        wheelpaths = [os.path.join(wheelhouse, ff) for ff in os.listdir(wheelhouse)]
     if wheelpaths is not None:
         for wheelpath in wheelpaths:
             wheelfile = os.path.basename(wheelpath)
@@ -170,11 +172,11 @@ def _upload_assets(upload_url, token):
                     data=f.read())
                 print(upload_response.text)
     mltbx = os.path.join('mltbx', 'spinw.mltbx')
-    if os.path.exist(mltbx):
+    if os.path.exists(mltbx):
         print('Uploading mltbx')
         with open(mltbx, 'rb') as f:
             upload_response = requests.post(
-                f"{upload_url}?name={wheelfile}",
+                f"{upload_url}?name={mltbx}",
                 headers={"Authorization": "token " + token,
                          "Content-type": "application/octet-stream"},
                 data=f.read())
