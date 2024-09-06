@@ -10,9 +10,9 @@ To create a release:
 3. This will trigger a build with multiple versions of python.
 4. Review the branch, check that all tests for all python versions pass and if so merge.
 5. Once merged, the CI should create a github release in "Draft" mode.
-6. Check that the release page is correct (has all the wheel and `mltbx` files, that the release notes are ok).
+6. Check that the release page is correct (has the wheel and `mltbx` files and the release notes are ok).
 7. Check that the wheel and `mltbx` toolbox can be installed and work.
-7. Then manually trigger the `Publish to PyPI` action to upload the wheel to PyPI.
+8. Then manually trigger the `Publish to PyPI` action to upload the wheel to PyPI.
 
 
 In particular, in step 1:
@@ -28,6 +28,5 @@ In particular, in step 1:
 If the version string in these two files do not match, or if the version string matches an existing git tag,
 then the CI build will fail.
 
-Also note that in step 7, after uploading to PyPI the release cannot be changed on PyPI (only deleted).
+Also note that in step 8, after uploading to PyPI the release cannot be changed on PyPI (only deleted).
 If a release is deleted, you have to then create a new release version (PyPI does not allow overwriting previous releases).
-
