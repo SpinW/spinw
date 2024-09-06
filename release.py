@@ -32,7 +32,7 @@ def main():
 
 
 def release_github(test=True, create_tag=False, token=None):
-    rv = subprocess.run(['git', 'describe', '--tags', '--dirty', '--always', '--long'],
+    rv = subprocess.run(['git', 'describe', '--tags', '--always'],
             capture_output=True)
     if rv.returncode != 0:
         raise Exception(f'During git describe, got this error: {rv.stderr}')
@@ -51,7 +51,7 @@ def release_github(test=True, create_tag=False, token=None):
                      re.DOTALL | re.MULTILINE).groups()[0].strip()
     payload = {
         "tag_name": git_ver,
-        "target_commitish": "main",
+        "target_commitish": "master",
         "name": git_ver,
         "body": desc,
         "draft": False,
@@ -156,16 +156,33 @@ def _create_gh_release(payload, token):
 def _upload_assets(upload_url, token):
     assert token is not None, 'Need token for this action'
     import requests
-    for wheelpath in ['build', 'dist', 'wheelhouse']:
-        wheelfile = os.path.basename(wheelpath)
-        print(f'Uploading wheel {wheelpath}')
-        with open(wheelpath, 'rb') as f:
+    wheelpaths = None
+    wheelhouse = os.path.join('python', 'wheelhouse')
+    if os.path.exists(wheelhouse):
+        wheelpaths = [os.path.join(wheelhouse, ff) for ff in os.listdir(wheelhouse)]
+    if wheelpaths is not None:
+        for wheelpath in wheelpaths:
+            wheelfile = os.path.basename(wheelpath)
+            print(f'Uploading wheel {wheelpath}')
+            with open(wheelpath, 'rb') as f:
+                upload_response = requests.post(
+                    f"{upload_url}?name={wheelfile}",
+                    headers={"Authorization": "token " + token,
+                             "Content-type": "application/octet-stream"},
+                    data=f.read())
+                print(upload_response.text)
+    mltbx = os.path.join('mltbx', 'spinw.mltbx')
+    if os.path.exists(mltbx):
+        print('Uploading mltbx')
+        with open(mltbx, 'rb') as f:
             upload_response = requests.post(
-                f"{upload_url}?name={wheelfile}",
+                f"{upload_url}?name={mltbx}",
                 headers={"Authorization": "token " + token,
                          "Content-type": "application/octet-stream"},
                 data=f.read())
             print(upload_response.text)
+    elif wheelpaths is None:
+        raise RuntimeError('No wheels or matlab-toolboxes found in folder. Cannot upload anything')
     return None
 
 

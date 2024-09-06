@@ -13,10 +13,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-python@v4
       - name: Download wheels
         run: |
-          python3 -m pip install twine requests
-          python3 release.py --pypi --token=${{ secrets.GH_TOKEN }}
+          python -m pip install twine requests
+          python release.py --pypi --token=${{ secrets.GH_TOKEN }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
