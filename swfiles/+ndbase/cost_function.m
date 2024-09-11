@@ -1,0 +1,176 @@
+classdef cost_function < handle & matlab.mixin.SetGet
+% ### Syntax
+% 
+% `param = fit_parameter(value, lb, ub)`
+% 
+% ### Description
+% 
+% Class for evaluating cost function given data and parameters.
+% Optionally the parameters can be bound in which case the class will
+% perform a transformation to convert the constrained optimization problem
+% into an un-constrained problem, using the formulation devised
+% (and documented) for MINUIT (and also used in lmfit).
+% 
+% ### Input Arguments
+% 
+% `data`
+% : Either empty or contains data to be fitted stored in a structure with
+%   fields:
+%   * `dat.x`   vector of $N$ independent variables,
+%   * `dat.y`   vector of $N$ data values to be fitted,
+%   * `dat.e`   vector of $N$ standard deviation (positive numbers)
+%               used to weight the fit. If zero or missing
+%               `1/dat.y^2` will be assigned to each point.
+%%`func`
+% : Function handle with one of the following definition:
+%   * `R2 = func(p)`        if `dat` is empty,
+%   * `y  = func(x,p)`      if `dat` is a struct.
+%   Here `x` is a vector of $N$ independent variables, `p` are the
+%   $M$ parameters to be optimized and `y` is the simulated model, `R2`
+%   is the value to minimize.
+%
+% `parameters`
+% :  Vector of doubles
+%
+% `lb`
+% : Optional vector of doubles corresponding to the lower bound of the 
+%   parameters. Empty vector [] or vector of -inf interpreted as no lower 
+%   bound.
+% 
+% `ub`
+% : Optional vector of doubles corresponding to the upper bound of the 
+%   parameters. Empty vector [] or vector of inf interpreted as no upper 
+%   bound.
+%
+% ### Examples
+    properties (SetObservable)
+        % data
+        cost_func
+        free_to_bound_funcs
+        bound_to_free_funcs
+        ifixed
+    end
+
+    methods
+        function obj = cost_function(fhandle, params, options)
+            arguments
+                fhandle function_handle
+                params double
+                options.lb double = []
+                options.ub double = []
+                options.data struct = struct()
+            end
+            if isempty(fieldnames(options.data))
+                % fhandle calculates cost_val
+                obj.cost_func = fhandle;
+            else
+                % fhandle calculates fit/curve function
+                obj.cost_func = @(p) sum(((f(options.data.x(:), p) - options.data.y(:)).^2)./options.data.e(:).^2);
+            end
+            % validate size of bounds
+            lb = options.lb;
+            ub = options.ub;
+            if ~isempty(lb) && numel(lb) ~= numel(params)
+                error("ndbase:cost_function:WrongInput", ...
+                  "Lower bounds must be empty or have same size as parameter vector.");
+            end
+            if ~isempty(ub) && numel(ub) ~= numel(params)
+                error("ndbase:cost_function:WrongInput", ...
+                  "Upper bounds must be empty or have same size as parameter vector.");
+            end
+            if ~isempty(lb) && ~isempty(ub) && any(ub<lb)
+                error("ndbase:cost_function:WrongInput", ...
+                    "Upper bounds have to be larger than the lower bounds.");
+            end
+            % init bound parameters
+            obj.init_bound_parameter_transforms(params, options.lb, options.ub)
+        end
+
+        function init_bound_parameter_transforms(obj, pars, lb, ub)
+            obj.free_to_bound_funcs = cell(size(pars));
+            obj.bound_to_free_funcs = cell(size(pars));
+            obj.ifixed = [];
+            for ipar = 1:numel(pars)
+                has_lb = ~isempty(lb) && lb(ipar) > -inf;
+                has_ub = ~isempty(ub) && ub(ipar) < inf;
+                if has_lb && has_ub
+                    % both bounds specified and parameter not fixed
+                    obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
+                    obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
+                    if  abs(ub(ipar) - lb(ipar)) > ub(ipar)*1e-8
+                        % fixed - bounds same within tol
+                        obj.ifixed = [obj.ifixed, ipar];
+                    end
+                elseif has_lb
+                    obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb(p, lb(ipar));
+                    obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb(p, lb(ipar));
+                elseif has_ub
+                    obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_ub(p, ub(ipar));
+                    obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_ub(p, ub(ipar));
+                else
+                    obj.free_to_bound_funcs{ipar} = @(p) p;
+                    obj.bound_to_free_funcs{ipar} = @(p) p;
+                end
+            end
+        end
+
+        function pars_bound = get_bound_parameters(obj, pars)
+            pars_bound = zeros(size(pars));
+            for ipar = 1:numel(params)
+                pars_bound(ipar) = obj.free_to_bound{ipar}(pars(ipar));
+            end
+        end
+
+        function pars = get_free_parameters(obj, pars_bound)
+            pars = zeros(size(pars_bound));
+            for ipar = 1:numel(params)
+                pars(ipar) = obj.bound_to_free{ipar}(pars_bound(ipar));
+            end
+        end
+
+        function cost_val = eval_cost_function(obj, pars_bound)
+            pars = obj.get_free_parameters(pars_bound);
+            cost_val = obj.cost_func(pars);
+        end
+
+        function is_fixed = is_parameter_fixed(obj, ipar)
+            is_fixed = any(obj.ifixed == ipar);
+        end
+
+        function nfree = get_num_free_parameters(obj)
+            nfree = numel(obj.free_to_bound_funcs) - numel(obj.ifixed);
+        end
+    end
+    % private
+    methods (Static=true, Hidden=true, Access = private)
+        function par_bound = free_to_bound_has_lb(par, lb)
+            par_bound = lb - 1 + sqrt(par^2 + 1);
+        end
+        function par = bound_to_free_has_lb(par_bound, lb)
+            if par_bound < lb
+                par_bound = lb;
+            end
+            par = sqrt((par_bound - lb + 1)^2 - 1);
+        end
+        function par_bound = free_to_bound_has_ub(par, ub)
+           par_bound = ub + 1 - sqrt(par^2 + 1);
+        end
+        function par = bound_to_free_has_ub(par_bound, ub)
+            if par_bound > ub
+                par_bound = ub;
+            end
+            par = sqrt((ub - par_bound + 1)^2 - 1);
+        end
+        function par_bound = free_to_bound_has_lb_and_ub(par, lb, ub)
+            par_bound = lb + (sin(par) + 1)*(ub-lb)/2;
+        end
+        function par = bound_to_free_has_lb_and_ub(par_bound, lb, ub)
+            if par_bound < lb
+                par_bound = lb;
+            elseif par_bound > ub
+                par_bound = ub;
+            end
+            par = arcsin((2*(par_bound - lb)/(ub-lb)) - 1);
+        end
+    end
+end
