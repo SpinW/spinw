@@ -67,7 +67,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
                 obj.cost_func = fhandle;
             else
                 % fhandle calculates fit/curve function
-                obj.cost_func = @(p) sum(((f(options.data.x(:), p) - options.data.y(:)).^2)./options.data.e(:).^2);
+                obj.cost_func = @(p) sum(((fhandle(options.data.x(:), p) - options.data.y(:)).^2)./options.data.e(:).^2);
             end
             % validate size of bounds
             lb = options.lb;
@@ -125,7 +125,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
             pars_bound = zeros(size(obj.free_to_bound_funcs));
             for ipar_free = 1:numel(pars)
                 ipar_bound = obj.ifree(ipar_free);
-                pars_bound(ipar_bound) = obj.free_to_bound{ipar_bound}(pars(ipar_free));
+                pars_bound(ipar_bound) = obj.free_to_bound_funcs{ipar_bound}(pars(ipar_free));
             end
             % add in fixed parameter values
             pars_bound(obj.ifixed) = obj.pars_fixed;
@@ -134,7 +134,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
         function pars = get_free_parameters(obj, pars_bound)
             pars = zeros(size(pars_bound)); % to preserve par vector shape
             for ipar = obj.ifree
-                pars(ipar) = obj.bound_to_free{ipar}(pars_bound(ipar));
+                pars(ipar) = obj.bound_to_free_funcs{ipar}(pars_bound(ipar));
             end
             pars = pars(obj.ifree);
         end
@@ -177,7 +177,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
             elseif par_bound > ub
                 par_bound = ub;
             end
-            par = arcsin((2*(par_bound - lb)/(ub-lb)) - 1);
+            par = asin((2*(par_bound - lb)/(ub-lb)) - 1);
         end
     end
 end
