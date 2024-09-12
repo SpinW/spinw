@@ -49,6 +49,8 @@ classdef cost_function < handle & matlab.mixin.SetGet
         free_to_bound_funcs
         bound_to_free_funcs
         ifixed
+        ifree
+        pars_fixed
     end
 
     methods
@@ -90,17 +92,14 @@ classdef cost_function < handle & matlab.mixin.SetGet
             obj.free_to_bound_funcs = cell(size(pars));
             obj.bound_to_free_funcs = cell(size(pars));
             obj.ifixed = [];
-            for ipar = 1:numel(pars)
+            ipars = 1:numel(pars); % used later
+            for ipar = ipars
                 has_lb = ~isempty(lb) && lb(ipar) > -inf;
                 has_ub = ~isempty(ub) && ub(ipar) < inf;
-                if has_lb && has_ub
+                if has_lb && has_ub && abs(ub(ipar) - lb(ipar)) > ub(ipar)*1e-8
                     % both bounds specified and parameter not fixed
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
-                    if  abs(ub(ipar) - lb(ipar)) > ub(ipar)*1e-8
-                        % fixed - bounds same within tol
-                        obj.ifixed = [obj.ifixed, ipar];
-                    end
                 elseif has_lb
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb(p, lb(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb(p, lb(ipar));
@@ -110,35 +109,43 @@ classdef cost_function < handle & matlab.mixin.SetGet
                 else
                     obj.free_to_bound_funcs{ipar} = @(p) p;
                     obj.bound_to_free_funcs{ipar} = @(p) p;
+                    if has_ub
+                        % fixed - bounds same within tol
+                        obj.ifixed = [obj.ifixed, ipar];
+                        obj.pars_fixed = [obj.pars_fixed, pars(par)];
+                    end
                 end
             end
+            % get index of free parameters
+            obj.ifree = ipars(~ismember(1:numel(pars), obj.ifixed));
         end
 
         function pars_bound = get_bound_parameters(obj, pars)
-            pars_bound = zeros(size(pars));
-            for ipar = 1:numel(params)
-                pars_bound(ipar) = obj.free_to_bound{ipar}(pars(ipar));
+            % pars vector will not include fixed parameters
+            pars_bound = zeros(size(obj.free_to_bound_funcs));
+            for ipar_free = 1:numel(pars)
+                ipar_bound = obj.ifree(ipar_free);
+                pars_bound(ipar_bound) = obj.free_to_bound{ipar_bound}(pars(ipar_free));
             end
+            % add in fixed parameter values
+            pars_bound(obj.ifixed) = obj.pars_fixed;
         end
 
         function pars = get_free_parameters(obj, pars_bound)
-            pars = zeros(size(pars_bound));
-            for ipar = 1:numel(params)
+            pars = zeros(size(pars_bound)); % to preserve par vector shape
+            for ipar = obj.ifree
                 pars(ipar) = obj.bound_to_free{ipar}(pars_bound(ipar));
             end
+            pars = pars(obj.ifree);
         end
 
-        function cost_val = eval_cost_function(obj, pars_bound)
-            pars = obj.get_free_parameters(pars_bound);
+        function cost_val = eval_cost_function(obj, pars_excl_fixed)
+            pars = obj.get_bound_parameters(pars_excl_fixed);
             cost_val = obj.cost_func(pars);
         end
 
-        function is_fixed = is_parameter_fixed(obj, ipar)
-            is_fixed = any(obj.ifixed == ipar);
-        end
-
         function nfree = get_num_free_parameters(obj)
-            nfree = numel(obj.free_to_bound_funcs) - numel(obj.ifixed);
+            nfree = numel(obj.ifree);
         end
     end
     % private
