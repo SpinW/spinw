@@ -85,7 +85,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
                     "Upper bounds have to be larger than the lower bounds.");
             end
             % init bound parameters
-            obj.init_bound_parameter_transforms(params, options.lb, options.ub)
+            obj.init_bound_parameter_transforms(params, lb, ub)
         end
 
         function init_bound_parameter_transforms(obj, pars, lb, ub)
@@ -96,10 +96,20 @@ classdef cost_function < handle & matlab.mixin.SetGet
             for ipar = ipars
                 has_lb = ~isempty(lb) && lb(ipar) > -inf;
                 has_ub = ~isempty(ub) && ub(ipar) < inf;
-                if has_lb && has_ub && abs(ub(ipar) - lb(ipar)) > ub(ipar)*1e-8
+                if has_lb && has_ub
                     % both bounds specified and parameter not fixed
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
+                    % check if fixed
+                    if abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*1e-10
+                        obj.ifixed = [obj.ifixed, ipar];
+                        if  pars(ipar) < lb(ipar)
+                             pars(ipar) = lb(ipar);
+                        elseif  pars(ipar) > ub(ipar)
+                             pars(ipar) = ub(ipar);
+                        end
+                        obj.pars_fixed = [obj.pars_fixed, pars(ipar)];
+                    end
                 elseif has_lb
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb(p, lb(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb(p, lb(ipar));
@@ -109,11 +119,6 @@ classdef cost_function < handle & matlab.mixin.SetGet
                 else
                     obj.free_to_bound_funcs{ipar} = @(p) p;
                     obj.bound_to_free_funcs{ipar} = @(p) p;
-                    if has_ub
-                        % fixed - bounds same within tol
-                        obj.ifixed = [obj.ifixed, ipar];
-                        obj.pars_fixed = [obj.pars_fixed, pars(par)];
-                    end
                 end
             end
             % get index of free parameters
