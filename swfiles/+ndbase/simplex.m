@@ -152,25 +152,25 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     
     param = sw_readparam(inpForm, varargin{:});
   
-    cost_func = ndbase.cost_function(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
     
     % transform starting values into their unconstrained surrogates.
-    p0_free = cost_func.get_free_parameters(p0);
+    p0_free = cost_func_wrap.get_free_parameters(p0);
     
     if isempty(p0_free)
         % All parameters fixed, evaluate cost at initial guess
         % don't use p0 as could contain fixed params outside bounds
-        pOpt = cost_func.get_bound_parameters(p0_free);
-        fVal = cost_func.eval_cost_function(p0_free);
+        pOpt = cost_func_wrap.get_bound_parameters(p0_free);
+        fVal = cost_func_wrap.eval_cost_function(p0_free);
         fit_stat.message        = 'Parameters are fixed, no optimisation';
         fit_stat.iterations = 0;
         fit_stat.funcCount  = 1;
         exitFlag = 0;
     else
         % now we can call fminsearch, but with our own free parameter
-        [p_free, fVal, exitFlag, fit_stat] = fminsearch(@cost_func.eval_cost_function, p0_free, param);
+        [p_free, fVal, exitFlag, fit_stat] = fminsearch(@cost_func_wrap.eval_cost_function, p0_free, param);
         % undo the variable transformations into the original space
-        pOpt = cost_func.get_bound_parameters(p_free);
+        pOpt = cost_func_wrap.get_bound_parameters(p_free);
     end
 
     % setup output struct
@@ -180,9 +180,9 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     stat.corrP      = [];
     stat.cvgHst     = [];
     stat.algorithm  = 'Nelder-Mead simplex direct search';
-    stat.func = cost_func.cost_func;
+    stat.func = cost_func_wrap.cost_func;
     stat.param = param;
-    stat.param.Np = cost_func.get_num_free_parameters();
+    stat.param.Np = cost_func_wrap.get_num_free_parameters();
     stat.msg        = fit_stat.message;
     stat.iterations = fit_stat.iterations;
     stat.funcCount  = fit_stat.funcCount;

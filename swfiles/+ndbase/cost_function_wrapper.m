@@ -1,4 +1,4 @@
-classdef cost_function < handle & matlab.mixin.SetGet
+classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 % ### Syntax
 % 
 % `param = fit_parameter(value, lb, ub)`
@@ -57,7 +57,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
     end
 
     methods
-        function obj = cost_function(fhandle, params, options)
+        function obj = cost_function_wrapper(fhandle, params, options)
             arguments
                 fhandle {isFunctionHandleOrChar}
                 params double
