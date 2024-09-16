@@ -136,92 +136,74 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 % Release: 4
 % Release date: 7/23/06
 
-if nargin == 0
-    swhelp ndbase.simplex
-    return
+    if nargin == 0
+        swhelp ndbase.simplex
+        return
+    end
+    
+    % number of parameters
+    Np = numel(p0);
+
+    % not implemented yet: 'MaxFunEvals'
+    inpForm.fname  = {'Display' 'TolFun' 'TolX' 'MaxIter' 'lb'      'ub'    };
+    inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
+    inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
+    inpForm.soft   = {false     false    false  false     true      true    };
+    
+    param = sw_readparam(inpForm, varargin{:});
+
+    % check input function
+    if ischar(func)
+        % convert to fuction handle
+        func = str2func(func);
+    end
+    
+    if ~isa(func,'function_handle')
+        error('simplex:WrongInput','The input function is neither a string, not function handle!');
+    end
+    
+    cost_func = ndbase.cost_function(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+    
+    % transform starting values into their unconstrained surrogates.
+    p0_free = cost_func.get_free_parameters(p0);
+    
+    if isempty(p0_free)
+        % All parameters fixed, evaluate cost at initial guess
+        % don't use p0 as could contain fixed params outside bounds
+        pOpt = cost_func.get_bound_parameters(p0_free);
+        fVal = cost_func.eval_cost_function(p0_free);
+        fit_stat.message        = 'Parameters are fixed, no optimisation';
+        fit_stat.iterations = 0;
+        fit_stat.funcCount  = 1;
+        exitFlag = 0;
+    else
+        % now we can call fminsearch, but with our own free parameter
+        [p_free, fVal, exitFlag, fit_stat] = fminsearch(@cost_func.eval_cost_function, p0_free, param);
+        % undo the variable transformations into the original space
+        pOpt = cost_func.get_bound_parameters(p_free);
+    end
+
+    % setup output struct
+    stat.sigP       = [];
+    stat.Rsq        = [];
+    stat.sigY       = [];
+    stat.corrP      = [];
+    stat.cvgHst     = [];
+    stat.algorithm  = 'Nelder-Mead simplex direct search';
+    stat.func = cost_func.cost_func;
+    stat.param = param;
+    stat.param.Np = cost_func.get_num_free_parameters();
+    stat.msg        = fit_stat.message;
+    stat.iterations = fit_stat.iterations;
+    stat.funcCount  = fit_stat.funcCount;
+    stat.exitFlag   = exitFlag;
+    stat.p = pOpt;
+    if isempty(dat)
+        stat.redX2 = fVal;
+    else
+        % divide R2 with the statistical degrees of freedom
+        stat.redX2   = fVal/(numel(dat.x)-stat.param.Np+1);
+    end
+    
 end
-
-% number of parameters
-Np    = numel(p0);
-
-% not implemented yet: 'MaxFunEvals'
-inpForm.fname  = {'Display' 'TolFun' 'TolX' 'MaxIter' 'lb'      'ub'    };
-inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
-inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
-inpForm.soft   = {false     false    false  false     true      true    };
-
-param = sw_readparam(inpForm, varargin{:});
-param.Np = Np;
-
-% check input function
-if ischar(func)
-    % convert to fuction handle
-    func = str2func(func);
-end
-
-if ~isa(func,'function_handle')
-    error('simplex:WrongInput','The input function is neither a string, not function handle!');
-end
-
-cost_func = ndbase.cost_function(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
-
-% transform starting values into their unconstrained surrogates.
-p0u = cost_func.get_free_parameters(p0);
-
-% were all the variables fixed?
-if isempty(p0u)
-  % All variables were fixed. quit immediately, setting the
-  % appropriate parameters, then return.
-  
-  % stuff fval with the final value
-  fVal = cost_function.eval_cost_function(p0u);
-  
-  stat            = struct;
-  stat.msg        = 'Parameters are fixed, no optimisation';
-  stat.p          = p0;
-  stat.sigP       = [];
-  stat.Rsq        = [];
-  stat.sigY       = [];
-  stat.corrP      = [];
-  stat.cvgHst     = [];
-  stat.iterations = 0;
-  stat.funcCount  = 1;
-  stat.algorithm  = 'Nelder-Mead simplex direct search';
-  stat.exitFlag   = 0;
-  stat.param = param;
-  stat.func = cost_func.cost_func;
-  % return with no call at all to fminsearch
-  return
-end
-
-
-% now we can call fminsearch, but with our own free parameter
-[pu,fVal,exitFlag,stat0] = fminsearch(@cost_func.eval_cost_function, p0u, param);
-
-% undo the variable transformations into the original space
-pOpt = cost_func.get_bound_parameters(pu);
-
-stat            = struct;
-stat.p          = pOpt;
-stat.sigP       = [];
-if isempty(dat)
-    stat.redX2 = fVal;
-else
-    % divide R2 with the statistical degrees of freedom
-    stat.redX2   = fVal/(numel(dat.x)-cost_func.get_num_free_parameters()+1);
-end
-stat.msg        = stat0.message;
-stat.Rsq        = [];
-stat.sigY       = [];
-stat.corrP      = [];
-stat.cvgHst     = [];
-stat.iterations = stat0.iterations;
-stat.funcCount  = stat0.funcCount;
-stat.algorithm  = stat0.algorithm;
-stat.exitFlag   = exitFlag;
-stat.param = param;
-
-stat.func = cost_func.cost_func;
-
-end % mainline end
 
