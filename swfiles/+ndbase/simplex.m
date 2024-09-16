@@ -151,17 +151,7 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     inpForm.soft   = {false     false    false  false     true      true    };
     
     param = sw_readparam(inpForm, varargin{:});
-
-    % check input function
-    if ischar(func)
-        % convert to fuction handle
-        func = str2func(func);
-    end
-    
-    if ~isa(func,'function_handle')
-        error('simplex:WrongInput','The input function is neither a string, not function handle!');
-    end
-    
+  
     cost_func = ndbase.cost_function(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
     
     % transform starting values into their unconstrained surrogates.

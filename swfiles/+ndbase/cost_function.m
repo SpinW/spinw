@@ -56,11 +56,14 @@ classdef cost_function < handle & matlab.mixin.SetGet
     methods
         function obj = cost_function(fhandle, params, options)
             arguments
-                fhandle function_handle
+                fhandle {isFunctionHandleOrChar}
                 params double
                 options.lb double = []
                 options.ub double = []
                 options.data struct = struct()
+            end
+            if ischar(fhandle)
+                fhandle = str2func(fhandle); % convert to fuction handle
             end
             if isempty(fieldnames(options.data))
                 % fhandle calculates cost_val
@@ -69,6 +72,7 @@ classdef cost_function < handle & matlab.mixin.SetGet
                 % fhandle calculates fit/curve function
                 obj.cost_func = @(p) sum(((fhandle(options.data.x(:), p) - options.data.y(:)).^2)./options.data.e(:).^2);
             end
+
             % validate size of bounds
             lb = options.lb;
             ub = options.ub;
@@ -185,4 +189,9 @@ classdef cost_function < handle & matlab.mixin.SetGet
             par = asin((2*(par_bound - lb)/(ub-lb)) - 1);
         end
     end
+end
+
+
+function isFunctionHandleOrChar(func)
+    assert(isa(func, 'function_handle') || ischar(func));
 end
