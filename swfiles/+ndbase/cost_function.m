@@ -13,16 +13,8 @@ classdef cost_function < handle & matlab.mixin.SetGet
 % 
 % ### Input Arguments
 % 
-% `data`
-% : Either empty or contains data to be fitted stored in a structure with
-%   fields:
-%   * `dat.x`   vector of $N$ independent variables,
-%   * `dat.y`   vector of $N$ data values to be fitted,
-%   * `dat.e`   vector of $N$ standard deviation (positive numbers)
-%               used to weight the fit. If zero or missing
-%               `1/dat.y^2` will be assigned to each point.
-%%`func`
-% : Function handle with one of the following definition:
+% `func`
+% : Function handle or char with one of the following definition:
 %   * `R2 = func(p)`        if `dat` is empty,
 %   * `y  = func(x,p)`      if `dat` is a struct.
 %   Here `x` is a vector of $N$ independent variables, `p` are the
@@ -31,6 +23,17 @@ classdef cost_function < handle & matlab.mixin.SetGet
 %
 % `parameters`
 % :  Vector of doubles
+%
+% ### Name-Value Pair Arguments
+%
+% `data`
+% : Either empty or contains data to be fitted stored in a structure with
+%   fields:
+%   * `dat.x`   vector of $N$ independent variables,
+%   * `dat.y`   vector of $N$ data values to be fitted,
+%   * `dat.e`   vector of $N$ standard deviation (positive numbers)
+%               used to weight the fit. If zero or missing
+%               `1/dat.y^2` will be assigned to each point.
 %
 % `lb`
 % : Optional vector of doubles corresponding to the lower bound of the 
