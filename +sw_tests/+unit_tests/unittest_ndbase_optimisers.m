@@ -5,19 +5,19 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
     properties
         rosenbrock = @(x) (1-x(1)).^2 + 100*(x(2) - x(1).^2).^2;
         rosenbrock_minimum = [1, 1];
-        poly_func = @(x, p) polyval(p, x)
     end
 
     properties (TestParameter)
         optimiser = {@ndbase.simplex};
+        poly_func = {@(x, p) polyval(p, x), '@(x, p) polyval(p, x)'}
     end
 
     methods (Test)
-        function test_optimise_data_struct(testCase, optimiser)
+        function test_optimise_data_struct(testCase, optimiser, poly_func)
             linear_pars = [2, 1];
             dat = struct('x', 1:3, 'e', ones(1,3));
-            dat.y = testCase.poly_func(dat.x, linear_pars);
-            [pars_fit, cost_val, ~] = optimiser(dat, testCase.poly_func, [-1,-1]);
+            dat.y = polyval(linear_pars, dat.x);
+            [pars_fit, cost_val, ~] = optimiser(dat, poly_func, [-1,-1]);
             testCase.verify_val(pars_fit, linear_pars, 'abs_tol', 1e-3);
             testCase.verify_val(cost_val, 2.5e-7, 'abs_tol', 1e-8);
         end
