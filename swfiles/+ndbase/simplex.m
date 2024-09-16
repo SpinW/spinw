@@ -162,7 +162,7 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
         % don't use p0 as could contain fixed params outside bounds
         pOpt = cost_func_wrap.get_bound_parameters(p0_free);
         fVal = cost_func_wrap.eval_cost_function(p0_free);
-        fit_stat.message        = 'Parameters are fixed, no optimisation';
+        fit_stat.message = 'Parameters are fixed, no optimisation';
         fit_stat.iterations = 0;
         fit_stat.funcCount  = 1;
         exitFlag = 0;
