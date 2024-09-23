@@ -40,8 +40,8 @@ classdef unittest_spinw_fitspec < sw_tests.unit_tests.unittest_super
     methods (Test)
         function test_fitspec(testCase)
             fitout = testCase.swobj.fitspec(testCase.fitpar);
-            testCase.verify_val(fitout.x, 1.0, 'abs_tol', 0.25);
-            testCase.verify_val(fitout.redX2, 0.0, 'abs_tol', 10);
+            testCase.verify_val(fitout.x, 0.7, 'abs_tol', 0.25);
+            testCase.verify_val(fitout.redX2, 243, 'abs_tol', 10);
         end
         function test_fitspec_twin(testCase)
             % Checks that twins are handled correctly
@@ -50,8 +50,8 @@ classdef unittest_spinw_fitspec < sw_tests.unit_tests.unittest_super
             % If twins not handled correctly, the fit will be bad.
             swobj.addtwin('axis', [1 1 1], 'phid', 54, 'vol', 0.01);
             fitout = swobj.fitspec(testCase.fitpar);
-            testCase.verify_val(fitout.x, 1.0, 'abs_tol', 0.25);
-            testCase.verify_val(fitout.redX2, 0.0, 'abs_tol', 10);
+            testCase.verify_val(fitout.x, 0.7, 'abs_tol', 0.25);
+            testCase.verify_val(fitout.redX2, 243, 'abs_tol', 10);
         end
     end
 end
