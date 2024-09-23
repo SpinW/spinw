@@ -33,7 +33,7 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 %   * `dat.y`   vector of $N$ data values to be fitted,
 %   * `dat.e`   vector of $N$ standard deviation (positive numbers)
 %               used to weight the fit. If zero or missing
-%               `1/dat.y^2` will be assigned to each point.
+%               an unweighted fit will be performed.
 %
 % `lb`
 % : Optional vector of doubles corresponding to the lower bound of the 
@@ -73,22 +73,29 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 obj.cost_func = fhandle;
             else
                 % fhandle calculates fit/curve function
-                obj.cost_func = @(p) sum(((fhandle(options.data.x(:), p) - options.data.y(:)).^2)./options.data.e(:).^2);
+                calc_resdid = @(p) fhandle(options.data.x(:), p) - options.data.y(:);
+                if ~isfield(options.data,'e') || isempty(options.data.e) || ~any(options.data.e(:))
+                    warning("ndbase:cost_function_wrapper:InvalidWeights",...
+                        "Invalid weights provided - unweighted residuals will be used.")
+                    obj.cost_func = @(p) sum(calc_resdid(p).^2);
+                else
+                    obj.cost_func = @(p) sum((calc_resdid(p)./options.data.e(:)).^2);
+                end
             end
 
             % validate size of bounds
             lb = options.lb;
             ub = options.ub;
             if ~isempty(lb) && numel(lb) ~= numel(params)
-                error("ndbase:cost_function:WrongInput", ...
+                error("ndbase:cost_function_wrapper:WrongInput", ...
                   "Lower bounds must be empty or have same size as parameter vector.");
             end
             if ~isempty(ub) && numel(ub) ~= numel(params)
-                error("ndbase:cost_function:WrongInput", ...
+                error("ndbase:cost_function_wrapper:WrongInput", ...
                   "Upper bounds must be empty or have same size as parameter vector.");
             end
             if ~isempty(lb) && ~isempty(ub) && any(ub<lb)
-                error("ndbase:cost_function:WrongInput", ...
+                error("ndbase:cost_function_wrapper:WrongInput", ...
                     "Upper bounds have to be larger than the lower bounds.");
             end
             % init bound parameters

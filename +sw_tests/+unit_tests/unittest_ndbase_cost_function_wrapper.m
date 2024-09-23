@@ -11,6 +11,7 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
         bound_param_name = {'lb', 'ub'}
         no_lower_bound = {[], [-inf, -inf]};
         no_upper_bound = {[], [inf, inf]};
+        errors = {ones(1,3), [], zeros(1,3), 'NoField'}
     end
 
     methods
@@ -78,8 +79,14 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
             testCase.verify_val(cost_func_wrap.pars_fixed, 2.5);
         end
 
-        function test_init_with_data(testCase)
-            dat = struct('x', 1:3, 'e', ones(1,3));
+        function test_init_with_data(testCase, errors)
+            % all errors passed lead to unweighted residuals (either as
+            % explicitly ones or the default weights if invalid errors)
+            if ischar(errors) && errors == "NoField"
+                dat = struct('x', 1:3);
+            else
+                dat = struct('x', 1:3, 'e', errors);
+            end
             dat.y = polyval(testCase.params, dat.x);
             cost_func_wrap = ndbase.cost_function_wrapper(@(x, p) polyval(p, x), testCase.params, 'data', dat);
             [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
@@ -91,13 +98,13 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
         function test_wrong_size_bounds(testCase, bound_param_name)
             testCase.verifyError(...
                 @() ndbase.cost_function_wrapper(testCase.fcost, testCase.params, bound_param_name, ones(3)), ...
-                'ndbase:cost_function:WrongInput');
+                'ndbase:cost_function_wrapper:WrongInput');
         end
 
         function test_incompatible_bounds(testCase)
             testCase.verifyError(...
                 @() ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1,1,], 'ub', [0,0]), ...
-                'ndbase:cost_function:WrongInput');
+                'ndbase:cost_function_wrapper:WrongInput');
         end
         
     end
