@@ -49,6 +49,7 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
     properties (SetObservable)
         % data
         cost_func
+        calc_resid
         free_to_bound_funcs
         bound_to_free_funcs
         ifixed
@@ -71,16 +72,17 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
             if isempty(fieldnames(options.data))
                 % fhandle calculates cost_val
                 obj.cost_func = fhandle;
+                obj.calc_resid = [];
             else
                 % fhandle calculates fit/curve function
-                calc_resdid = @(p) fhandle(options.data.x(:), p) - options.data.y(:);
                 if ~isfield(options.data,'e') || isempty(options.data.e) || ~any(options.data.e(:))
                     warning("ndbase:cost_function_wrapper:InvalidWeights",...
                         "Invalid weights provided - unweighted residuals will be used.")
-                    obj.cost_func = @(p) sum(calc_resdid(p).^2);
+                    obj.calc_resid = @(p) fhandle(options.data.x(:), p) - options.data.y(:);
                 else
-                    obj.cost_func = @(p) sum((calc_resdid(p)./options.data.e(:)).^2);
+                    obj.calc_resid = @(p) (fhandle(options.data.x(:), p) - options.data.y(:))./options.data.e(:);
                 end
+                obj.cost_func = @(p) sum(calc_resid(p).^2);
             end
 
             % validate size of bounds
@@ -161,6 +163,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         function cost_val = eval_cost_function(obj, pars_excl_fixed)
             pars = obj.get_bound_parameters(pars_excl_fixed);
             cost_val = obj.cost_func(pars);
+        end
+
+        function resid = eval_resid(obj, pars_excl_fixed)
+            pars = obj.get_bound_parameters(pars_excl_fixed);
+            resid = obj.calc_resid(pars);
         end
 
         function nfree = get_num_free_parameters(obj)
