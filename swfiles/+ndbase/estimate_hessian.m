@@ -125,7 +125,7 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
         step_size = options.step;
         if numel(step_size)==1
             % interpret as fractional step size
-            step_size = params .* step_size;
+            step_size = abs(params) .* step_size;
         end
     end
     if options.ivary

@@ -85,9 +85,10 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 
 
 nparams = numel(p0);
+min_step = sqrt(eps);
 
 inpForm.fname  = {'diff_step' 'lb'            'ub'           'MaxIter' };
-inpForm.defval = {sqrt(eps)   -inf(1,nparams) inf(1,nparams) 100*nparams};
+inpForm.defval = {min_step    -inf(1,nparams) inf(1,nparams) 100*nparams};
 inpForm.size   = {[1 -1]      [1 nparams]     [1 nparams]    [1 1]};
 
 inpForm.fname  = [inpForm.fname  {'gtol' 'ftol' 'xtol' 'lambda0'}];
@@ -100,14 +101,21 @@ inpForm.size   = [inpForm.size   {[1 1]    [1 1]}];
 
 param = sw_readparam(inpForm, varargin{:});
 
+% get absolute diff_step 
+diff_step = abs(p0).*param.diff_step;
+diff_step(abs(diff_step) < min_step) = min_step;
+
+
 cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
 if isempty(dat)
-    % minimising scalar
-    calc_parameter_step = @calc_parameter_step_scalar;
+    % minimising scalar - empty resid
+    eval_cost_func = @eval_cost_scalar;
+    calc_hessian_and_jacobian = @calc_hessian_and_jacobian_scalar;
     ndof = 1;
 else
     % minimising sum square residuals
-    calc_parameter_step = @calc_parameter_step_resid;
+    eval_cost_func = @eval_cost_resids;
+    calc_hessian_and_jacobian = @calc_hessian_and_jacobian_resid;
     ndof = numel(dat.x) - cost_func_wrap.get_num_free_parameters() + 1;
 end
 
@@ -126,12 +134,11 @@ if isempty(p0_free)
 else
     p = p0_free(:);
     lambda = param.lambda0;
-    cost_val = cost_func_wrap.eval_cost_function(p);
-    [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, param.diff_step, cost_val);
+    [cost_val, resids] = eval_cost_func(cost_func_wrap, p);
+    [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, diff_step, cost_val, resids);
     exit_flag = 0;
     for niter = 1:param.MaxIter
-        dp = pinv(hess + lambda*diag(diag(hess)))*jac;
-%         dp = calc_parameter_step(hess, jac, lambda);
+        dp = calc_parameter_step(hess, jac, lambda);
         if norm(dp) < param.xtol*(param.xtol + norm(p))
             message = "step size below tolerance xtol";
             exit_flag = 1;
@@ -143,8 +150,8 @@ else
         if dcost < 0
             lambda = param.nu_dn*lambda; % decrease step
             p = new_p;
-            cost_val = cost_func_wrap.eval_cost_function(p);
-            [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, param.diff_step, cost_val);
+            [cost_val, resids] = eval_cost_func(cost_func_wrap, p);
+            [hess, jac] = calc_hessian_and_jacobian(cost_func_wrap, p, diff_step, cost_val, resids);
             if abs(dcost) < param.ftol*ndof
                 message = "change in reduced chi-sq below tolerance ftol";
                 exit_flag = 2;
@@ -169,7 +176,7 @@ else
         cov = inv(hess) * 2.0 * fVal;
         perr = sqrt(diag(cov));
     else
-        message = "Failed to converg in MaxIter";
+        message = "Failed to converge in MaxIter";
         perr = zeros(size(pOpt));
     end
 end
@@ -191,25 +198,43 @@ stat.sigP = perr;
 
 end
 
-% function dp = calc_parameter_step(hess, jac, lambda)
-%     damped_hess = hess + lambda*diag(diag(hess));
-%     try
-%         dp = damped_hess\jac;
-%     catch
-%         dp = pinv(damped_hess)*jac
-%     end
+function dp = calc_parameter_step(hess, jac, lambda)
+    damped_hess = hess + lambda*diag(diag(hess));
+    try
+        dp = damped_hess\jac;
+    catch
+        dp = pinv(damped_hess)*jac;
+    end
 % what happens if diagonal hess contains 0s
-% end
+end
 
-function [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, diff_step, cost_val)
+function [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, diff_step, cost_val, ~)
+    % last input ignored (empty resids vector for consistent API)
     [hess, extra_info] = ndbase.estimate_hessian(@cost_func_wrap.eval_cost_function, p,  'cost_val', cost_val, 'step', diff_step);
     jac = extra_info.jacobian(:);
 end
 
-function [hess, jac] = calc_hessian_and_jacobian_resid(cost_func_wrap, p, diff_step, cost_val)
-    hess = eye(numel(p));
-    jac = ones(size(p));
+function [cost_val, resids] = eval_cost_scalar(cost_func_wrap, p)
+    cost_val = cost_func_wrap.eval_cost_function(p);
+    resids = [];
 end
 
+function [hess, jac] = calc_hessian_and_jacobian_resid(cost_func_wrap, p, diff_step, ~, resids)
+    % evaluate jacobian of residuals using finite difference
+    jac_resids = ones([numel(resids), numel(p)]);
+    for ipar = 1:numel(p)
+        p(ipar) = p(ipar) + diff_step(ipar);
+        resids_one_step = cost_func_wrap.eval_resid(p);
+        jac_resids(:,ipar) = (resids_one_step - resids)/diff_step(ipar);
+    end
+    % eval jacobian of cost function 
+    jac = (jac_resids')*resids;
+    % approx. hessian of cost fucntion
+    hess = (jac_resids')*jac_resids;
+end
 
+function [cost_val, resids] = eval_cost_resids(cost_func_wrap, p)
+    resids = cost_func_wrap.eval_resid(p);
+    cost_val = sum(resids(:).^2);
+end
 

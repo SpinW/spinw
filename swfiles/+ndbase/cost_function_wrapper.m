@@ -82,7 +82,7 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 else
                     obj.calc_resid = @(p) (fhandle(options.data.x(:), p) - options.data.y(:))./options.data.e(:);
                 end
-                obj.cost_func = @(p) sum(calc_resid(p).^2);
+                obj.cost_func = @(p) sum(obj.calc_resid(p).^2);
             end
 
             % validate size of bounds
