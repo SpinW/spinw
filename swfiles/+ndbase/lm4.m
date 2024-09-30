@@ -199,9 +199,9 @@ stat.sigP = perr;
 end
 
 function dp = calc_parameter_step(hess, jac, lambda)
-    damped_hess = hess + lambda*diag(diag(hess));
+    damped_hess = hess + lambda*diag(diag(hess)); % LM
     if rcond(damped_hess) < eps
-        dp = pinv(damped_hess)*jac;
+        dp = pinv(damped_hess)*jac; % nearly singular
     else
         try
             dp = damped_hess\jac;
@@ -231,9 +231,9 @@ function [hess, jac] = calc_hessian_and_jacobian_resid(cost_func_wrap, p, diff_s
         jac_resids(:,ipar) = (resids_one_step - resids)/diff_step(ipar);
     end
     % eval jacobian of cost function 
-    jac = (jac_resids')*resids;
+    jac = 2*(jac_resids')*resids;
     % approx. hessian of cost fucntion
-    hess = (jac_resids')*jac_resids;
+    hess = 2*(jac_resids')*jac_resids;
 end
 
 function [cost_val, resids] = eval_cost_resids(cost_func_wrap, p)
