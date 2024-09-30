@@ -200,12 +200,15 @@ end
 
 function dp = calc_parameter_step(hess, jac, lambda)
     damped_hess = hess + lambda*diag(diag(hess));
-    try
-        dp = damped_hess\jac;
-    catch
+    if rcond(damped_hess) < eps
         dp = pinv(damped_hess)*jac;
+    else
+        try
+            dp = damped_hess\jac;
+        catch
+            dp = pinv(damped_hess)*jac;
+        end
     end
-% what happens if diagonal hess contains 0s
 end
 
 function [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, diff_step, cost_val, ~)
