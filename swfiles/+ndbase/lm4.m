@@ -85,10 +85,10 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 
 
 nparams = numel(p0);
-min_step = sqrt(eps);
+
 
 inpForm.fname  = {'diff_step' 'lb'            'ub'           'MaxIter' };
-inpForm.defval = {min_step    -inf(1,nparams) inf(1,nparams) 100*nparams};
+inpForm.defval = {1e-7        -inf(1,nparams) inf(1,nparams) 100*nparams};
 inpForm.size   = {[1 -1]      [1 nparams]     [1 nparams]    [1 1]};
 
 inpForm.fname  = [inpForm.fname  {'gtol' 'ftol' 'xtol' 'lambda0'}];
@@ -100,11 +100,6 @@ inpForm.defval = [inpForm.defval {10       0.3}];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1]}];
 
 param = sw_readparam(inpForm, varargin{:});
-
-% get absolute diff_step 
-diff_step = abs(p0).*param.diff_step;
-diff_step(abs(diff_step) < min_step) = min_step;
-
 
 cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
 if isempty(dat)
@@ -121,6 +116,11 @@ end
 
 % transform starting values into their unconstrained surrogates.
 p0_free = cost_func_wrap.get_free_parameters(p0);
+
+% get absolute diff_step 
+diff_step = abs(p0_free).*param.diff_step;
+min_step = sqrt(eps);
+diff_step(abs(diff_step) < min_step) = min_step;
 
 if isempty(p0_free)
     % All parameters fixed, evaluate cost at initial guess
@@ -173,7 +173,7 @@ else
     fVal = cost_val / ndof;
     if exit_flag > 0
         % converged on solution - calculate errors
-        cov = inv(hess) * 2.0 * fVal;
+        cov = pinv(hess) * 2.0 * fVal;
         perr = sqrt(diag(cov));
     else
         message = "Failed to converge in MaxIter";
