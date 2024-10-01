@@ -86,7 +86,6 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 
 nparams = numel(p0);
 
-
 inpForm.fname  = {'diff_step' 'lb'            'ub'           'MaxIter' };
 inpForm.defval = {1e-7        -inf(1,nparams) inf(1,nparams) 100*nparams};
 inpForm.size   = {[1 -1]      [1 nparams]     [1 nparams]    [1 1]};
@@ -102,25 +101,25 @@ inpForm.size   = [inpForm.size   {[1 1]    [1 1]}];
 param = sw_readparam(inpForm, varargin{:});
 
 cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+% transform starting values into their unconstrained surrogates.
+p0_free = cost_func_wrap.get_free_parameters(p0);
+
 if isempty(dat)
     % minimising scalar - empty resid
     eval_cost_func = @eval_cost_scalar;
     calc_hessian_and_jacobian = @calc_hessian_and_jacobian_scalar;
     ndof = 1;
+    diff_step = param.diff_step; % always interpreted as fractional step even if 1 parameter
 else
     % minimising sum square residuals
     eval_cost_func = @eval_cost_resids;
     calc_hessian_and_jacobian = @calc_hessian_and_jacobian_resid;
     ndof = numel(dat.x) - cost_func_wrap.get_num_free_parameters() + 1;
+    % get absolute diff_step for each parameter
+    diff_step = abs(p0_free).*param.diff_step;
+    min_step = sqrt(eps);
+    diff_step(abs(diff_step) < min_step) = min_step;
 end
-
-% transform starting values into their unconstrained surrogates.
-p0_free = cost_func_wrap.get_free_parameters(p0);
-
-% get absolute diff_step 
-diff_step = abs(p0_free).*param.diff_step;
-min_step = sqrt(eps);
-diff_step(abs(diff_step) < min_step) = min_step;
 
 if isempty(p0_free)
     % All parameters fixed, evaluate cost at initial guess
