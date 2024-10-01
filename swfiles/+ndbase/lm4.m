@@ -229,6 +229,7 @@ function [hess, jac] = calc_hessian_and_jacobian_resid(cost_func_wrap, p, diff_s
         p(ipar) = p(ipar) + diff_step(ipar);
         resids_one_step = cost_func_wrap.eval_resid(p);
         jac_resids(:,ipar) = (resids_one_step - resids)/diff_step(ipar);
+        p(ipar) = p(ipar) - diff_step(ipar);
     end
     % eval jacobian of cost function 
     jac = 2*(jac_resids')*resids;
