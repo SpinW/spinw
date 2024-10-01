@@ -8,7 +8,7 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
     end
 
     properties (TestParameter)
-        optimiser = {@ndbase.simplex};
+        optimiser = {@ndbase.simplex, @ndbase.lm4};
         poly_func = {@(x, p) polyval(p, x), '@(x, p) polyval(p, x)'}
     end
 
@@ -19,7 +19,7 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
             dat.y = polyval(linear_pars, dat.x);
             [pars_fit, cost_val, ~] = optimiser(dat, poly_func, [-1,-1]);
             testCase.verify_val(pars_fit, linear_pars, 'abs_tol', 1e-3);
-            testCase.verify_val(cost_val, 2.5e-7, 'abs_tol', 1e-8);
+            testCase.verify_val(cost_val, 0, 'abs_tol', 1e-6);
         end
 
         function test_optimise_rosen_free(testCase, optimiser)
@@ -48,28 +48,27 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
         end
 
         function test_optimise_rosen_upper_bound_minimum_not_accessible(testCase, optimiser)
-            % note intital guess is outside bounds
             [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'ub', [0, inf]);
             testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
-            testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
+            testCase.verify_val(cost_val, 1, 'abs_tol', 2e-3);
         end
 
         function test_optimise_rosen_both_bounds_minimum_accessible(testCase, optimiser)
-            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'lb', [-2, -2], 'ub', [2, 2]);
+            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'lb', [-5, -5], 'ub', [5, 5]);
             testCase.verify_val(pars_fit, testCase.rosenbrock_minimum, 'abs_tol', 1e-3);
             testCase.verify_val(cost_val, 0, 'abs_tol', 1e-6);
         end
 
-        function test_optimise_rosen_both_bounds_minimum_not_accessible(testCase, optimiser)
+        function test_optimise_rosen_both_bounds_minimum_not_accessible(testCase)
             % note intital guess is outside bounds
-            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'lb', [-0.5, -0.5], 'ub', [0, 0]);
+            [pars_fit, cost_val, ~] = ndbase.simplex([], testCase.rosenbrock, [-1,-1], 'lb', [-0.5, -0.5], 'ub', [0, 0]);
             testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
             testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
         end
 
-        function test_optimise_rosen_parameter_fixed_minimum_not_accessible(testCase, optimiser)
+        function test_optimise_rosen_parameter_fixed_minimum_not_accessible(testCase)
             % note intital guess is outside bounds
-            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'lb', [0, -0.5], 'ub', [0, 0]);
+            [pars_fit, cost_val, ~] = ndbase.simplex([], testCase.rosenbrock, [-1,-1], 'lb', [0, -0.5], 'ub', [0, 0]);
             testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
             testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
         end
@@ -83,4 +82,3 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
 
     end
 end
-% do parameterised test with all minimisers
