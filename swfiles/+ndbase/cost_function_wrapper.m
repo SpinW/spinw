@@ -59,6 +59,10 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         pars_fixed
     end
 
+    properties (Constant)
+       fix_tol = 1e-10
+    end
+
     methods
         function obj = cost_function_wrapper(fhandle, params, options)
             arguments
@@ -123,7 +127,7 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     % check if fixed
-                    if abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*1e-10
+                    if abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*obj.fix_tol
                         obj.ifixed = [obj.ifixed, ipar];
                         if  pars(ipar) < lb(ipar)
                              pars(ipar) = lb(ipar);

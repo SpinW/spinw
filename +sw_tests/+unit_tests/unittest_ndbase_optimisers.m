@@ -1,6 +1,6 @@
 classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
-    % Runs through unit test for ndbase optimisers, atm only simplex passes
-    % these tests
+    % Runs through unit test for ndbase optimisers using bounded parameter
+    % transformations.
 
     properties
         rosenbrock = @(x) (1-x(1)).^2 + 100*(x(2) - x(1).^2).^2;
