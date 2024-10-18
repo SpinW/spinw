@@ -141,9 +141,6 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 elseif has_ub
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_ub(p, ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_ub(p, ub(ipar));
-                else
-                    obj.free_to_bound_funcs{ipar} = @(p) p;
-                    obj.bound_to_free_funcs{ipar} = @(p) p;
                 end
                 % check fixed parameters
                 if is_fixed
@@ -166,7 +163,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
             pars_bound = zeros(size(obj.free_to_bound_funcs));
             for ipar_free = 1:numel(pars)
                 ipar_bound = obj.ifree(ipar_free);
-                pars_bound(ipar_bound) = obj.free_to_bound_funcs{ipar_bound}(pars(ipar_free));
+                if isempty(obj.free_to_bound_funcs{ipar_bound})
+                    pars_bound(ipar_bound) = pars(ipar_free); % no bounds
+                else
+                    pars_bound(ipar_bound) = obj.free_to_bound_funcs{ipar_bound}(pars(ipar_free));
+                end
             end
             % add in fixed parameter values
             pars_bound(obj.ifixed) = obj.pars_fixed;
@@ -175,7 +176,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         function pars = get_free_parameters(obj, pars_bound)
             pars = zeros(size(pars_bound)); % to preserve par vector shape
             for ipar = obj.ifree
-                pars(ipar) = obj.bound_to_free_funcs{ipar}(pars_bound(ipar));
+                if isempty(obj.bound_to_free_funcs{ipar})
+                    pars(ipar) = pars_bound(ipar);
+                else
+                    pars(ipar) = obj.bound_to_free_funcs{ipar}(pars_bound(ipar));
+                end
             end
             pars = pars(obj.ifree);
         end
