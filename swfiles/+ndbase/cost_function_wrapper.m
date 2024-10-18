@@ -9,7 +9,10 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 % Optionally the parameters can be bound in which case the class will
 % perform a transformation to convert the constrained optimization problem
 % into an un-constrained problem, using the formulation devised
-% (and documented) for MINUIT (and also used in lmfit).
+% (and documented) for MINUIT [1] and also used in lmfit [2].
+%
+% [1] https://root.cern/root/htmldoc/guides/minuit2/Minuit2.pdf#section.2.3
+% [2] https://lmfit.github.io/lmfit-py/bounds.html
 % 
 % ### Input Arguments
 % 
@@ -103,6 +106,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         end
 
         function init_bound_parameter_transforms(obj, pars, lb, ub)
+            % Note free parameters to be used externally in the
+            % optimisation (note in lmfit [2] pfree is called p_internal).
+            % Bound parameters are the original parameters
+            % pass into the constructor (that may or may not be bound or
+            % fixed).
             obj.free_to_bound_funcs = cell(size(pars));
             obj.bound_to_free_funcs = cell(size(pars));
             obj.ifixed = [];
