@@ -129,10 +129,13 @@ if ~isempty(param.spgr)
             ' instead']);
     if ~isempty(param.sym)
         error('spinw:genlattice:WrongInput', ...
-            'Both sym and spgr provided - note sym will be used.');
+            'Both sym and spgr provided - please only use sym.');
     else
         param.sym = param.spgr;
     end
+end
+if ~isempty(param.sym) && isnumeric(param.sym) && param.sym == 0
+    param.sym = [];
 end
 if any(strcmp('angled', varargin(1:2:end))) && ...
         any(strcmp('angle', varargin(1:2:end)))
