@@ -40,19 +40,18 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 %
 % `lb`
 % : Optional vector of doubles corresponding to the lower bound of the 
-%   parameters. Empty vector [] or vector of -inf interpreted as no lower 
-%   bound.
+%   parameters. Empty vector [] or vector of non-finite elements
+%   (e.g. -inf and NaN) are interpreted as no lower bound.
 % 
 % `ub`
 % : Optional vector of doubles corresponding to the upper bound of the 
-%   parameters. Empty vector [] or vector of inf interpreted as no upper 
-%   bound.
+%   parameters. Empty vector [] or vector of non-finite elements
+%   (e.g. inf and NaN) are interpreted as no upper bound.
 %
 % `ifix`
 % : Optional vector of ints corresponding of indices of parameters to fix
 %   (overides bounds if provided)
-%
-% ### Examples
+
     properties (SetObservable)
         % data
         cost_func
@@ -125,8 +124,8 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
             obj.ifixed = [];
             ipars = 1:numel(pars); % used later
             for ipar = ipars
-                has_lb = ~isempty(lb) && lb(ipar) > -inf;
-                has_ub = ~isempty(ub) && ub(ipar) < inf;
+                has_lb = ~isempty(lb) && isfinite(lb(ipar));
+                has_ub = ~isempty(ub) && isfinite(ub(ipar));
                 is_fixed = any(uint8(ifix) == ipar);
                 if has_lb && has_ub
                     % both bounds specified and parameter not fixed

@@ -9,8 +9,8 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
 
     properties (TestParameter)
         bound_param_name = {'lb', 'ub'}
-        no_lower_bound = {[], [-inf, -inf]};
-        no_upper_bound = {[], [inf, inf]};
+        no_lower_bound = {[], [-inf, -inf], [NaN, -inf]};
+        no_upper_bound = {[], [inf, inf], [inf, NaN]};
         errors = {ones(1,3), [], zeros(1,3), 'NoField'}
     end
 
