@@ -9,8 +9,8 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
 
     properties (TestParameter)
         bound_param_name = {'lb', 'ub'}
-        no_lower_bound = {[], [-inf, -inf]};
-        no_upper_bound = {[], [inf, inf]};
+        no_lower_bound = {[], [-inf, -inf], [NaN, -inf]};
+        no_upper_bound = {[], [inf, inf], [inf, NaN]};
         errors = {ones(1,3), [], zeros(1,3), 'NoField'}
     end
 
@@ -77,6 +77,30 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
             testCase.verify_val(cost_func_wrap.ifixed, 2);
             testCase.verify_val(cost_func_wrap.ifree, 1);
             testCase.verify_val(cost_func_wrap.pars_fixed, 2.5);
+        end
+
+
+        function test_init_with_fcost_both_bounds_with_fixed_param_using_ifix(testCase)
+            % note second param outside bounds
+            cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1, 2], 'ub', [3, 2.5], 'ifix', [2]);
+            [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verify_val(pfree, 0, 'abs_tol', 1e-4);  % only first param free
+            testCase.verify_val(pbound, [2, 2.5], 'abs_tol', 1e-4);
+            testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
+            testCase.verify_val(cost_func_wrap.ifixed, 2);
+            testCase.verify_val(cost_func_wrap.ifree, 1);
+            testCase.verify_val(cost_func_wrap.pars_fixed, 2.5);
+        end
+
+        function test_init_with_fcost_no_bounds_with_fixed_param_using_ifix(testCase)
+            % note second param outside bounds
+            cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'ifix', [2]);
+            [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verify_val(pfree, testCase.params(1), 'abs_tol', 1e-4);  % only first param free
+            testCase.verify_val(pbound, testCase.params, 'abs_tol', 1e-4);
+            testCase.verify_val(cost_func_wrap.ifixed, 2);
+            testCase.verify_val(cost_func_wrap.ifree, 1);
+            testCase.verify_val(cost_func_wrap.pars_fixed, testCase.params(2));
         end
 
         function test_init_with_data(testCase, errors)

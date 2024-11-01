@@ -9,7 +9,10 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 % Optionally the parameters can be bound in which case the class will
 % perform a transformation to convert the constrained optimization problem
 % into an un-constrained problem, using the formulation devised
-% (and documented) for MINUIT (and also used in lmfit).
+% (and documented) for MINUIT [1] and also used in lmfit [2].
+%
+% [1] https://root.cern/root/htmldoc/guides/minuit2/Minuit2.pdf#section.2.3
+% [2] https://lmfit.github.io/lmfit-py/bounds.html
 % 
 % ### Input Arguments
 % 
@@ -37,15 +40,18 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 %
 % `lb`
 % : Optional vector of doubles corresponding to the lower bound of the 
-%   parameters. Empty vector [] or vector of -inf interpreted as no lower 
-%   bound.
+%   parameters. Empty vector [] or vector of non-finite elements
+%   (e.g. -inf and NaN) are interpreted as no lower bound.
 % 
 % `ub`
 % : Optional vector of doubles corresponding to the upper bound of the 
-%   parameters. Empty vector [] or vector of inf interpreted as no upper 
-%   bound.
+%   parameters. Empty vector [] or vector of non-finite elements
+%   (e.g. inf and NaN) are interpreted as no upper bound.
 %
-% ### Examples
+% `ifix`
+% : Optional vector of ints corresponding of indices of parameters to fix
+%   (overides bounds if provided)
+
     properties (SetObservable)
         % data
         cost_func
@@ -57,6 +63,10 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         pars_fixed
     end
 
+    properties (Constant)
+       fix_tol = 1e-10
+    end
+
     methods
         function obj = cost_function_wrapper(fhandle, params, options)
             arguments
@@ -65,6 +75,7 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 options.lb double = []
                 options.ub double = []
                 options.data struct = struct()
+                options.ifix = []
             end
             if ischar(fhandle)
                 fhandle = str2func(fhandle); % convert to fuction handle
@@ -101,41 +112,48 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                     "Upper bounds have to be larger than the lower bounds.");
             end
             % init bound parameters
-            obj.init_bound_parameter_transforms(params, lb, ub)
+            obj.init_bound_parameter_transforms(params, lb, ub, options.ifix);
         end
 
-        function init_bound_parameter_transforms(obj, pars, lb, ub)
+        function init_bound_parameter_transforms(obj, pars, lb, ub, ifix)
+            % Note free parameters to be used externally in the
+            % optimisation (note in lmfit [2] pfree is called p_internal).
+            % Bound parameters are the original parameters
+            % pass into the constructor (that may or may not be bound or
+            % fixed).
             obj.free_to_bound_funcs = cell(size(pars));
             obj.bound_to_free_funcs = cell(size(pars));
             obj.ifixed = [];
             ipars = 1:numel(pars); % used later
             for ipar = ipars
-                has_lb = ~isempty(lb) && lb(ipar) > -inf;
-                has_ub = ~isempty(ub) && ub(ipar) < inf;
+                has_lb = ~isempty(lb) && isfinite(lb(ipar));
+                has_ub = ~isempty(ub) && isfinite(ub(ipar));
+                is_fixed = any(uint8(ifix) == ipar);
                 if has_lb && has_ub
                     % both bounds specified and parameter not fixed
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     % check if fixed
-                    if abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*1e-10
-                        obj.ifixed = [obj.ifixed, ipar];
-                        if  pars(ipar) < lb(ipar)
-                             pars(ipar) = lb(ipar);
-                        elseif  pars(ipar) > ub(ipar)
-                             pars(ipar) = ub(ipar);
-                        end
-                        obj.pars_fixed = [obj.pars_fixed, pars(ipar)];
-                    end
+                    bounds_equal = abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*obj.fix_tol;
+                    is_fixed = is_fixed || bounds_equal;
                 elseif has_lb
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb(p, lb(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb(p, lb(ipar));
                 elseif has_ub
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_ub(p, ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_ub(p, ub(ipar));
-                else
-                    obj.free_to_bound_funcs{ipar} = @(p) p;
-                    obj.bound_to_free_funcs{ipar} = @(p) p;
                 end
+                % check fixed parameters
+                if is_fixed
+                    obj.ifixed = [obj.ifixed, ipar];
+                    if has_lb && pars(ipar) < lb(ipar)
+                         pars(ipar) = lb(ipar);
+                    elseif has_ub && pars(ipar) > ub(ipar)
+                         pars(ipar) = ub(ipar);
+                    end
+                    obj.pars_fixed = [obj.pars_fixed, pars(ipar)];
+                end
+
             end
             % get index of free parameters
             obj.ifree = ipars(~ismember(1:numel(pars), obj.ifixed));
@@ -146,7 +164,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
             pars_bound = zeros(size(obj.free_to_bound_funcs));
             for ipar_free = 1:numel(pars)
                 ipar_bound = obj.ifree(ipar_free);
-                pars_bound(ipar_bound) = obj.free_to_bound_funcs{ipar_bound}(pars(ipar_free));
+                if isempty(obj.free_to_bound_funcs{ipar_bound})
+                    pars_bound(ipar_bound) = pars(ipar_free); % no bounds
+                else
+                    pars_bound(ipar_bound) = obj.free_to_bound_funcs{ipar_bound}(pars(ipar_free));
+                end
             end
             % add in fixed parameter values
             pars_bound(obj.ifixed) = obj.pars_fixed;
@@ -155,7 +177,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
         function pars = get_free_parameters(obj, pars_bound)
             pars = zeros(size(pars_bound)); % to preserve par vector shape
             for ipar = obj.ifree
-                pars(ipar) = obj.bound_to_free_funcs{ipar}(pars_bound(ipar));
+                if isempty(obj.bound_to_free_funcs{ipar})
+                    pars(ipar) = pars_bound(ipar);
+                else
+                    pars(ipar) = obj.bound_to_free_funcs{ipar}(pars_bound(ipar));
+                end
             end
             pars = pars(obj.ifree);
         end
