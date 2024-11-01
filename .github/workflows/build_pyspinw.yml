@@ -161,14 +161,14 @@ jobs:
         run: |
           pip install scipy
           cd ${{ github.workspace }}/python
-          pip install build/*whl
+          pip install wheelhouse/*whl
           cd tests
           python -m unittest
       - name: Create wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: pySpinW Wheel
-          path: ${{ github.workspace }}/python/build/*.whl        
+          path: ${{ github.workspace }}/python/wheelhouse/*.whl
       - name: Upload release wheels
         if: ${{ github.event_name == 'release' }}
         run: |

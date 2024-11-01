@@ -136,267 +136,64 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 % Release: 4
 % Release date: 7/23/06
 
-if nargin == 0
-    swhelp ndbase.simplex
-    return
-end
-
-% number of parameters
-Np    = numel(p0);
-
-% not implemented yet: 'MaxFunEvals'
-inpForm.fname  = {'Display' 'TolFun' 'TolX' 'MaxIter' 'lb'      'ub'    };
-inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
-inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
-inpForm.soft   = {false     false    false  false     true      true    };
-
-param = sw_readparam(inpForm, varargin{:});
-param.Np = Np;
-
-% limits
-LB = param.lb;
-UB = param.ub;
-
-if ~isempty(LB) && ~isempty(UB) && any(UB<LB)
-    error('simplex:WrongInput','Upper boundary has to be larger than the lower boundary!');
-end
-
-% number of free parameters
-if isempty(LB) || isempty(UB)
-    Nv = max(numel(LB),numel(UB));
-else
-    Nv = sum(UB>LB);
-end
-
-% check input function
-if ischar(func)
-    % convert to fuction handle
-    func = str2func(func);
-end
-
-if ~isa(func,'function_handle')
-    error('simplex:WrongInput','The input function is neither a string, not function handle!');
-end
-
-% define weighted least squares if dat is given
-if ~isempty(dat)
-    dat.x = dat.x(:);
-    dat.y = dat.y(:);
-    
-    if ~isfield(dat,'e') || isempty(dat.e) || ~any(dat.e(:))
-        weight = 1./abs(dat.y);
-    else
-        if any(dat.e(:)<0)
-            error('pso:WrongInput','Standard deviations have to be positive!')
-        end
-        weight = 1./dat.e(:).^2;
+    if nargin == 0
+        swhelp ndbase.simplex
+        return
     end
-    func0 = func;
-    func = @(p)sum(weight.*(func(dat.x(:),p)-dat.y(:)).^2);
-end
+    
+    % number of parameters
+    Np = numel(p0);
 
-if isempty(LB)
-  LB = repmat(-inf,Np,1);
-else
-  LB = LB(:);
-end
-if (nargin<4) || isempty(UB)
-  UB = inf(Np,1);
-else
-  UB = UB(:);
-end
-
-if (Np~=numel(LB)) || (Np~=numel(UB))
-  error('simplex:WrongInput','p0 is incompatible in size with the given limits!')
-end
-
-
-% 0 --> unconstrained variable
-% 1 --> lower bound only
-% 2 --> upper bound only
-% 3 --> dual finite bounds
-% 4 --> fixed variable
-param.BoundClass = zeros(Np,1);
-for ii=1:Np
-  k = isfinite(LB(ii)) + 2*isfinite(UB(ii));
-  param.BoundClass(ii) = k;
-  if (k==3) && (LB(ii)==UB(ii))
-    param.BoundClass(ii) = 4;
-  end
-end
-
-% transform starting values into their unconstrained
-% surrogates. Check for infeasible starting guesses.
-p0u = p0;
-k   = 1;
-for ii = 1:Np
-  switch param.BoundClass(ii)
-    case 1
-      % lower bound only
-      if p0(ii)<=LB(ii)
-        % infeasible starting value. Use bound.
-        p0u(k) = 0;
-      else
-        p0u(k) = sqrt(p0(ii) - LB(ii));
-      end
-      
-      % increment k
-      k=k+1;
-    case 2
-      % upper bound only
-      if p0(ii)>=UB(ii)
-        % infeasible starting value. use bound.
-        p0u(k) = 0;
-      else
-        p0u(k) = sqrt(UB(ii) - p0(ii));
-      end
-      
-      % increment k
-      k=k+1;
-    case 3
-      % lower and upper bounds
-      if p0(ii)<=LB(ii)
-        % infeasible starting value
-        p0u(k) = -pi/2;
-      elseif p0(ii)>=UB(ii)
-        % infeasible starting value
-        p0u(k) = pi/2;
-      else
-        p0u(k) = 2*(p0(ii) - LB(ii))/(UB(ii)-LB(ii)) - 1;
-        % shift by 2*pi to avoid problems at zero in fminsearch
-        % otherwise, the initial simplex is vanishingly small
-        p0u(k) = 2*pi+asin(max(-1,min(1,p0u(k))));
-      end
-      
-      % increment k
-      k=k+1;
-    case 0
-      % unconstrained variable. x0u(i) is set.
-      p0u(k) = p0(ii);
-      
-      % increment k
-      k=k+1;
-    case 4
-      % fixed variable. drop it before fminsearch sees it.
-      % k is not incremented for this variable.
-  end
+    % not implemented yet: 'MaxFunEvals'
+    inpForm.fname  = {'Display' 'TolFun' 'TolX' 'MaxIter' 'lb'      'ub'    };
+    inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
+    inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
+    inpForm.soft   = {false     false    false  false     true      true    };
+    
+    param = sw_readparam(inpForm, varargin{:});
   
-end
-% if any of the unknowns were fixed, then we need to shorten
-% x0u now.
-if k<=Np
-  p0u(k:Np) = [];
-end
+    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+    
+    % transform starting values into their unconstrained surrogates.
+    p0_free = cost_func_wrap.get_free_parameters(p0);
+    
+    if isempty(p0_free)
+        % All parameters fixed, evaluate cost at initial guess
+        % don't use p0 as could contain fixed params outside bounds
+        pOpt = cost_func_wrap.get_bound_parameters(p0_free);
+        fVal = cost_func_wrap.eval_cost_function(p0_free);
+        fit_stat.message = 'Parameters are fixed, no optimisation';
+        fit_stat.iterations = 0;
+        fit_stat.funcCount  = 1;
+        exitFlag = 0;
+    else
+        % now we can call fminsearch, but with our own free parameter
+        [p_free, fVal, exitFlag, fit_stat] = fminsearch(@cost_func_wrap.eval_cost_function, p0_free, param);
+        % undo the variable transformations into the original space
+        pOpt = cost_func_wrap.get_bound_parameters(p_free);
+    end
 
-% were all the variables fixed?
-if isempty(p0u)
-  % All variables were fixed. quit immediately, setting the
-  % appropriate parameters, then return.
-  
-  % undo the variable transformations into the original space
-  x = xtransform(p0u,param);
-  
-  % stuff fval with the final value
-  fVal = func(x,p0);
-  
-  stat            = struct;
-  stat.msg        = 'Parameters are fixed, no optimisation';
-  stat.p          = p0;
-  stat.sigP       = [];
-  stat.Rsq        = [];
-  stat.sigY       = [];
-  stat.corrP      = [];
-  stat.cvgHst     = [];
-  stat.iterations = 0;
-  stat.funcCount  = 1;
-  stat.algorithm  = 'Nelder-Mead simplex direct search';
-  stat.exitFlag   = 0;
-  stat.param = param;
-  
-  if isempty(dat)
-      stat.func   = func;
-  else
-      stat.func   = func0;
-  end
-  % return with no call at all to fminsearch
-  return
-end
-
-
-% now we can call fminsearch, but with our own
-% intra-objective function.
-intrafun = @(x)func(xtransform(x,param));
-
-[pu,fVal,exitFlag,stat0] = fminsearch(intrafun,p0u,param);
-
-% undo the variable transformations into the original space
-pOpt = xtransform(pu,param);
-
-stat            = struct;
-stat.p          = pOpt;
-stat.sigP       = [];
-if isempty(dat)
-    stat.redX2 = fVal;
-else
-    % divide R2 with the statistical degrees of freedom
-    stat.redX2   = fVal/(numel(dat.x)-Nv+1);
-end
-stat.msg        = stat0.message;
-stat.Rsq        = [];
-stat.sigY       = [];
-stat.corrP      = [];
-stat.cvgHst     = [];
-stat.iterations = stat0.iterations;
-stat.funcCount  = stat0.funcCount;
-stat.algorithm  = stat0.algorithm;
-stat.exitFlag   = exitFlag;
-stat.param = param;
-
-if isempty(dat)
-    stat.func   = func;
-else
-    stat.func   = func0;
+    % setup output struct
+    stat.sigP       = [];
+    stat.Rsq        = [];
+    stat.sigY       = [];
+    stat.corrP      = [];
+    stat.cvgHst     = [];
+    stat.algorithm  = 'Nelder-Mead simplex direct search';
+    stat.func = cost_func_wrap.cost_func;
+    stat.param = param;
+    stat.param.Np = cost_func_wrap.get_num_free_parameters();
+    stat.msg        = fit_stat.message;
+    stat.iterations = fit_stat.iterations;
+    stat.funcCount  = fit_stat.funcCount;
+    stat.exitFlag   = exitFlag;
+    stat.p = pOpt;
+    if isempty(dat)
+        stat.redX2 = fVal;
+    else
+        % divide R2 with the statistical degrees of freedom
+        stat.redX2   = fVal/(numel(dat.x)-stat.param.Np+1);
+    end
+    
 end
 
-end % mainline end
-
-% ======================================
-function xtrans = xtransform(x,p)
-% converts unconstrained variables into their original domains
-
-xtrans = x*0;
-% k allows some variables to be fixed, thus dropped from the
-% optimization.
-k=1;
-for i = 1:p.Np
-  switch p.BoundClass(i)
-    case 1
-      % lower bound only
-      xtrans(i) = p.lb(i) + x(k).^2;
-      
-      k=k+1;
-    case 2
-      % upper bound only
-      xtrans(i) = p.ub(i) - x(k).^2;
-      
-      k=k+1;
-    case 3
-      % lower and upper bounds
-      xtrans(i) = (sin(x(k))+1)/2;
-      xtrans(i) = xtrans(i)*(p.ub(i) - p.lb(i)) + p.lb(i);
-      % just in case of any floating point problems
-      xtrans(i) = max(p.lb(i),min(p.ub(i),xtrans(i)));
-      
-      k=k+1;
-    case 4
-      % fixed variable, bounds are equal, set it at either bound
-      xtrans(i) = p.lb(i);
-    case 0
-      % unconstrained variable.
-      xtrans(i) = x(k);
-      
-      k=k+1;
-  end
-end
-
-end % sub function xtransform end
