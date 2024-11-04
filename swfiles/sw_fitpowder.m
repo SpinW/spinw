@@ -452,7 +452,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         end
 
-        function resid_sq_sum = calc_cost_func(obj, params)
+        function resid = calc_residuals(obj, params)
             % evaluate fit function
             [ycalc, ~] = obj.calc_spinwave_spec(params);
             if obj.liveplot_interval > 0
@@ -463,16 +463,26 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     obj.liveplot_counter = 0;
                 end
             end
-            resid_sq_sum = obj.eval_cost(obj.y, obj.e, ycalc);
+            resid = obj.eval_residuals(obj.y, obj.e, ycalc);
         end
 
-        function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
+        function resid_sq_sum = calc_cost_func(obj, params)
+            resid = obj.calc_residuals(params);
+            resid_sq_sum = resid'*resid;
+        end
+
+        function resid = calc_residuals_of_background(obj, bg_params)
             bg = obj.calc_background(bg_params);
             if obj.ndim == 1 && obj.background_strategy=="planar"
                 % integrate nQ |Q| points for each cut
                 bg = obj.rebin_powspec_to_1D_cuts(bg);
             end
-            resid_sq_sum = obj.eval_cost(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
+            resid = obj.eval_residuals(obj.y(obj.ibg), obj.e(obj.ibg), bg(obj.ibg));
+        end
+
+        function resid_sq_sum = calc_cost_func_of_background(obj, bg_params)
+            resid = obj.calc_residuals_of_background(bg_params);
+            resid_sq_sum = resid'*resid;
         end
 
         function varargout = fit(obj, varargin) 
@@ -483,7 +493,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % setup cell for output of ndbase optimizer/minimizer
             varargout = cell(1,nargout(obj.optimizer));
             % pass params and bounds as rows for ndbase optimisers
-            [varargout{:}] = obj.optimizer([], @obj.calc_cost_func, obj.params(:)', ...
+            if any(cellfun(@(elem) elem =="resid_handle", varargin(1:2:end)))
+                fobj = @obj.calc_residuals; % minimise using residual array
+            else
+                fobj = @obj.calc_cost_func; % minimise scalar
+            end
+            [varargout{:}] = obj.optimizer([], fobj, obj.params(:)', ...
                                        'lb', obj.bounds(:,1)', ...
                                        'ub', obj.bounds(:,2)', ...
                                        varargin{:});
@@ -662,14 +677,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
     % private
     methods (Hidden=true, Access = private)
-        function resid_sq_sum = eval_cost(obj, y, e, ycalc)
+        function resid = eval_residuals(obj, y, e, ycalc)
             resid = (y - ycalc);
             if obj.cost_function == "chisq"
                 resid = resid./e;
             end
             % exclude nans in both ycalc and input data
-            ikeep = isfinite(resid) & e > obj.zero_abs_tol;
-            resid_sq_sum = resid(ikeep)'*resid(ikeep);
+            resid = resid(isfinite(resid) & e > obj.zero_abs_tol);
         end
 
         function cut = cut_2d_data(obj, qmin, qmax)
