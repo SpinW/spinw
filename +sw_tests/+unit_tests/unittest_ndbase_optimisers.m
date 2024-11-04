@@ -22,6 +22,15 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
             testCase.verify_val(cost_val, 0, 'abs_tol', 1e-6);
         end
 
+        function test_optimise_residual_array_lm(testCase, optimiser)
+            linear_pars = [2, 1];
+            x = 1:3;
+            y = polyval(linear_pars, x);
+            [pars_fit, cost_val, ~] = optimiser([], @(p) y - polyval(p, x), [-1,-1], 'resid_handle', true);
+            testCase.verify_val(pars_fit, linear_pars, 'abs_tol', 1e-3);
+            testCase.verify_val(cost_val, 0, 'abs_tol', 1e-6);
+        end
+
         function test_optimise_rosen_free(testCase, optimiser)
             [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1]);
             testCase.verify_val(pars_fit, testCase.rosenbrock_minimum, 'abs_tol', 1e-3);

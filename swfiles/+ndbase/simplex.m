@@ -126,6 +126,10 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   the weighted least square deviation from data). Default value is
 %   $10^{-3}$.
 %
+% `'resid_handle'`
+% : Boolean scalar - if true and `dat` is empty then fucntion handle 
+%   returns array of residuals, if false (default) then function handle 
+%   returns a scalar cost function.
 %
 % ### See Also
 %
@@ -149,10 +153,14 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
     inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
     inpForm.soft   = {false     false    false  false     true      true    };
+
+    inpForm.fname  = [inpForm.fname  {'resid_handle'}];
+    inpForm.defval = [inpForm.defval {false}];
+    inpForm.size   = [inpForm.size   {[1 1]}];
     
     param = sw_readparam(inpForm, varargin{:});
   
-    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub, 'resid_handle', param.resid_handle);
     
     % transform starting values into their unconstrained surrogates.
     p0_free = cost_func_wrap.get_free_parameters(p0);

@@ -130,6 +130,28 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
                 @() ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1,1,], 'ub', [0,0]), ...
                 'ndbase:cost_function_wrapper:WrongInput');
         end
+
+        function test_init_with_resid_handle(testCase)
+            x = 1:3;
+            y = polyval(testCase.params, x);
+            cost_func_wrap = ndbase.cost_function_wrapper(@(p) y - polyval(p, x), testCase.params, 'resid_handle', true);
+            [~, ~, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verify_val(cost_val, 0, 'abs_tol', 1e-4);
+        end
+
+        function test_init_with_fcost_all_params_fixed(testCase)
+            % note second param outside bounds
+            ifixed = 1:2;
+            cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'ifix', ifixed);
+            [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verifyEmpty(pfree);
+            testCase.verify_val(pbound, testCase.params);
+            testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
+            testCase.verify_val(cost_func_wrap.ifixed, ifixed);
+            testCase.verifyEmpty(cost_func_wrap.ifree);
+            testCase.verify_val(cost_func_wrap.pars_fixed, testCase.params);
+        end
+
         
     end
 end

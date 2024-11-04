@@ -18,6 +18,9 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 % Options can be given using the modified output of optimset() or as option
 % name string option value pairs.
 %
+% resid_handle    Boolean scalar - if true and `dat` is empty then function
+%                 function handle returns array of residuals, if false (default) 
+%                 then function handle returns scalar cost function.
 % dp        Vector with N or 1 element, defines the fractional increment of
 %           'p' when calculating the Jacobian matrix dFunc(x,p)/dp:
 %               dp(j)>0     central differences calculated,
@@ -94,38 +97,42 @@ inpForm.fname  = [inpForm.fname  {'gtol' 'ftol' 'xtol' 'lambda0'}];
 inpForm.defval = [inpForm.defval {1e-8    1e-8   1e-8  1e-2}];
 inpForm.size   = [inpForm.size   {[1 1]   [1 1]  [1 1] [1 1]}];
 
-inpForm.fname  = [inpForm.fname  {'nu_up', 'nu_dn'}];
-inpForm.defval = [inpForm.defval {10       0.3}];
-inpForm.size   = [inpForm.size   {[1 1]    [1 1]}];
+inpForm.fname  = [inpForm.fname  {'nu_up', 'nu_dn',  'resid_handle'}];
+inpForm.defval = [inpForm.defval {10       0.3,      false}];
+inpForm.size   = [inpForm.size   {[1 1]    [1 1],    [1 1]}];
 
 param = sw_readparam(inpForm, varargin{:});
 
-cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub, 'resid_handle', param.resid_handle);
 % transform starting values into their unconstrained surrogates.
 p0_free = cost_func_wrap.get_free_parameters(p0);
 
-if isempty(dat)
+if isempty(dat) && ~param.resid_handle
     % minimising scalar - empty resid
     eval_cost_func = @eval_cost_scalar;
     calc_hessian_and_jacobian = @calc_hessian_and_jacobian_scalar;
-    ndof = 1;
     diff_step = param.diff_step; % always interpreted as fractional step even if 1 parameter
 else
     % minimising sum square residuals
     eval_cost_func = @eval_cost_resids;
     calc_hessian_and_jacobian = @calc_hessian_and_jacobian_resid;
-    ndof = numel(dat.x) - cost_func_wrap.get_num_free_parameters() + 1;
     % get absolute diff_step for each parameter
     diff_step = abs(p0_free).*param.diff_step;
     min_step = sqrt(eps);
     diff_step(abs(diff_step) < min_step) = min_step;
 end
 
+% eval at starting guess
+[cost_val, resids] = eval_cost_func(cost_func_wrap, p0_free(:));
+if isempty(resids)
+    ndof = 1;  % minimising scalar function
+else
+    ndof = numel(resids) - numel(p0_free) + 1;
+end
 if isempty(p0_free)
-    % All parameters fixed, evaluate cost at initial guess
-    % don't use p0 as could contain fixed params outside bounds
+    % Re-calc bound params as p0 as could have fixed params outside bounds
     pOpt = cost_func_wrap.get_bound_parameters(p0_free);
-    fVal = cost_func_wrap.eval_cost_function(p0_free)/ndof;
+    fVal = cost_val/ndof;
     message = 'Parameters are fixed, no optimisation';
     perr = zeros(size(pOpt));
     niter = 0;
@@ -133,7 +140,6 @@ if isempty(p0_free)
 else
     p = p0_free(:);
     lambda = param.lambda0;
-    [cost_val, resids] = eval_cost_func(cost_func_wrap, p);
     [hess, jac] = calc_hessian_and_jacobian_scalar(cost_func_wrap, p, diff_step, cost_val, resids);
     exit_flag = 0;
     for niter = 1:param.MaxIter

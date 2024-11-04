@@ -51,6 +51,11 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 % `ifix`
 % : Optional vector of ints corresponding of indices of parameters to fix
 %   (overides bounds if provided)
+%
+% `resid_handle`
+% : Boolean scalar - if true and `dat` is empty then fucntion handle 
+%   returns array of residuals, if false (default) then function handle 
+%   returns a scalar cost function.
 
     properties (SetObservable)
         % data
@@ -76,14 +81,20 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 options.ub double = []
                 options.data struct = struct()
                 options.ifix = []
+                options.resid_handle = false
             end
             if ischar(fhandle)
                 fhandle = str2func(fhandle); % convert to fuction handle
             end
             if isempty(fieldnames(options.data))
-                % fhandle calculates cost_val
-                obj.cost_func = fhandle;
-                obj.calc_resid = [];
+                if options.resid_handle
+                    obj.calc_resid = @(p) reshape(fhandle(p), [], 1);
+                    obj.cost_func = @(p) sum(obj.calc_resid(p).^2);
+                else
+                    % fhandle calculates cost_val
+                    obj.cost_func = fhandle;
+                    obj.calc_resid = [];
+                end
             else
                 % fhandle calculates fit/curve function
                 if ~isfield(options.data,'e') || isempty(options.data.e) || ~any(options.data.e(:))
