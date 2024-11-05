@@ -14,6 +14,10 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         default_modQ_cens_1d = 3.55:0.1:5.45; % integrate over nQ pts
     end
 
+    properties (TestParameter)
+        fit_params = {{}, {'resid_handle', true}};
+    end
+
     methods (TestClassSetup)
         function setup_spinw_obj_and_expected_result(testCase)
             % setup spinw object
@@ -321,13 +325,13 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
-        function test_fit_background(testCase)
+        function test_fit_background(testCase, fit_params)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
             out.y(1) = 10;  % higher so other bins are background
             out.fix_bg_parameters(1:2); % fix slopes of background to 0
             out.set_bg_parameters(3, 1.5); % initial guess
-            out.fit_background()
+            out.fit_background(fit_params{:})
             expected_fitpow = testCase.default_fitpow;
             expected_fitpow.y(1) = 10;
             expected_fitpow.ibg = [3;6;2;5;4];
