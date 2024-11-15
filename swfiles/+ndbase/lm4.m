@@ -1,91 +1,128 @@
 function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 % optimization of parameters using the Levenberg Marquardt method
 %
-% [pOpt,fVal,stat] = NDBASE.LM([],func,p0,'Option1','Value1',...)
+% ### Syntax
 %
-% Levenberg Marquardt curve-fitting function, minimizes the return value of
-% a given function.
+% `[pOpt,fVal,stat] = ndbase.simplex([],func,p0,Name,Value)`
 %
-% Input:
+% `[pOpt,fVal,stat] = ndbase.simplex(dat,func,p0,Name,Value)`
 %
-% func      Function handle with the following definition:
-%               R = func(p)
-%           where p are the M parameters to be optimized.
-% p0        Vector of M initial parameters.
+% ### Input Arguments
 %
-% Options:
+% `dat`
+% : Either empty or contains data to be fitted stored in a structure with
+%   fields:
+%   * `dat.x`   vector of $N$ independent variables,
+%   * `dat.y`   vector of $N$ data values to be fitted,
+%   * `dat.e`   vector of $N$ standard deviation (positive numbers)
+%               used to weight the fit. If zero or missing
+%               `1/dat.y^2` will be assigned to each point.
 %
-% Options can be given using the modified output of optimset() or as option
-% name string option value pairs.
+% `func`
+% : Function handle with one of the following definition:
+%   * `R = func(p)`         if `dat` is empty,
+%   * `y  = func(x,p)`      if `dat` is a struct.
+%   Here `x` is a vector of $N$ independent variables, `p` are the
+%   $M$ parameters to be optimized and `y` is the simulated model.
+%   If `resid_handle` argument is false (default) then the function returns 
+%   a scalar (the cost funciton to minimsie e.g. chi-squared). If 
+%   `resid_handle` is true then the function returns a vector of residuals
+%   (not the residuals squared).
 %
-% resid_handle    Boolean scalar - if true and `dat` is empty then function
-%                 function handle returns array of residuals, if false (default) 
-%                 then function handle returns scalar cost function.
-% dp        Vector with N or 1 element, defines the fractional increment of
-%           'p' when calculating the Jacobian matrix dFunc(x,p)/dp:
-%               dp(j)>0     central differences calculated,
-%               dp(j)<0     one sided 'backwards' differences calculated,
-%               dp(j)=0     sets corresponding partials to zero, i.e. holds
-%                           p(j) fixed.
-%           Default value if 1e-3.
-% vary      Vector with N elements, if an element is false, the
-%           corresponding parameter will be fixed. Default value is
-%           false(1,N).
-% lb        Vector with N elements, lower boundary of the parameters.
-%           Default value is -inf.
-% ub        Vector with N elements, upper boundary of the parameters.
-%           Default value is inf.
-% MaxIter   Maximum number of iterations, default value is 100*M.
-% TolX      Convergence tolerance for parameters, defines the maximum of
-%           the relative chande of any parameter value. Default value is
-%           1e-3.
-% eps1      Convergence tolerance for gradient, default value is 1e-3.
-% eps2      Convergence tolerance for reduced Chi-square, default value is
-%           1e-2.
-% eps3      Determines acceptance of a L-M step, default value is 0.1.
-% lambda0   Initial value of L-M paramter, default value is 1e-2.
-% nu0       Value that determines the speed of convergence. Default value
-%           is 10. It should be larger than 1.
+% `p0`
+% : vector of initlial parameter guesses - sytating point for the
+%  optimisation.
 %
-% Output:
+% ### Name-Value Pair Arguments
 %
-% pOpt      Value of the M optimal parameters.
-% fVal      Value of the model function calculated with the optimal
-%           parameters at the N independent values of x.
+% `'lb'`
+% : Vector with $M$ elements, lower boundary of the parameters. Default
+%   value is -inf (i.e. unbounded).
 %
-% stat      Structure, storing the detailed output of the calculation with
-%           the following fields:
-%               p       Least-squares optimal estimate of the parameter
-%                       values.
-%               redX2   Reduced Chi squared error criteria, its value
-%                       should be close to 1. If the value is larger, the
-%                       model is not a good description of the data. If the
-%                       value is smaller, the model is overparameterized
-%                       and fitting the statistical error of the data.
-%               sigP    Asymptotic standard error of the parameters.
-%               sigY    Asymptotic standard error of the curve-fit.
-%               corrP   Correlation matrix of the parameters.
-%               Rsq     R-squared cofficient of multiple determination.
-%               cvgHst  Convergence history.
-%               exitFlag The reason, why the code stopped:
-%                           1       convergence in r.h.s. ("JtWdy"),
-%                           2       convergence in parameters,
-%                           3       convergence in reduced Chi-square,
-%                           4       maximum Number of iterations reached
-%                                   without convergence
-%               message String, one of the above messages.
-%               nIter   The number of iterations executed during the fit.
-%               nFunEvals The number of function evaluations executed
-%                       during the fit.
+% `'ub'`
+% : Vector with $M$ elements, upper boundary of the parameters. Default
+%   value is inf (i.e. unbounded).
 %
-% See also NDBASE.PSO.
+% `'resid_handle'`
+% : Boolean scalar - if true and `dat` is empty then 'func' fucntion handle 
+%   returns array of residuals, if false (default) then function handle 
+%   returns a scalar cost function.
 %
-
-% Reference:
-% Coelho, Alan Anthony. "Optimum Levenberg–Marquardt constant determination
-% for nonlinear least-squares." 
-% Journal of Applied Crystallography 51.2 (2018): 428-435.
-
+% `'diff_step'`
+% : Vector with $M$ or 1 element, defines the fractional increment of
+%   a parameter when calculating the Jacobians using the forward finite 
+%   difference (default is 1e-7).
+%
+% `'MaxIter'`
+% : Maximum number of iterations, default value is $100M$.
+%
+% `'gtol'`
+% : Convergence tolerance on gradient vector of cost-function wrt change
+%   in parameters (default 1e-8).
+%
+% `'ftol'`
+% : Convergence tolerance on change in cost function (default 1e-8).
+%
+% `'ptol'`
+% : Convergence tolerance on relative length of parameter step vector wrt
+%   parameter vector (default 1e-8).
+%
+% `'lambda0'`
+% : Initial Levenberg–Marquardt damping parameter which determines step 
+%   size and angle of trajectory between gradient-descent (initially) and 
+%   Gauss-Newton (where cost-function surface becomes increasingly 
+%   parabolic). Initially `large` lambda values correponds to smaller steps
+%   along gradient descent trajectory.  Decreasing `'lambda0'` may lead to 
+%   faster convergence if the solution is near the minimum but will be less
+%   reliable further from the minimum where the second-order expansion is
+%   less valid. Default value is 1e-2.
+%
+% `'nu_up'`
+% : Factor by which to scale the damping parameter (lambda) if parameter 
+%   step increases the cost value. Typically > 1 (default is 5) - ie. 
+%   increasing lambda to produce smaller steps such that the 
+%   first-order approx. is more valid.
+%
+% `'nu_dn'`
+% : Factor by which to scale the damping parameter (lambda) if parameter 
+%   step decreases the cost value. Typically < 1 (default is 0.3) - i.e.
+%   decreasing lambda to speed-up convergence by taking larger steps as 
+%   the cost-function surface becomes increasingly parabolic.
+%
+% ### Output
+%
+% `pOpt`
+% : Value of the $M$ optimal parameters.
+%
+% `fVal`
+% : Value of the cost function calculated at the optimal parameters
+%
+% `stat`
+% : Structure storing the detailed output of the calculation with
+%  the following fields:
+%   p         Least-squares optimal estimate of the parameter values.
+%   redX2     Reduced Chi squared statistic, its value
+%             should be close to 1. If the value is larger, the
+%             model is not a good description of the data. If the
+%             value is smaller, the model is overparameterized
+%             and fitting the statistical error of the data.
+%   sigP      Asymptotic standard error of the parameters.
+%   sigY      Asymptotic standard error of the curve-fit (to implement).
+%   corrP     Correlation matrix of the parameters (to implement).
+%   Rsq       R-squared cofficient of multiple determination (to implement).
+%   cvgHst    Convergence history (to implement)..
+%   exitFlag  The reason, why the code stopped:
+%               0       maximum number of iteraitons reached
+%               1       convergence step-size (see `ptol`)
+%               2       convergence in cost (see `ftol`)
+%               3       convergence in gradient (see `gtol`)
+%   msg       String, one of the above messages.
+%   nIter     The number of iterations executed during the fit.
+%   param     Input parameters passed to ndbase.lm4
+%   algorithm name of algorithm (Levenberg Marquardt);
+%   func      Function handle corresponding to cost-function
+%
+% See also ndbase.simplex.
 
 nparams = numel(p0);
 
@@ -93,12 +130,12 @@ inpForm.fname  = {'diff_step' 'lb'            'ub'           'MaxIter' };
 inpForm.defval = {1e-7        -inf(1,nparams) inf(1,nparams) 100*nparams};
 inpForm.size   = {[1 -1]      [1 nparams]     [1 nparams]    [1 1]};
 
-inpForm.fname  = [inpForm.fname  {'gtol' 'ftol' 'xtol' 'lambda0'}];
+inpForm.fname  = [inpForm.fname  {'gtol' 'ftol' 'ptol' 'lambda0'}];
 inpForm.defval = [inpForm.defval {1e-8    1e-8   1e-8  1e-2}];
 inpForm.size   = [inpForm.size   {[1 1]   [1 1]  [1 1] [1 1]}];
 
 inpForm.fname  = [inpForm.fname  {'nu_up', 'nu_dn',  'resid_handle'}];
-inpForm.defval = [inpForm.defval {10       0.3,      false}];
+inpForm.defval = [inpForm.defval {10        0.3,      false}];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1],    [1 1]}];
 
 param = sw_readparam(inpForm, varargin{:});
@@ -144,8 +181,8 @@ else
     exit_flag = 0;
     for niter = 1:param.MaxIter
         dp = calc_parameter_step(hess, jac, lambda);
-        if norm(dp) < param.xtol*(param.xtol + norm(p))
-            message = "step size below tolerance xtol";
+        if norm(dp) < param.ptol*(param.ptol + norm(p))
+            message = "step size below tolerance ptol";
             exit_flag = 1;
             break
         end
@@ -153,7 +190,7 @@ else
         new_cost_val = cost_func_wrap.eval_cost_function(new_p);
         dcost = new_cost_val - cost_val;
         if dcost < 0
-            lambda = param.nu_dn*lambda; % decrease step
+            lambda = param.nu_dn*lambda; % decrease lambda
             p = new_p;
             [cost_val, resids] = eval_cost_func(cost_func_wrap, p);
             [hess, jac] = calc_hessian_and_jacobian(cost_func_wrap, p, diff_step, cost_val, resids);
@@ -169,7 +206,6 @@ else
         else
             % increase lambda so take path closer to steepest descent
             % don't recalc hess or jac
-            % limit number times do this?
             lambda = param.nu_up*lambda;
         end
     end

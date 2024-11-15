@@ -90,11 +90,18 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %
 % `func`
 % : Function handle with one of the following definition:
-%   * `R2 = func(p)`        if `dat` is empty,
+%   * `R = func(p)`         if `dat` is empty,
 %   * `y  = func(x,p)`      if `dat` is a struct.
 %   Here `x` is a vector of $N$ independent variables, `p` are the
-%   $M$ parameters to be optimized and `y` is the simulated model, `R2`
-%   is the value to minimize.
+%   $M$ parameters to be optimized and `y` is the simulated model.
+%   If `resid_handle` argument is false (default) then the function returns 
+%   a scalar (the cost funciton to minimsie e.g. chi-squared). If 
+%   `resid_handle` is true then the function returns a vector of residuals
+%   (not the residuals squared).
+%
+% `p0`
+% : vector of initlial parameter guesses - sytating point for the
+%  optimisation.
 %
 % ### Name-Value Pair Arguments
 %
@@ -127,7 +134,7 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   $10^{-3}$.
 %
 % `'resid_handle'`
-% : Boolean scalar - if true and `dat` is empty then fucntion handle 
+% : Boolean scalar - if true and `dat` is empty then 'func' fucntion handle 
 %   returns array of residuals, if false (default) then function handle 
 %   returns a scalar cost function.
 %
