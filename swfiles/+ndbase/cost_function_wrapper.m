@@ -17,12 +17,15 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
 % ### Input Arguments
 % 
 % `func`
-% : Function handle or char with one of the following definition:
-%   * `R2 = func(p)`        if `dat` is empty,
+% : Function handle with one of the following definition:
+%   * `R = func(p)`         if `dat` is empty,
 %   * `y  = func(x,p)`      if `dat` is a struct.
 %   Here `x` is a vector of $N$ independent variables, `p` are the
-%   $M$ parameters to be optimized and `y` is the simulated model, `R2`
-%   is the value to minimize.
+%   $M$ parameters to be optimized and `y` is the simulated model.
+%   If `resid_handle` argument is false (default) then the function returns 
+%   a scalar (the cost function to minimise e.g. chi-squared). If 
+%   `resid_handle` is true then the function returns a vector of residuals
+%   (not the residuals squared).
 %
 % `parameters`
 % :  Vector of doubles

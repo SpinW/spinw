@@ -82,9 +82,23 @@ classdef unittest_ndbase_optimisers < sw_tests.unit_tests.unittest_super
             testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
         end
 
+        function test_optimise_rosen_parameter_fixed_minimum_not_accessible_with_vary_arg(testCase, optimiser)
+            % note intital guess is outside bounds
+            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [0,-1], 'lb', [nan, -0.5], 'ub', [nan, 0], 'vary', [false, true]);
+            testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
+            testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
+        end
+
         function test_optimise_rosen_parameter_all_fixed(testCase, optimiser)
             % note intital guess is outside bounds
             [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [-1,-1], 'lb', [0, 0], 'ub', [0, 0]);
+            testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
+            testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
+        end
+
+        function test_optimise_rosen_parameter_all_fixed_with_vary_arg(testCase, optimiser)
+            % note intital guess is outside bounds
+            [pars_fit, cost_val, ~] = optimiser([], testCase.rosenbrock, [0, 0], 'vary', [false, false]);
             testCase.verify_val(pars_fit, [0, 0], 'abs_tol', 1e-3);
             testCase.verify_val(cost_val, 1, 'abs_tol', 1e-6);
         end

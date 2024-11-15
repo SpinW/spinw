@@ -25,7 +25,7 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 %   Here `x` is a vector of $N$ independent variables, `p` are the
 %   $M$ parameters to be optimized and `y` is the simulated model.
 %   If `resid_handle` argument is false (default) then the function returns 
-%   a scalar (the cost funciton to minimsie e.g. chi-squared). If 
+%   a scalar (the cost funciton to minimise e.g. chi-squared). If 
 %   `resid_handle` is true then the function returns a vector of residuals
 %   (not the residuals squared).
 %
@@ -89,6 +89,11 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 %   decreasing lambda to speed-up convergence by taking larger steps as 
 %   the cost-function surface becomes increasingly parabolic.
 %
+% `'vary'`
+% : Boolean vector with $M$ elements (one per parameter), if an element is 
+%   false, the corresponding parameter will be fixed (not optimised). 
+%   Default is true for all parameters.
+%
 % ### Output
 %
 % `pOpt`
@@ -138,9 +143,16 @@ inpForm.fname  = [inpForm.fname  {'nu_up', 'nu_dn',  'resid_handle'}];
 inpForm.defval = [inpForm.defval {5        0.3,      false}];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1],    [1 1]}];
 
+inpForm.fname  = [inpForm.fname  {'vary'}];
+inpForm.defval = [inpForm.defval {true(1, nparams)}];
+inpForm.size   = [inpForm.size   {[1 nparams]}];
+
 param = sw_readparam(inpForm, varargin{:});
 
-cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub, 'resid_handle', param.resid_handle);
+cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, ...
+                                              'lb', param.lb, 'ub', param.ub, ...
+                                              'resid_handle', param.resid_handle, ...
+                                              'ifix', find(~param.vary));
 % transform starting values into their unconstrained surrogates.
 p0_free = cost_func_wrap.get_free_parameters(p0);
 

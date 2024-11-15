@@ -95,7 +95,7 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   Here `x` is a vector of $N$ independent variables, `p` are the
 %   $M$ parameters to be optimized and `y` is the simulated model.
 %   If `resid_handle` argument is false (default) then the function returns 
-%   a scalar (the cost funciton to minimsie e.g. chi-squared). If 
+%   a scalar (the cost funciton to minimise e.g. chi-squared). If 
 %   `resid_handle` is true then the function returns a vector of residuals
 %   (not the residuals squared).
 %
@@ -138,10 +138,15 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   returns array of residuals, if false (default) then function handle 
 %   returns a scalar cost function.
 %
+% `'vary'`
+% : Boolean vector with $M$ elements (one per parameter), if an element is 
+%   false, the corresponding parameter will be fixed (not optimised). 
+%   Default is true for all parameters.
+%
 % ### See Also
 %
 % [ndbase.lm] \| [ndbase.pso]
-
+%
 % Original author: John D'Errico
 % E-mail: woodchips@rochester.rr.com
 % Release: 4
@@ -161,13 +166,16 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
     inpForm.soft   = {false     false    false  false     true      true    };
 
-    inpForm.fname  = [inpForm.fname  {'resid_handle'}];
-    inpForm.defval = [inpForm.defval {false}];
-    inpForm.size   = [inpForm.size   {[1 1]}];
+    inpForm.fname  = [inpForm.fname  {'resid_handle', 'vary'}];
+    inpForm.defval = [inpForm.defval {false,          true(1, Np)}];
+    inpForm.size   = [inpForm.size   {[1 1],          [1, Np]}];
     
     param = sw_readparam(inpForm, varargin{:});
   
-    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub, 'resid_handle', param.resid_handle);
+    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, ...
+                                              'lb', param.lb, 'ub', param.ub, ...
+                                              'resid_handle', param.resid_handle, ...
+                                              'ifix', find(~param.vary));
     
     % transform starting values into their unconstrained surrogates.
     p0_free = cost_func_wrap.get_free_parameters(p0);
