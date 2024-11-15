@@ -141,27 +141,30 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
                 has_ub = ~isempty(ub) && isfinite(ub(ipar));
                 is_fixed = any(uint8(ifix) == ipar);
                 if has_lb && has_ub
-                    % both bounds specified and parameter not fixed
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb_and_ub(p, lb(ipar), ub(ipar));
                     % check if fixed
                     bounds_equal = abs(ub(ipar) - lb(ipar)) < max(abs(ub(ipar)), 1)*obj.fix_tol;
                     is_fixed = is_fixed || bounds_equal;
+                    if is_fixed
+                        pars(ipar) = obj.reset_bound_par_if_invalid_has_lb_and_ub(pars(ipar), lb(ipar), ub(ipar));
+                    end
                 elseif has_lb
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_lb(p, lb(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_lb(p, lb(ipar));
+                    if is_fixed
+                        pars(ipar) = obj.reset_bound_par_if_invalid_has_lb(pars(ipar), lb(ipar));
+                    end
                 elseif has_ub
                     obj.free_to_bound_funcs{ipar} = @(p) obj.free_to_bound_has_ub(p, ub(ipar));
                     obj.bound_to_free_funcs{ipar} = @(p) obj.bound_to_free_has_ub(p, ub(ipar));
+                    if is_fixed
+                        pars(ipar) = obj.reset_bound_par_if_invalid_has_ub(pars(ipar), ub(ipar));
+                    end
                 end
                 % check fixed parameters
                 if is_fixed
                     obj.ifixed = [obj.ifixed, ipar];
-                    if has_lb && pars(ipar) < lb(ipar)
-                         pars(ipar) = lb(ipar);
-                    elseif has_ub && pars(ipar) > ub(ipar)
-                         pars(ipar) = ub(ipar);
-                    end
                     obj.pars_fixed = [obj.pars_fixed, pars(ipar)];
                 end
 
@@ -213,34 +216,47 @@ classdef cost_function_wrapper < handle & matlab.mixin.SetGet
     end
     % private
     methods (Static=true, Hidden=true, Access = private)
-        function par_bound = free_to_bound_has_lb(par, lb)
-            par_bound = lb - 1 + sqrt(par^2 + 1);
-        end
         function par = bound_to_free_has_lb(par_bound, lb)
-            if par_bound < lb
-                par_bound = lb;
-            end
+            par_bound = ndbase.cost_function_wrapper.reset_bound_par_if_invalid_has_lb(par_bound, lb);
             par = sqrt((par_bound - lb + 1)^2 - 1);
         end
-        function par_bound = free_to_bound_has_ub(par, ub)
-           par_bound = ub + 1 - sqrt(par^2 + 1);
-        end
         function par = bound_to_free_has_ub(par_bound, ub)
-            if par_bound > ub
-                par_bound = ub;
-            end
+            par_bound = ndbase.cost_function_wrapper.reset_bound_par_if_invalid_has_ub(par_bound, ub);
             par = sqrt((ub - par_bound + 1)^2 - 1);
+        end
+        function par = bound_to_free_has_lb_and_ub(par_bound, lb, ub)
+            par_bound = ndbase.cost_function_wrapper.reset_bound_par_if_invalid_has_lb_and_ub(par_bound, lb, ub);
+            par = asin((2*(par_bound - lb)/(ub-lb)) - 1);
         end
         function par_bound = free_to_bound_has_lb_and_ub(par, lb, ub)
             par_bound = lb + (sin(par) + 1)*(ub-lb)/2;
         end
-        function par = bound_to_free_has_lb_and_ub(par_bound, lb, ub)
-            if par_bound < lb
-                par_bound = lb;
-            elseif par_bound > ub
-                par_bound = ub;
+        function par_bound = free_to_bound_has_ub(par, ub)
+           par_bound = ub + 1 - sqrt(par^2 + 1);
+        end
+        function par_bound = free_to_bound_has_lb(par, lb)
+            par_bound = lb - 1 + sqrt(par^2 + 1);
+        end
+        function par_bound = reset_bound_par_if_invalid_has_lb_and_ub(par_bound, lb, ub)
+            if par_bound < lb || par_bound > ub
+                warning("ndbase:cost_function_wrapper:InvalidParameter",...
+                        "A parameter is outside bounds set - parameter will be reset.")
+                par_bound = (lb + ub) / 2;
             end
-            par = asin((2*(par_bound - lb)/(ub-lb)) - 1);
+        end
+        function par_bound = reset_bound_par_if_invalid_has_lb(par_bound, lb)
+            if par_bound < lb
+                warning("ndbase:cost_function_wrapper:InvalidParameter",...
+                        "A parameter is outside bounds set - parameter will be reset.")
+                par_bound = par_bound + max(abs(lb), 1) / 2;
+            end
+        end
+        function par_bound = reset_bound_par_if_invalid_has_ub(par_bound, ub)
+            if par_bound > ub
+                warning("ndbase:cost_function_wrapper:InvalidParameter",...
+                        "A parameter is outside bounds set - parameter will be reset.")
+                par_bound = par_bound - max(abs(ub), 1) / 2;
+            end
         end
     end
 end
@@ -249,3 +265,4 @@ end
 function isFunctionHandleOrChar(func)
     assert(isa(func, 'function_handle') || ischar(func));
 end
+
