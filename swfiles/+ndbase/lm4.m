@@ -135,7 +135,7 @@ inpForm.defval = [inpForm.defval {1e-8    1e-8   1e-8  1e-2}];
 inpForm.size   = [inpForm.size   {[1 1]   [1 1]  [1 1] [1 1]}];
 
 inpForm.fname  = [inpForm.fname  {'nu_up', 'nu_dn',  'resid_handle'}];
-inpForm.defval = [inpForm.defval {10        0.3,      false}];
+inpForm.defval = [inpForm.defval {5        0.3,      false}];
 inpForm.size   = [inpForm.size   {[1 1]    [1 1],    [1 1]}];
 
 param = sw_readparam(inpForm, varargin{:});
