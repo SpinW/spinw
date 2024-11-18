@@ -30,7 +30,7 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 %   (not the residuals squared).
 %
 % `p0`
-% : vector of initlial parameter guesses - sytating point for the
+% : vector of initial parameter guesses - starting point for the
 %  optimisation.
 %
 % ### Name-Value Pair Arguments
@@ -117,7 +117,7 @@ function [pOpt, fVal, stat] = lm4(dat, func, p0, varargin)
 %   Rsq       R-squared cofficient of multiple determination (to implement).
 %   cvgHst    Convergence history (to implement)..
 %   exitFlag  The reason, why the code stopped:
-%               0       maximum number of iteraitons reached
+%               0       maximum number of iterations reached
 %               1       convergence step-size (see `ptol`)
 %               2       convergence in cost (see `ftol`)
 %               3       convergence in gradient (see `gtol`)

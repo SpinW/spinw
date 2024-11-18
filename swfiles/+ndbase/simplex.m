@@ -100,7 +100,7 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   (not the residuals squared).
 %
 % `p0`
-% : vector of initlial parameter guesses - sytating point for the
+% : vector of initial parameter guesses - starting point for the
 %  optimisation.
 %
 % ### Name-Value Pair Arguments
