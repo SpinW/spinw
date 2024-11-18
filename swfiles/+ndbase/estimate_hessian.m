@@ -68,6 +68,10 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
 %   considered appropriate. Step size optimisation will be terminated once
 %   this condition is met. Default is sqrt(epse) ~ 1e-8.
 %
+% `cost_val` (optional)
+% : Initial cost function evaluated at input parameters to avoid 
+%   additional function call if already available.
+%
 % ### Output Arguments
 % 
 % `hessian` 
@@ -79,7 +83,8 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
 %   * `cost_val`:  Cost function evaluted at input parameters
 %   * `step_size`: Vector of steps in finite-difference method for each
 %                  parameter.
-%
+%   * `jacobian`:  Vector of jacobian at input parameters (dcost/dp)
+
 % ### Examples
 %```
 % >> % make data
@@ -108,6 +113,7 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
         options.ivary double = 0
         options.niter (1,1) double = 16
         options.cost_tol (1,1) double = sqrt(eps)
+        options.cost_val (1,1) double = nan
     end
     optimise_step = true;
     min_step = sqrt(eps);
@@ -119,7 +125,7 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
         step_size = options.step;
         if numel(step_size)==1
             % interpret as fractional step size
-            step_size = params .* step_size;
+            step_size = abs(params) .* step_size;
         end
     end
     if options.ivary
@@ -140,7 +146,11 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
     
     % calculate jacobian at param
     hessian = zeros(npar);
-    initial_cost = fcost(params);
+    if isfinite(options.cost_val)
+        initial_cost = options.cost_val;
+    else
+        initial_cost = fcost(params);
+    end
     jac_one_step = zeros(1, npar);
     cost_one_step = zeros(1, npar);
     for irow = 1:npar
@@ -183,5 +193,6 @@ function [hessian, varargout] = estimate_hessian(fcost, params, options)
     end
     out_struct.cost_val = initial_cost;
     out_struct.step_size = step_size;
+    out_struct.jacobian = jac_one_step;
     varargout = {out_struct};
 end

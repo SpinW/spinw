@@ -44,8 +44,8 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
             % note first param outside bounds
             cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [3, 1]);
             [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
-            testCase.verify_val(pfree, [0, 3.8730], 'abs_tol', 1e-4);
-            testCase.verify_val(pbound, [3, 4], 'abs_tol', 1e-4);
+            testCase.verify_val(pfree, [1.1180, 3.8730], 'abs_tol', 1e-4);
+            testCase.verify_val(pbound, [3.5, 4], 'abs_tol', 1e-4);
             testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
         end
 
@@ -53,8 +53,8 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
             % note second param outside bounds
             cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'ub', [3, 1]);
             [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
-            testCase.verify_val(pfree, [1.7320, 0], 'abs_tol', 1e-4);
-            testCase.verify_val(pbound, [2, 1], 'abs_tol', 1e-4);
+            testCase.verify_val(pfree, [1.7320, 1.1180], 'abs_tol', 1e-4);
+            testCase.verify_val(pbound, [2, 0.5], 'abs_tol', 1e-4);
             testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
         end
 
@@ -62,8 +62,8 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
             % note second param outside bounds
             cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1, 2], 'ub', [3, 2.5]);
             [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
-            testCase.verify_val(pfree, [0, 1.5708], 'abs_tol', 1e-4);
-            testCase.verify_val(pbound, [2, 2.5], 'abs_tol', 1e-4);
+            testCase.verify_val(pfree, [0, 0], 'abs_tol', 1e-4);
+            testCase.verify_val(pbound, [2, 2.25], 'abs_tol', 1e-4);
             testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
         end
 
@@ -80,22 +80,31 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
         end
 
 
-        function test_init_with_fcost_both_bounds_with_fixed_param_using_ifix(testCase)
+        function test_init_with_fcost_both_bounds_fixed_invalid_param_using_ifix(testCase)
             % note second param outside bounds
             cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1, 2], 'ub', [3, 2.5], 'ifix', [2]);
             [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
             testCase.verify_val(pfree, 0, 'abs_tol', 1e-4);  % only first param free
-            testCase.verify_val(pbound, [2, 2.5], 'abs_tol', 1e-4);
+            testCase.verify_val(pbound, [2, 2.25], 'abs_tol', 1e-4);
             testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
             testCase.verify_val(cost_func_wrap.ifixed, 2);
             testCase.verify_val(cost_func_wrap.ifree, 1);
-            testCase.verify_val(cost_func_wrap.pars_fixed, 2.5);
+            testCase.verify_val(cost_func_wrap.pars_fixed, 2.25);
+        end
+
+        function test_init_with_fcost_both_bounds_fixed_param_using_ifix(testCase)
+            % note second param outside bounds
+            cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1, 2], 'ub', [3, 6], 'ifix', [2]);
+            [pfree, pbound, ~] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verify_val(pfree, 0, 'abs_tol', 1e-4);  % only first param free
+            testCase.verify_val(pbound, testCase.params, 'abs_tol', 1e-4);
+            testCase.verify_val(cost_func_wrap.pars_fixed, testCase.params(2));
         end
 
         function test_init_with_fcost_no_bounds_with_fixed_param_using_ifix(testCase)
             % note second param outside bounds
             cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'ifix', [2]);
-            [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            [pfree, pbound, ~] = testCase.get_pars_and_cost_val(cost_func_wrap);
             testCase.verify_val(pfree, testCase.params(1), 'abs_tol', 1e-4);  % only first param free
             testCase.verify_val(pbound, testCase.params, 'abs_tol', 1e-4);
             testCase.verify_val(cost_func_wrap.ifixed, 2);
@@ -130,6 +139,28 @@ classdef unittest_ndbase_cost_function_wrapper < sw_tests.unit_tests.unittest_su
                 @() ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'lb', [1,1,], 'ub', [0,0]), ...
                 'ndbase:cost_function_wrapper:WrongInput');
         end
+
+        function test_init_with_resid_handle(testCase)
+            x = 1:3;
+            y = polyval(testCase.params, x);
+            cost_func_wrap = ndbase.cost_function_wrapper(@(p) y - polyval(p, x), testCase.params, 'resid_handle', true);
+            [~, ~, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verify_val(cost_val, 0, 'abs_tol', 1e-4);
+        end
+
+        function test_init_with_fcost_all_params_fixed(testCase)
+            % note second param outside bounds
+            ifixed = 1:2;
+            cost_func_wrap = ndbase.cost_function_wrapper(testCase.fcost, testCase.params, 'ifix', ifixed);
+            [pfree, pbound, cost_val] = testCase.get_pars_and_cost_val(cost_func_wrap);
+            testCase.verifyEmpty(pfree);
+            testCase.verify_val(pbound, testCase.params);
+            testCase.verify_val(cost_val, testCase.fcost(pbound), 'abs_tol', 1e-4);
+            testCase.verify_val(cost_func_wrap.ifixed, ifixed);
+            testCase.verifyEmpty(cost_func_wrap.ifree);
+            testCase.verify_val(cost_func_wrap.pars_fixed, testCase.params);
+        end
+
         
     end
 end

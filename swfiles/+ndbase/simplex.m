@@ -90,11 +90,18 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %
 % `func`
 % : Function handle with one of the following definition:
-%   * `R2 = func(p)`        if `dat` is empty,
+%   * `R = func(p)`         if `dat` is empty,
 %   * `y  = func(x,p)`      if `dat` is a struct.
 %   Here `x` is a vector of $N$ independent variables, `p` are the
-%   $M$ parameters to be optimized and `y` is the simulated model, `R2`
-%   is the value to minimize.
+%   $M$ parameters to be optimized and `y` is the simulated model.
+%   If `resid_handle` argument is false (default) then the function returns 
+%   a scalar (the cost funciton to minimise e.g. chi-squared). If 
+%   `resid_handle` is true then the function returns a vector of residuals
+%   (not the residuals squared).
+%
+% `p0`
+% : vector of initial parameter guesses - starting point for the
+%  optimisation.
 %
 % ### Name-Value Pair Arguments
 %
@@ -126,11 +133,20 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
 %   the weighted least square deviation from data). Default value is
 %   $10^{-3}$.
 %
+% `'resid_handle'`
+% : Boolean scalar - if true and `dat` is empty then 'func' fucntion handle 
+%   returns array of residuals, if false (default) then function handle 
+%   returns a scalar cost function.
+%
+% `'vary'`
+% : Boolean vector with $M$ elements (one per parameter), if an element is 
+%   false, the corresponding parameter will be fixed (not optimised). 
+%   Default is true for all parameters.
 %
 % ### See Also
 %
 % [ndbase.lm] \| [ndbase.pso]
-
+%
 % Original author: John D'Errico
 % E-mail: woodchips@rochester.rr.com
 % Release: 4
@@ -149,10 +165,17 @@ function [pOpt,fVal,stat] = simplex(dat,func,p0,varargin)
     inpForm.defval = {'off'     1e-3     1e-3   100*Np    []        []      };
     inpForm.size   = {[1 -1]    [1 1]    [1 1]  [1 1]     [-5 -2]   [-3 -4] };
     inpForm.soft   = {false     false    false  false     true      true    };
+
+    inpForm.fname  = [inpForm.fname  {'resid_handle', 'vary'}];
+    inpForm.defval = [inpForm.defval {false,          true(1, Np)}];
+    inpForm.size   = [inpForm.size   {[1 1],          [1, Np]}];
     
     param = sw_readparam(inpForm, varargin{:});
   
-    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, 'lb', param.lb, 'ub', param.ub);
+    cost_func_wrap = ndbase.cost_function_wrapper(func, p0, "data", dat, ...
+                                              'lb', param.lb, 'ub', param.ub, ...
+                                              'resid_handle', param.resid_handle, ...
+                                              'ifix', find(~param.vary));
     
     % transform starting values into their unconstrained surrogates.
     p0_free = cost_func_wrap.get_free_parameters(p0);
