@@ -504,6 +504,19 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                                        varargin{:});
         end
 
+        function varargout = fit_background_and_scale(obj, varargin) 
+            % fix all model parameters
+            initial_bounds = obj.bounds; % store so bounds can be reset
+            obj.fix_model_parameters(1:obj.nparams_model);
+            varargout = cell(1,nargout(obj.optimizer));
+            [varargout{:}] = obj.fit(varargin{:});
+            % reset bounds
+            obj.bounds = initial_bounds;
+            % overwrite non model parameters
+            obj.params = varargout{1}(:); % assume first output (as for ndbase)
+        end
+
+
         function [param_errors, varargout] = calc_uncertainty(obj, params, varargin)
         % Function to estimate parameter errors by evaluating hessian.
         % By default will only evaluate derivatives for parameters
