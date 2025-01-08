@@ -573,7 +573,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             params = obj.params;
             params(end) = 1;
             [ycalc, bg] = calc_spinwave_spec(obj, params);
-            scale = max(obj.y - mean(bg(:)), [], "all")/max(ycalc, [], "all");
+            if obj.ndim == 1 && obj.background_strategy=="planar"
+                % integrate nQ |Q| points for each cut
+                bg = obj.rebin_powspec_to_1D_cuts(bg);
+            end
+            scale = max(obj.y - bg, [], "all")/max(ycalc - bg, [], "all");
             obj.params(end) = scale;
         end
 

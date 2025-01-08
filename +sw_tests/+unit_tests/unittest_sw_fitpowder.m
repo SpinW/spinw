@@ -406,11 +406,12 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         function test_estimate_scale_factor(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
+            out.set_bg_parameters(3, 0.05);  % set constant bg
             out.powspec_args.dE = 0.1;  % constant energy resolution
             out.powspec_args.hermit = true;
             out.estimate_scale_factor()
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.params(end) = 17.6;
+            expected_fitpow.params(end) = 17.36;
             testCase.verify_results(out, expected_fitpow, ...
                                     testCase.default_fields, 'abs_tol', 1e-1);
         end
