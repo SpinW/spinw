@@ -549,7 +549,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             varargout = {cov}; 
         end
 
-        function fit_background(obj, varargin)
+        function varargout = fit_background(obj, varargin)
             if isempty(obj.ibg)
                 obj.find_indices_and_mean_of_bg_bins();
             end
@@ -567,18 +567,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             else
                 fobj = @obj.calc_cost_func_of_background; % minimise scalar
             end
-
-            [bg_params, ~, stat] = ndbase.simplex([], fobj, ...
-                                                  obj.params(ibg_par)', ...
-                                                 'lb', obj.bounds(ibg_par,1)', ...
-                                                 'ub', obj.bounds(ibg_par,2)', ...
-                                                  varargin{:});
-            if stat.exitFlag == 1
-                obj.params(ibg_par) = bg_params;
-            else
-                warning('spinw:sw_fitpowder:fit_background', ...
-                        'Fit failed - parameters not updated.');
-            end
+            varargout = cell(1,nargout(obj.optimizer));
+            [varargout{:}] = obj.optimizer([], fobj, ...
+                                           obj.params(ibg_par)', ...
+                                          'lb', obj.bounds(ibg_par,1)', ...
+                                          'ub', obj.bounds(ibg_par,2)', ...
+                                           varargin{:});
+            obj.params(ibg_par) = varargout{1}(:);
         end
 
         function estimate_scale_factor(obj)
