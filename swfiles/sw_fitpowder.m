@@ -215,22 +215,44 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function set_background_strategy(obj, strategy)
-            if (strategy == "independent" && obj.ndim==1) || strategy == "planar"
-                obj.background_strategy = strategy;
-            else
-                error('sw_fitpowder:set_background_strategy', ...
-                      'Parameter indices supplied must be within number of model parameters');
-            end
-            if obj.background_strategy == "planar"
+            if strategy == "planar"
                 obj.fbg = obj.fbg_planar;
-            else
+            elseif strategy == "independent"
+                if obj.ndim == 2
+                    error('sw_fitpowder:invalidinput', ...
+                          ['Can only have independent background strategy' ...
+                          ' for 1D datasets.'])
+                end
                 obj.fbg = obj.fbg_indep;
             end
+            % store previous bg parameters before reset size of param array
+            ibg_par = (obj.nparams_model+1):(numel(obj.params)-1);
+            bg_pars = obj.params(ibg_par);
+            % reset param array d bounds etc.
+            obj.background_strategy = strategy;
             obj.nparams_bg = obj.get_nparams_in_background_func();
             if ~isempty(obj.params)
-                warning('sw_fitpowder:set_background_strategy', ...
-                        'Overwriting background parmaweters with 0.');
                 obj.initialise_background_parameters_and_bounds();
+                if any(abs(bg_pars) > obj.zero_abs_tol) && obj.ndim == 1
+                    % set good guess for background pars
+                    modQs = obj.get_modQ_cens_of_cuts();
+                    if obj.background_strategy == "independent"
+                        % keep same energy slope (scaled by nQ)
+                        obj.set_bg_parameters(1, bg_pars(1));
+                        % set intercept (zero energy) for reach cut separately
+                        bg_pars = num2cell(bg_pars);
+                        intercepts = obj.fbg_planar(0, modQs, bg_pars{:});
+                        for icut = 1:obj.ncuts
+                            obj.set_bg_parameters(2, intercepts(icut), icut);
+                        end
+                    elseif obj.background_strategy == "planar"
+                        % average the energy slope
+                        slope_en = mean(bg_pars(1:2:end));
+                        % fit intercepts to linear Q
+                        pval = polyfit(modQs, bg_pars(2:2:end), 1);
+                        obj.set_bg_parameters(1:3, [slope_en, pval]);
+                    end
+                end
             end
         end
 
@@ -356,9 +378,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.add_data(cuts);
             if nargin > 3 && background_strategy ~= obj.background_strategy
                 obj.set_background_strategy(background_strategy)
-                warning('spinw:sw_fitpowder:replace_2D_data_with_1D_cuts', ...
-                        ['Background strategy changed - background ' ...
-                        'parameters and bounds will be cleared.']);
             end
         end
 
@@ -648,7 +667,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function plot_1d_cuts_on_data(obj, ycalc, varargin)
-            modQs = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
+            modQs = obj.get_modQ_cens_of_cuts();
             for icut = 1:obj.ncuts
                 ax =  subplot(1, obj.ncuts, icut);
                 hold on; box on;
@@ -737,6 +756,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
             % exclude nans in both ycalc and input data
             resid = resid(isfinite(resid) & e > obj.zero_abs_tol);
+        end
+
+
+        function modQ_cens = get_modQ_cens_of_cuts(obj)
+            modQ_cens = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
         end
 
         function cut = cut_2d_data(obj, qmin, qmax)

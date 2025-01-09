@@ -76,13 +76,41 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
-        function test_set_background_strategy(testCase)
+        function test_set_background_strategy_to_planar(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "independent");
+            % set some background parameters (correpsonding to planar bg
+            % with slope_en=slope_q=intercept =2
+            out.set_bg_parameters(1, 2); % en_slope = 2
+            out.set_bg_parameters(2, 10, 1); % intercept = 10 for cut 1
+            out.set_bg_parameters(2, 12, 2); % intercept = 12 for cut 2
             out.set_background_strategy("planar");
             expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(2:end-1) = 2;
             expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
-            testCase.verify_results(out, expected_fitpow);
+            testCase.verify_results(out, expected_fitpow, ...
+                                    testCase.default_fields, ...
+                                    'abs_tol', 1e-10);
+        end
+
+        function test_set_background_strategy_to_indep(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "planar");
+            % set some background parameters (correpsonding to planar bg
+            % with slope_en=slope_q=intercept =2
+            out.set_bg_parameters(1:3, [2,2,2]); % en_slope = 2
+            out.set_background_strategy("independent");
+            expected_fitpow = testCase.default_fitpow;
+            % add extra background param
+            expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
+            expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
+            expected_fitpow.params(2:2:end-1) = 2; % en slope
+            expected_fitpow.params(3) = 10; % intercept = 10 for cut 1
+            expected_fitpow.params(5) = 12; % intercept = 12 for cut 2
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            testCase.verify_results(out, expected_fitpow, ...
+                                    testCase.default_fields, ...
+                                    'abs_tol', 1e-10);
         end
 
         function test_replace_2D_data_with_1D_cuts(testCase)
