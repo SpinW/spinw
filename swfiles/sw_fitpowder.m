@@ -649,13 +649,23 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ax = subplot(1,1,1);
             box on; hold on;
             h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, y);
-            h.AlphaData = obj.y > 0;  % make empty bins transparent
+            h.AlphaData = double(obj.y > 0);  % make empty bins transparent
             cbar = colorbar(ax);
             cbar.Label.String = "Intensity";
             xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
             ylabel(ax, "Energy (meV)");
             ylim(ax, [obj.ebin_cens(1), obj.ebin_cens(end)]);
             xlim(ax, [obj.modQ_cens(1), obj.modQ_cens(end)]);
+        end
+
+        function plot_background_region(obj)
+            if ~isempty(obj.ibg)
+                if obj.ndim == 1
+                    obj.plot_background_region_1d()
+                else
+                    obj.plot_background_region_2d()
+                end
+            end
         end
 
         function plot_1d_cuts_of_2d_data(obj, qmins, qmaxs, params)
@@ -807,6 +817,29 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                       'Could not estimate background.');
             else
                 obj.ibg = iseed(isort(ipt:end));
+            end
+        end
+        
+        function plot_background_region_2d(obj)
+            im = findobj(gca, 'type', 'Image');
+            is_valid = ~isempty(im) &&  all(size(im.CData) == size(obj.y));
+            assert(is_valid, 'sw_fitpowder:invalidinput', ...
+                   ['This function requires active axes to have an' ...
+                   ' image/colorfill plot of the data.']);
+            im.AlphaData(obj.ibg) = 0.5;
+        end
+
+        function plot_background_region_1d(obj)
+            fig = gcf();
+            axs = flip(fig.Children);
+            assert(obj.ncuts==numel(axs), 'sw_fitpowder:invalidinput', ...
+                   ['This function requires active figure to have same' ...
+                   ' number of axes as 1D cuts']);
+            [ien, icuts] = ind2sub(size(obj.y), obj.ibg);
+            for icut = 1:obj.ncuts
+                ibg_cut = ien(icuts == icut);
+                plot(axs(icut), obj.ebin_cens(ibg_cut), ...
+                                obj.y(ibg_cut,icut), 'xb')
             end
         end
     end
