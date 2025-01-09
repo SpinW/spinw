@@ -415,6 +415,31 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.reset_errors_of_bg_bins()
         end
 
+        function set_bg_region(obj, en_lo, en_hi, varargin)
+            % 2D data: obj.set_bg_region(en_lo, en_hi, q_lo, q_hi)
+            % 1D data: obj.set_bg_region(en_lo, en_hi, icuts)
+            % both:
+            % obj.set_bg_region(en_lo, en_hi)  % apply to all cuts/Q
+            if isempty(varargin)
+                iq = 1:size(obj.y, 2);
+            elseif obj.ndim == 1 && numel(varargin)==1
+                iq = varargin{1};
+            elseif obj.ndim==2 && numel(varargin)==2
+                [q_lo, q_hi] = varargin{:};
+                iq = obj.modQ_cens < q_hi & obj.modQ_cens > q_lo;
+            else
+                error('spinw:sw_fitpowder:set_bg_region', ...
+                      ['Wrong number of additional aruguments: 2 required' ...
+                      ' for 2D problem (qlo and qhi)' ...
+                      'and 1 required for 1D problem (icut indices)']);
+            end
+            ien = obj.ebin_cens < en_hi & obj.ebin_cens > en_lo;
+            mask = false(size(obj.y));
+            mask(ien, iq) = true;
+            mask = mask & isfinite(obj.y);
+            obj.ibg = [obj.ibg; find(mask(:))];
+        end
+
         function [ycalc, bg] = calc_spinwave_spec(obj, params)
             model_params = reshape(params(1:obj.nparams_model), 1, []);
             if obj.do_cache && ~isempty(obj.model_params_cached) && all(abs(model_params - obj.model_params_cached) < 1e-10)
@@ -819,7 +844,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.ibg = iseed(isort(ipt:end));
             end
         end
-        
+
         function plot_background_region_2d(obj)
             im = findobj(gca, 'type', 'Image');
             is_valid = ~isempty(im) &&  all(size(im.CData) == size(obj.y));

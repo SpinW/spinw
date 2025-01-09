@@ -466,6 +466,28 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d; % integrtate over nQ pts
             testCase.verify_results(out, expected_fitpow);
         end
+
+        function test_set_bg_region_data_2d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.set_bg_region(0,1.5); % for all Q
+            out.set_bg_region(2.5,3.5,4.5,inf); % for highest Q
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.ibg = [1;4;6];
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_bg_region_data_1d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            out.set_bg_region(0,1.5); % for all cuts
+            out.set_bg_region(2.5,3.5,2); % for last cut
+            expected_fitpow.ibg = [1;4;6];
+            testCase.verify_results(out, expected_fitpow);
+        end
+
     end
 
 end
