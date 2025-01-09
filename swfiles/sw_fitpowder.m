@@ -769,8 +769,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                    'This function is only valid for 2D data');
             cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
             ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
+            ifinite = isfinite(obj.y(:, ikeep));
             cut.y = mean(obj.y(:, ikeep), 2, 'omitnan');
-            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2))/sum(ikeep);
+            cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2))./sum(ifinite, 2);
         end
         function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
             % sum up successive nQ points along |Q| axis (dim=2)
