@@ -430,8 +430,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function clear_cache(obj)
             obj.ycalc_cached = [];
             obj.model_params_cached = [];
+            obj.clear_background_region();
+        end
+
+        function clear_background_region(obj)
             obj.ibg = [];
-            obj.reset_errors_of_bg_bins()
+            obj.reset_errors_of_bg_bins();
         end
 
         function set_bg_region(obj, en_lo, en_hi, varargin)
