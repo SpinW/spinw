@@ -214,12 +214,15 @@ int do_loop(mxArray *plhs[], const mxArray *prhs[], int nthread, mwSignedIndex m
             int *blkid, char uplo, T tol, bool do_Colpa)
 {
     int err_nonpos = 0, err_singular = 0;
-    T* lhs0 = (T*)mxGetData(plhs[0]);
-    T* lhs1 = (T*)mxGetData(plhs[1]);
+    T *lhs0, *ilhs0, *lhs1, *ilhs1;
+    lhs0 = (T*)mxGetData(plhs[0]);
+    ilhs0 = (T*)mxGetImagData(plhs[0]);
+    if (nlhs > 1) {
+        lhs1 = (T*)mxGetData(plhs[1]);
+        ilhs1 = (T*)mxGetImagData(plhs[1]);
+    }
     T* rhs0 = (T*)mxGetData(prhs[0]);
     T* irhs0 = (T*)mxGetImagData(prhs[0]);
-    T* ilhs0 = (T*)mxGetImagData(plhs[0]);
-    T* ilhs1 = (T*)mxGetImagData(plhs[1]);
     bool is_complex = mxIsComplex(prhs[0]);
 #pragma omp parallel default(none) shared(err_nonpos, err_singular) \
     firstprivate(nthread, m, nlhs, blkid, uplo, tol, do_Colpa, lhs0, lhs1, rhs0, irhs0, ilhs0, ilhs1, is_complex)
