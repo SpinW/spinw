@@ -681,10 +681,13 @@ int do_loop(T *mat, T *mat_i, mxArray *plhs[], int nthread, mwSignedIndex m, int
     const int *blkid, char jobz, bool anynonsym, const bool *issym, bool do_orth, int do_sort, bool is_complex)
 {
     int err_code = 0;
-    T* lhs0 = (T*)mxGetData(plhs[0]);
-    T* lhs1 = (T*)mxGetData(plhs[1]);
-    T* ilhs0 = (T*)mxGetImagData(plhs[0]);
-    T* ilhs1 = (T*)mxGetImagData(plhs[1]);
+    T *lhs0, *ilhs0, *lhs1, *ilhs1;
+    lhs0 = (T*)mxGetData(plhs[0]);
+    ilhs0 = (T*)mxGetImagData(plhs[0]);
+    if (nlhs > 1) {
+        lhs1 = (T*)mxGetData(plhs[1]);
+        ilhs1 = (T*)mxGetImagData(plhs[1]);
+    }
 #pragma omp parallel default(none) shared(mat, mat_i, err_code, blkid, issym) \
     firstprivate(nthread, m, nlhs, nd, jobz, anynonsym, do_orth, do_sort, is_complex, lhs0, lhs1, ilhs0, ilhs1)
     {
