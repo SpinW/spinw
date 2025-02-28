@@ -57,6 +57,15 @@ function uiopen(type,direct)
 %
 %   See also UIGETFILE, UIPUTFILE, OPEN, UIIMPORT.
 
+persistent uiroot
+if isempty(uiroot)
+    uiroot = [matlabroot filesep 'toolbox' filesep 'matlab' filesep 'uitools'];
+    vervec = cellfun(@(x) sscanf(x, '%d'), split(version, '.'));
+    if (vervec(1) * 10 + vervec(2)) >= 242
+        uiroot = [uiroot filesep 'uitools'];
+    end
+end
+
 if numel(type)>3 && strcmpi(type(end+(-3:0)),'.cif') && direct
     model = spinw(type);
     if ~isempty(model.matom.S)
@@ -81,7 +90,7 @@ elseif numel(type)>3 && any(strcmpi(type(end+(-3:0)),{'.png' '.jpg'})) && direct
     %fprintf('The imported image is stored in the ''img'' variable.\n');
 else
     pwd0 = pwd;
-    cd([matlabroot filesep 'toolbox' filesep 'matlab' filesep 'uitools'])
+    cd(uiroot)
     feval('uiopen',type,direct);
     cd(pwd0)
 end
