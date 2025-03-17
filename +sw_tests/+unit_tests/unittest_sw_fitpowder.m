@@ -33,7 +33,9 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                                         -Inf   Inf;
                                                         -Inf   Inf;
                                                            0   Inf], ...
-                                              'ibg', []);
+                                              'ibg', [], ...
+                                              'npoly_modQ', 1, ...
+                                              'npoly_en', 1);
             testCase.default_fields = fieldnames(testCase.default_fitpow);
         end
     end
@@ -359,7 +361,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.y(1) = 10;  % higher so other bins are background
             out.fix_bg_parameters(1:2); % fix slopes of background to 0
             out.set_bg_parameters(3, 1.5); % initial guess
-            out.fit_background(fit_params{:})
+            out.fit_background(fit_params{:});
             expected_fitpow = testCase.default_fitpow;
             expected_fitpow.y(1) = 10;
             expected_fitpow.ibg = [3;6;2;5;4];
@@ -513,6 +515,73 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.set_bg_region(0,1.5); % for all cuts
             out.set_bg_region(2.5,3.5,2); % for last cut
             expected_fitpow.ibg = [1;4;6];
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_npoly_modQ(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.set_bg_npoly_modQ(2);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.npoly_modQ = 2;
+            expected_fitpow.params = [expected_fitpow.params(1:end-1); 
+                                      0; 
+                                      expected_fitpow.params(end)];
+            expected_fitpow.bounds = [expected_fitpow.bounds(1:end-1,:); 
+                                      -Inf, Inf; 
+                                      expected_fitpow.bounds(end,:)];
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_npoly_en(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.set_bg_npoly_en(2);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.npoly_en = 2;
+            % add extra row in params and bounds
+            expected_fitpow.params = expected_fitpow.params([1:2,2:end]); 
+            expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:); 
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_npoly_modQ_1d_data_indep_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent");
+            testCase.verifyError(...
+                @() out.set_bg_npoly_modQ(2), ...
+                'sw_fitpowder:invalidinput');
+        end
+
+        function test_set_npoly_en_1d_data_indep_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent");
+            out.set_bg_npoly_en(2)
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.npoly_en = 2;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            % add 3 extra rows:
+            % 3 params x 2 cuts  vs 3 planar parmas order=1
+            expected_fitpow.params = expected_fitpow.params([1:4,2:end]);
+            expected_fitpow.bounds = expected_fitpow.bounds([1:4,2:end],:);
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_npoly_modQ_1d_data_planar_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "planar");
+            % try adding order larger than numebr cuts
+            testCase.verifyError(...
+                @() out.set_bg_npoly_modQ(2), ...
+                'sw_fitpowder:invalidinput');
+            % set it to constant in modQ
+            out.set_bg_npoly_modQ(0)
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.npoly_modQ = 0;
+            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            % remove a row
+            expected_fitpow.params = expected_fitpow.params([1,3:end]);
+            expected_fitpow.bounds = expected_fitpow.bounds([1,3:end],:);
             testCase.verify_results(out, expected_fitpow);
         end
 
