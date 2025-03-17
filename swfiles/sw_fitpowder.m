@@ -161,15 +161,18 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
     end
 
     properties (SetAccess = private)
-       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p1, p2, ..., pN)
-       fbg_planar = @(en, modQ, slope_en, slope_modQ, intercept) slope_en*en(:) + slope_modQ*modQ(:)' + intercept;
-       fbg_indep = @(en, slope_en, intercept) slope_en*en(:) + intercept;
+       background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p)
+       fbg_planar = @(en, modQ, p, npoly_en) polyval([reshape(p(1:npoly_en),1,[]), 0],en(:)) + ...
+                    polyval(p(npoly_en+1:end), modQ(:)'); % en^n,...en^1, q^n,..q^1, const
+       fbg_indep = @(en, p) polyval(p, en(:));
        do_cache = true
        ycalc_cached = []
        model_params_cached = []
        liveplot_counter = 0
        ibg = []
        bg_errors = []
+       npoly_modQ = 1;
+       npoly_en = 1;
     end
 
    properties (Constant)
@@ -214,9 +217,38 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.bounds = [obj.bounds(1:obj.nparams_model,:); bg_bounds; obj.bounds(end, :)];
         end
 
+        function set_bg_npoly_modQ(obj, npoly_modQ)
+            if obj.background_strategy == "independent"
+                error('sw_fitpowder:invalidinput', ...
+                      'set_bg_npoly_modQ only applies to planar background');
+            end
+            if npoly_modQ < 0
+                error('sw_fitpowder:invalidinput', ...
+                      'npoly_modQ must be positive int');
+            end
+            if obj.ndim==1 && npoly_modQ > obj.ncuts - 1
+                error('sw_fitpowder:invalidinput', ...
+                      'Not enough 1D cuts to fit polynomial of order npoly_modQ.');
+            end
+            % zero-init bg parmas and nparams_bg
+            obj.npoly_modQ = int32(npoly_modQ);
+            obj.nparams_bg = obj.get_nparams_in_background_func();
+            obj.initialise_background_parameters_and_bounds();
+        end
+
+        function set_bg_npoly_en(obj, npoly_en)
+            if npoly_en < 0
+                error('sw_fitpowder:invalidinput', ...
+                      'npoly_en must be positive int');
+            end
+            obj.npoly_en = int32(npoly_en);
+            obj.nparams_bg = obj.get_nparams_in_background_func();
+            obj.initialise_background_parameters_and_bounds();
+        end
+
         function set_background_strategy(obj, strategy)
             if strategy == "planar"
-                obj.fbg = obj.fbg_planar;
+                obj.fbg = @(en, modQ, p) obj.fbg_planar(en, modQ, p, obj.npoly_en);
             elseif strategy == "independent"
                 if obj.ndim == 2
                     error('sw_fitpowder:invalidinput', ...
@@ -237,20 +269,22 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     % set good guess for background pars
                     modQs = obj.get_modQ_cens_of_cuts();
                     if obj.background_strategy == "independent"
-                        % keep same energy slope (scaled by nQ)
-                        obj.set_bg_parameters(1, bg_pars(1));
+                        % keep same energy bg
+                        obj.set_bg_parameters(1:obj.npoly_en, bg_pars(1:obj.npoly_en));
                         % set intercept (zero energy) for reach cut separately
-                        bg_pars = num2cell(bg_pars);
-                        intercepts = obj.fbg_planar(0, modQs, bg_pars{:});
+                        intercepts = obj.fbg_planar(0, modQs, bg_pars, obj.npoly_en);
                         for icut = 1:obj.ncuts
-                            obj.set_bg_parameters(2, intercepts(icut), icut);
+                            obj.set_bg_parameters(obj.npoly_en+1, intercepts(icut), icut);
                         end
                     elseif obj.background_strategy == "planar"
-                        % average the energy slope
-                        slope_en = mean(bg_pars(1:2:end));
-                        % fit intercepts to linear Q
-                        pval = polyfit(modQs, bg_pars(2:2:end), 1);
-                        obj.set_bg_parameters(1:3, [slope_en, pval]);
+                        % reshape each col is the params for a cut
+                        bg_pars = reshape(bg_pars, [], obj.ncuts);
+                        % fit constant/intercepts to poly in Q
+                        pval = polyfit(modQs, bg_pars(obj.npoly_en+1,:), obj.npoly_modQ);
+                        obj.set_bg_parameters(obj.npoly_en+1:obj.nparams_bg, pval);
+                        % average energy dep. params (only very rough)
+                        bg_pars_en = mean(bg_pars(1:obj.npoly_en,:), 2);
+                        obj.set_bg_parameters(1:obj.npoly_en, bg_pars_en);
                     end
                 end
             end
@@ -405,16 +439,15 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function bg = calc_background(obj, bg_params)
             % add background
-            bg_params = num2cell(bg_params);
             if obj.background_strategy == "planar"
-                bg = obj.fbg(obj.ebin_cens, obj.modQ_cens, bg_params{:});
+                bg = obj.fbg(obj.ebin_cens, obj.modQ_cens, bg_params);
             elseif obj.ndim == 1
                 % add energy dependent background to each cut
                 bg = zeros(size(obj.y));
                 istart = 1;
                 for icut = 1:obj.ncuts
                     iend = istart + obj.nparams_bg - 1;
-                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params{istart:iend});
+                    bg(:,icut) = obj.fbg(obj.ebin_cens(:), bg_params(istart:iend));
                     istart = iend + 1;
                 end
             end
@@ -694,7 +727,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function ax = plot_2d_data(obj, y)
-            ax = subplot(1,1,1);
+            ax = gca;
             box on; hold on;
             h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, y);
             h.AlphaData = double(obj.y > 0);  % make empty bins transparent
@@ -786,9 +819,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function nbg_pars = get_nparams_in_background_func(obj)
             % get background parameters
             if obj.background_strategy == "planar"
-                nbg_pars = nargin(obj.fbg) - 2; % dependent variables energy, modQ
+                nbg_pars = obj.npoly_en + obj.npoly_modQ + 1; % dependent variables energy, modQ
             else
-                nbg_pars = nargin(obj.fbg) - 1; % dependent variable energy
+                nbg_pars = obj.npoly_en + 1; % dependent variable energy
             end
         end
 
