@@ -121,7 +121,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             qcens = [4, 5];
             out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5)
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            expected_fitpow.modQ_cens = qcens;
             testCase.verify_results(out, expected_fitpow);
         end
 
@@ -132,7 +132,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.replace_2D_data_with_1D_cuts(qcens-0.5, qcens+0.5,...
                                              "independent")
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
+            expected_fitpow.modQ_cens = qcens;  % not nQ values as using bins in 2D data
             % add extra background param
             expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
             expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
@@ -406,7 +406,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             bg_pars(end) = 1;
             out.estimate_constant_background(); % so ibg is set
             cost = out.calc_cost_func_of_background(bg_pars);
-            testCase.verify_val(cost, 10);
+            testCase.verify_val(cost, 5);
         end
 
         function test_set_errors_of_bg_bins(testCase)

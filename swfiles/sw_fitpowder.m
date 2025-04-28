@@ -138,6 +138,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        ebin_cens
        modQ_cens
        nQ = 10  % number |Q| bins to calc. in integration limits of 1D cut
+       modQ_icuts
        ndim
        ncuts = 0;
        % spinw funtion inputs
@@ -395,7 +396,13 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     obj.y = [obj.y cut.y(:)];
                     obj.e = [obj.e cut.e(:)];
                     dQ = (cut.qmax - cut.qmin)/obj.nQ;
-                    obj.modQ_cens = [obj.modQ_cens, (cut.qmin+dQ/2):dQ:cut.qmax];
+                    if isfield(cut, 'qs')
+                        obj.modQ_cens = [obj.modQ_cens, cut.qs(:)'];
+                        obj.modQ_icuts = [obj.modQ_icuts, ones(1, numel(cut.qs))];
+                    else
+                        obj.modQ_cens = [obj.modQ_cens, ((cut.qmin+dQ/2):dQ:cut.qmax)];
+                        obj.modQ_icuts = [obj.modQ_icuts, ones(1, obj.nQ)];
+                    end
                 end
             end
             obj.powspec_args.Evect = obj.ebin_cens(:)';  % row vect
@@ -715,7 +722,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 ylim(ax, [ymin, ymax]);
                 xlabel(ax, 'Energy (meV)')
                 ylabel(ax, 'Intensity');
-                title(ax, num2str(modQs(icut), 2) + " $\AA^{-1}$", 'interpreter','latex')
+                title(ax, num2str(modQs(icut), "%.2f") + " $\AA^{-1}$", 'interpreter','latex')
             end
         end
 
@@ -762,22 +769,23 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             figure("color","white");
             ncuts = numel(qmins);
             for icut = 1:ncuts
-                ikeep = obj.modQ_cens > qmins(icut) & obj.modQ_cens <= qmaxs(icut);
                 ax =  subplot(1, ncuts, icut);
                 hold on; box on;
-                ycut = sum(obj.y(:,ikeep), 2);
-                plot(ax, obj.ebin_cens, ycut, 'ok');
                 if ~isempty(ycalc)
-                    plot(ax, obj.ebin_cens, sum(ycalc(:,ikeep), 2), '-r');
+                    cut = obj.cut_2d_data(qmins(icut), qmaxs(icut), ycalc);
+                    plot(ax, cut.x, cut.ycalc, '-r');
+                else
+                    cut = obj.cut_2d_data(qmins(icut), qmaxs(icut));
                 end
+                plot(ax, cut.x, cut.y, 'ok');
                 % calc xlims
-                ifinite = isfinite(ycut);
+                ifinite = isfinite(cut.y);
                 istart = find(ifinite, 1, 'first');
                 iend = find(ifinite, 1, 'last');
-                xlim(ax, [obj.ebin_cens(istart), obj.ebin_cens(iend)]);
+                xlim(ax, [cut.x(istart), cut.x(iend)]);
                 xlabel(ax, 'Energy (meV)')
                 ylabel(ax, 'Intensity');
-                title(ax, num2str(0.5*(qmaxs(icut)+qmins(icut)), 2) + " $\AA^{-1}$", 'interpreter','latex')
+                title(ax, num2str(0.5*(cut.qmin +cut.qmax), "%.2f") + " $\AA^{-1}$", 'interpreter','latex')
             end
         end
 
@@ -799,20 +807,37 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             modQ_cens = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
         end
 
-        function cut = cut_2d_data(obj, qmin, qmax)
+        function cut = cut_2d_data(obj, qmin, qmax, ycalc)
             assert(obj.ndim ==2, ...
                    'sw_fitpowder:invalidinput', ...
                    'This function is only valid for 2D data');
-            cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax);
             ikeep = obj.modQ_cens > qmin & obj.modQ_cens <= qmax;
+            cut = struct('x', obj.ebin_cens, 'qmin',  qmin, 'qmax', qmax, ...
+                         'qs', obj.modQ_cens(ikeep));
             ifinite = isfinite(obj.y(:, ikeep));
             cut.y = mean(obj.y(:, ikeep), 2, 'omitnan');
             cut.e = sqrt(sum(obj.e(:, ikeep).^2, 2))./sum(ifinite, 2);
+            if nargin == 4 && ~isempty(ycalc)
+                % also cut ycalc
+                cut.ycalc = mean(ycalc(:, ikeep), 2, 'omitnan');
+            end
         end
-        function ycalc = rebin_powspec_to_1D_cuts(obj, ycalc)
-            % sum up successive nQ points along |Q| axis (dim=2)
-            ycalc = reshape(ycalc, size(ycalc,1), obj.nQ, []);
-            ycalc = squeeze(mean(ycalc, 2, 'omitnan'));
+        function ycalc_1d = rebin_powspec_to_1D_cuts(obj, ycalc)
+            % check if regular nQ points for each cut
+            counts = groupcounts(obj.modQ_icuts);
+            unique_counts = unique(counts);
+            if numel(unique_counts) == 1 && unique_counts == obj.nQ
+                % avg successive nQ points along |Q| axis (dim=2)
+                ycalc_1d = reshape(ycalc, size(ycalc,1), obj.nQ, []);
+                ycalc_1d = squeeze(mean(ycalc, 2, 'omitnan'));
+            else
+                % different num Q points per cut, loop over cuts
+                ycalc_1d = zeros(size(ycalc));
+                for icut = 1:obj.ncuts
+                    ikeep = obj.modQ_icuts == icut;
+                    ycalc_1d(:, icut) = mean(ycalc(:, ikeep), 2, 'omitnan');
+                end
+            end
         end
 
         function nbg_pars = get_nparams_in_background_func(obj)
