@@ -389,7 +389,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.ndim = 1;
                 obj.ebin_cens = data(1).x;
                 obj.ncuts = numel(data);
-                for cut = data
+                for icut = 1:obj.ncuts
+                    cut = data(icut);
                     assert(all(isfield(cut, {'x', 'y', 'e', 'qmin','qmax'})), ...
                            'sw_fitpowder:invalidinput', ...
                            'Input cell does not have correct fields');
@@ -398,10 +399,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     dQ = (cut.qmax - cut.qmin)/obj.nQ;
                     if isfield(cut, 'qs')
                         obj.modQ_cens = [obj.modQ_cens, cut.qs(:)'];
-                        obj.modQ_icuts = [obj.modQ_icuts, ones(1, numel(cut.qs))];
+                        obj.modQ_icuts = [obj.modQ_icuts, icut*ones(1, numel(cut.qs))];
                     else
                         obj.modQ_cens = [obj.modQ_cens, ((cut.qmin+dQ/2):dQ:cut.qmax)];
-                        obj.modQ_icuts = [obj.modQ_icuts, ones(1, obj.nQ)];
+                        obj.modQ_icuts = [obj.modQ_icuts, icut*ones(1, obj.nQ)];
                     end
                 end
             end
@@ -824,7 +825,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
         function ycalc_1d = rebin_powspec_to_1D_cuts(obj, ycalc)
             % check if regular nQ points for each cut
-            counts = groupcounts(obj.modQ_icuts);
+            counts = groupcounts(obj.modQ_icuts(:));
             unique_counts = unique(counts);
             if numel(unique_counts) == 1 && unique_counts == obj.nQ
                 % avg successive nQ points along |Q| axis (dim=2)
@@ -832,7 +833,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 ycalc_1d = squeeze(mean(ycalc, 2, 'omitnan'));
             else
                 % different num Q points per cut, loop over cuts
-                ycalc_1d = zeros(size(ycalc));
+                ycalc_1d = zeros(size(ycalc, 1), obj.ncuts);
                 for icut = 1:obj.ncuts
                     ikeep = obj.modQ_icuts == icut;
                     ycalc_1d(:, icut) = mean(ycalc(:, ikeep), 2, 'omitnan');
