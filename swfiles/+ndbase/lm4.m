@@ -223,14 +223,14 @@ else
     end
     % collect output
     pOpt = cost_func_wrap.get_bound_parameters(p);
+    perr = zeros(size(pOpt));
     fVal = cost_val / ndof;
     if exit_flag > 0
         % converged on solution - calculate errors
         cov = pinv(hess) * 2.0 * fVal;
-        perr = sqrt(diag(cov));
+        perr(cost_func_wrap.ifree) = sqrt(diag(cov));
     else
         message = "Failed to converge in MaxIter";
-        perr = zeros(size(pOpt));
     end
 end
 
