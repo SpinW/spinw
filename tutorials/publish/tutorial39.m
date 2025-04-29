@@ -40,7 +40,7 @@ E = linspace(0,4,80);
 Q = linspace(0.1,3,60);
 spec = tri.powspec(Q,'Evect',E,'nRand',2e2);
 % scale data and add background
-spec.swConv= scale*(spec.swConv + 0.1*mean(spec.swConv, 'all'));
+spec.swConv= scale*(spec.swConv + 0.1*mean(spec.swConv, "all", 'omitnan'));
 % crop to kinematic range of instrument and apply some arbitrary resolution
 spec = sw_instrument(spec, 'dQ', dQ, 'dE', eres, 'ThetaMin', 3.5, 'Ei', Ei);
 % add noise
@@ -67,11 +67,6 @@ data = struct('x', {{0.5*(E(1:end-1) + E(2:end)), Q}}, ...
 % The class will call other spinw algorithms such as powspec and
 % sw_instrument. The parameters used in these calls can be set by the user
 % by modifying structs as shown below.
-%
-% Data can be cropped in |Q| and energy transfer - for example it is
-% advisible not to include the low-energy transfer region close to the
-% elastic line (relative to the resolution). 
-
 
 fit_func =  @(obj, p) matparser(obj, 'param', p, 'mat', {'J_1'}, 'init', true);
 J1 = 0.85;
@@ -83,26 +78,91 @@ fitpow.set_caching(true); % will store last calculated spectra
 fitpow.powspec_args.dE = eres; % emergy resolution
 fitpow.powspec_args.fastmode = true;
 fitpow.powspec_args.neutron_output = true;
-fitpow.powspec_args.nRand = 2e2; % low for speed (typically want > 1e3)
+fitpow.powspec_args.nRand = 1e3; % low for speed (typically want > 1e3)
 fitpow.powspec_args.hermit = true;
 % set parameters passsed to sw_instrument
 fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
 
+
+%% Estimate the background automatically
+% Before fitting the data it is necessary to first get a good estimate for
+% the background and the scale factor.
+% There is a means or trying to automatically determine the background
+% region - it is worth trying this first
+
+fitpow.estimate_constant_background();
+fitpow.estimate_scale_factor()
+
+% view the background region on 2D colorfill plot of data
+figure("color","white")
+fitpow.plot_2d_data(fitpow.y);
+fitpow.plot_background_region();
+
+% view 1D cuts of data and the initial guess
+qcens = 0.75:0.75:2.25;
+dq = 0.1;
+fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, fitpow.params);
+
+%% User supplied background region
+% If the automatic background estimation doesn't look reasonable then it is
+% possible to define regions of |Q| and energy transfer that are background
+% and use these for fitting.
+
+% set background regions
+%-----------------------
+
+fitpow.clear_background_region(); % in case previously set
+
+% set background region with en > 3.75 meV
+fitpow.set_bg_region(3.75, inf);
+% set background region with
+% 0.65 < |Q| < 0.9 Ang^-1
+% 0.8 < en < 1.2 meV
+fitpow.set_bg_region(0.8, 1.2, 0.65, 0.9);
+
+% view the background region on 2D colorfill plot of data
+figure("color","white")
+fitpow.plot_2d_data(fitpow.y);
+fitpow.plot_background_region();
+
+% fit background (to voxels in background region)
+%-----------------------------------------------------
+
+% fit only a constant/flat background
+% default background is planar with parameters:
+% [slope_energy, slope_modQ,  intercept]
+fitpow.fix_bg_parameters(1:2); % fix slopes to initial value (0)
+fitpow.set_bg_parameter_bounds(3, 0.0, []) % Set lb of constant bg = 0
+
+[pfit, ~, stat] = fitpow.fit_background();
+fitpow.estimate_scale_factor();
+
+% view 1D cuts of data and the initial guess
+fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, fitpow.params);
+
+
+%% Cropping data
+% Data can be cropped in |Q| and energy transfer - for example it is
+% advisible not to include the low-energy transfer region close to the
+% elastic line (relative to the resolution). 
+
 % crop data
 fitpow.crop_energy_range(1.5*eres(0), inf); % typically want to avoid elastic line
 fitpow.crop_q_range(0.25, 3);
-fitpow.powspec_args.dE = eres;
-fitpow.powspec_args.fastmode = true;
-fitpow.powspec_args.neutron_output = true;
 
-% estimate background and scale factor
-fitpow.estimate_constant_background();
-fitpow.estimate_scale_factor();
-
-
-% plot data to inspect - any arguments after parameters are passed to 
-% contour plot (which shows the result the calculated intensity)
-fitpow.plot_result(fitpow.params, 'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k');
+% plot the cropped data and the inital simulated spectrum
+fig = figure("color","white"); hold all;
+fig.Position(3) = 1.5*fig.Position(3);
+subplot(1,2,1)
+ax_dat = fitpow.plot_2d_data(fitpow.y);
+subplot(1,2,2)
+[ycalc, ~] = fitpow.calc_spinwave_spec(fitpow.params);
+ax_calc = fitpow.plot_2d_data(ycalc);
+ax_calc.CLim = ax_dat.CLim;
+for ax = [ax_dat, ax_calc]
+    ax.YLim(1) = 1.5*eres(0);
+end
+sgtitle(fig, "Initial guess")
 
 
 %% Fit and inspect the result
@@ -114,20 +174,14 @@ fitpow.plot_result(fitpow.params, 'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor',
 % The cost function minimised in the fit can be chi-squared ("chisq") or 
 % the unweighted sum of the squared residuals ("Rsq"). Also the minimiser
 % can be set to any callable as long as it shares the API of the ndbase
-% minimisers. Typically users would be recommended ndbase.lm or
+% minimisers. Typically users would be recommended to use ndbase.lm4 or
 % ndbase.simplex.
 
 % set cost function and minimser
 fitpow.cost_function = "Rsq";  % "Rsq" or "chisq"
 fitpow.optimizer = @ndbase.simplex; % or e.g. ndbase.simplex
 
-% Fix background parameters (planar background of form 
-% default background is planar with parameters:
-% [slope_energy, slope_modQ,  intercept]
-fitpow.fix_bg_parameters(1:2); % fix slopes to initial value (0)
-fitpow.set_bg_parameter_bounds(3, 0.0, []) % Set lb of constant bg = 0
-% fit background
-fitpow.fit_background();
+% Fix the constant background at the result of the previous fit
 fitpow.fix_bg_parameters(3); % fix fitted constant bg
 
 % set bounds on first (and only in this case) model parameter
@@ -139,8 +193,6 @@ fitpow.set_model_parameter_bounds(1, 0, []) % Force J_1 to be AFM
 fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k')
 
 % make 1D plots
-qcens = [0.8:0.4:1.6];
-dq = 0.05;
 fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 
 
@@ -150,35 +202,73 @@ fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 % Alternatively, having loaded in 2D data the sw_fitpowder class has a 
 % convenient method to take 1D cuts and replace the data. 
 % 
-% To evaluate the cost function for 1D cuts, the class averages the model 
-% over nQ points. Depending on the size of the 2D data and the value of nQ
-% it can be much quicker to fit 1D cuts.
-% 
+% If 2D data are replaced with 1D cuts then the class evaluates the 
+% cost function using the average of the model over the |Q| bins in the 
+% 2D data within the integration limits. 
+% If the class is initialised with 1D cuts then the class averages the model 
+% over nQ points. 
+
+% set inital parameters to those of 2D fit
+fitpow.params = pfit(:);
+
+% set data to 1D cuts
+fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq);
+
+% fit data with lm4 minimiser (which calculates parameter uncertainties)
+% this requires a larger nRand as derivatives in LM algorithm sensitive to 
+% noise introduced in powder averaging.
+% if uncertainties come out imaginary try increasing diff_step
+fitpow.optimizer = @ndbase.lm4;
+fitpow.powspec_args.nRand = 2e4;
+fit_kwargs = {'resid_handle', true, 'diff_step', 1e-3};
+
+[pfit, cost_val, stat] = fitpow.fit(fit_kwargs{:});
+
+% display result
+par_names = ["J1", "SlopeEn", "SlopeQ", "Const", "Scale"];
+["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
+
+%     "Name"       "Value"         "Error"     
+%     "J1"         "1.004828"      "0.00432656"
+%     "SlopeEn"    "0"             "0"         
+%     "SlopeQ"     "0"             "0"         
+%     "Const"      "0.93551168"    "0"         
+%     "Scale"      "1018.0549"     "12.6781"    
+
+fitpow.plot_result(pfit)
+
+%% Change background strategy
 % The background for 1D cuts can be handled in two ways:
 %
 %  - A planar background as in the 2D case
 %
 %  - A linear background in energy transfer that's independent for each cut.
 %
-% The background parameters and bounds are reset if the background
-% strategy is changed to independent.
+% The default is planar - but this can be changed after the class has been
+% initialised. 
+% The class will attempt to get reasonable guesses for the
+% new background parameters, but note the background parameter bounds will
+% be reset.
 
-% set nQ before replacing data (reduced from default, 10, for speed)
-fitpow.nQ = 5;
-% change background strategyto independent (planar is default)
-fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq, "independent");
+fitpow.set_background_strategy("independent");
 
-% independent linear background for all cuts with parameters:
-% [slope_energy,  intercept]
-fitpow.fix_bg_parameters(1); % fix slopes to initial value (0) for all cuts
-% e.g. fitpow.fix_bg_parameters(1, 2) would fix the bg slope of the second cut 
-fitpow.set_bg_parameter_bounds(2, 0.0, []) % Set lb of constant bg = 0
-% fit background
-fitpow.estimate_constant_background();
-fitpow.fit_background();
-fitpow.fix_bg_parameters(2); % fix fitted constant bg
+[pfit, cost_val, stat] = fitpow.fit(fit_kwargs{:});
 
-[pfit, cost_val, stat]  = fitpow.fit();
+% display result
+bg_names = repmat(["SlopeEn_cut", "Const_cut"]', fitpow.ncuts, 1);
+bg_names = bg_names + repelem([1:fitpow.ncuts]', fitpow.nparams_bg,1);
+par_names = ["J1", bg_names', "Scale"];
+["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
+
+%     "Name"            "Value"         "Error"     
+%     "J1"              "1.0072907"     "0.00407115"
+%     "SlopeEn_cut1"    "-1.1362877"    "0.400225"  
+%     "Const_cut1"      "2.056183"      "0.949017"  
+%     "SlopeEn_cut2"    "1.7884139"     "0.460254"  
+%     "Const_cut2"      "-6.8161423"    "1.58929"   
+%     "SlopeEn_cut3"    "0.53730869"    "0.372718"  
+%     "Const_cut3"      "-3.3143013"    "0.994353"  
+%     "Scale"           "1193.6718"     "32.4533"  
 
 fitpow.plot_result(pfit)
 
