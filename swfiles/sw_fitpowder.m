@@ -361,6 +361,25 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.set_bounds(size(obj.bounds,1), lb, ub);
         end
 
+        function data = export_data(obj)
+            if obj.ndim == 2
+                data.y = obj.y';
+                data.e = obj.e';
+                data.x = {obj.ebin_cens, obj.modQ_cens};
+            else
+                % 1D - array of structs returned
+                data = repelem(struct('x', obj.ebin_cens), obj.ncuts);
+                for icut = 1:obj.ncuts
+                    data(icut).y = obj.y(:, icut);
+                    data(icut).e = obj.e(:, icut);
+                    % find q limits
+                    data(icut).qs = obj.modQ_cens(obj.modQ_icuts == icut);
+                    data(icut).qmin = data(icut).qs(1);
+                    data(icut).qmax = data(icut).qs(end);
+                end
+            end
+        end
+
         function add_data(obj, data)
             if ~isa(data, "struct")
                 data = arrayfun(@obj.convert_horace_to_struct, data);
