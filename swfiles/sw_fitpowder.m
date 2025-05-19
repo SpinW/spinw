@@ -849,7 +849,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             if numel(unique_counts) == 1 && unique_counts == obj.nQ
                 % avg successive nQ points along |Q| axis (dim=2)
                 ycalc_1d = reshape(ycalc, size(ycalc,1), obj.nQ, []);
-                ycalc_1d = squeeze(mean(ycalc, 2, 'omitnan'));
+                ycalc_1d = squeeze(mean(ycalc_1d, 2, 'omitnan'));
             else
                 % different num Q points per cut, loop over cuts
                 ycalc_1d = zeros(size(ycalc, 1), obj.ncuts);

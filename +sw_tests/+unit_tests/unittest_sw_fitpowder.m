@@ -406,7 +406,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             bg_pars(end) = 1;
             out.estimate_constant_background(); % so ibg is set
             cost = out.calc_cost_func_of_background(bg_pars);
-            testCase.verify_val(cost, 5);
+            testCase.verify_val(cost, 10);
         end
 
         function test_set_errors_of_bg_bins(testCase)
