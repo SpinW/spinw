@@ -585,6 +585,21 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_export_data_2d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            data = out.export_data();
+            testCase.verify_val(data, testCase.data_2d);
+        end
+
+        function test_export_data_1d(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1);
+            data = out.export_data();
+            testCase.verify_val(data, testCase.data_1d_cuts);
+        end
+
+
     end
 
 end
