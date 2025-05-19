@@ -120,10 +120,6 @@ fitpow.set_bg_region(3.75, inf);
 % 0.8 < en < 1.2 meV
 fitpow.set_bg_region(0.8, 1.2, 0.65, 0.9);
 
-% view the background region on 2D colorfill plot of data
-figure("color","white")
-fitpow.plot_2d_data(fitpow.y);
-fitpow.plot_background_region();
 
 % fit background (to voxels in background region)
 %-----------------------------------------------------
@@ -195,7 +191,6 @@ fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k'
 % make 1D plots
 fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 
-
 %% Fit 1D cuts
 % As discussed the sw_fitpowder class can be initialised with a cell array
 % of xye structs correpsonding to 1D cuts at constant |Q|.
@@ -214,28 +209,41 @@ fitpow.params = pfit(:);
 % set data to 1D cuts
 fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq);
 
+% change background to quadratic in |Q|
+fitpow.set_bg_npoly_modQ(2);  % zeros previously optimised background
+% Fix linear terms of background
+% bg params ordered as en^n,...en^1, q^n,..q^1, const
+fitpow.fix_bg_parameters(3);  % fix term ~|Q|
+fitpow.fix_bg_parameters(1);  % fix term ~energy
+% fit background and scale (fix model params) to all bins (not just bg
+% region -0 only advisable if near good solution)
+[pfit, ~, stat] = fitpow.fit_background_and_scale();
+% fitpow.plot_result(fitpow.params)
+
 % fit data with lm4 minimiser (which calculates parameter uncertainties)
 % this requires a larger nRand as derivatives in LM algorithm sensitive to 
 % noise introduced in powder averaging.
 % if uncertainties come out imaginary try increasing diff_step
 fitpow.optimizer = @ndbase.lm4;
-fitpow.powspec_args.nRand = 2e4;
+fitpow.powspec_args.nRand = 1e4;
 fit_kwargs = {'resid_handle', true, 'diff_step', 1e-3};
 
 [pfit, cost_val, stat] = fitpow.fit(fit_kwargs{:});
 
+fitpow.plot_result(pfit);
+
 % display result
-par_names = ["J1", "SlopeEn", "SlopeQ", "Const", "Scale"];
+par_names = ["J1", "Bg_En1", "Bg_Q2", "Bg_Q1", "Bg_Q0", "Scale"];
 ["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
 
-%     "Name"       "Value"         "Error"     
-%     "J1"         "1.004828"      "0.00432656"
-%     "SlopeEn"    "0"             "0"         
-%     "SlopeQ"     "0"             "0"         
-%     "Const"      "0.93551168"    "0"         
-%     "Scale"      "1018.0549"     "12.6781"    
+%     "Name"      "Value"           "Error"     
+%     "J1"        "1.0027473"       "0.00360547"
+%     "Bg_En1"    "0"               "0"         
+%     "Bg_Q2"     "0.02066691"      "0.095079"  
+%     "Bg_Q1"     "0"               "0"         
+%     "Bg_Q0"     "-0.036883773"    "0.37194"   
+%     "Scale"     "1082.117"        "19.405"    
 
-fitpow.plot_result(pfit)
 
 %% Change background strategy
 % The background for 1D cuts can be handled in two ways:
@@ -250,27 +258,25 @@ fitpow.plot_result(pfit)
 % new background parameters, but note the background parameter bounds will
 % be reset.
 
+fitpow.params = pfit(:);
 fitpow.set_background_strategy("independent");
 
 [pfit, cost_val, stat] = fitpow.fit(fit_kwargs{:});
 
+fitpow.plot_result(pfit)
+
 % display result
-bg_names = repmat(["SlopeEn_cut", "Const_cut"]', fitpow.ncuts, 1);
+bg_names = repmat(["Bg_En1_cut", "Bg_En0_cut"]', fitpow.ncuts, 1);
 bg_names = bg_names + repelem([1:fitpow.ncuts]', fitpow.nparams_bg,1);
 par_names = ["J1", bg_names', "Scale"];
 ["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
 
-%     "Name"            "Value"         "Error"     
-%     "J1"              "1.0072907"     "0.00407115"
-%     "SlopeEn_cut1"    "-1.1362877"    "0.400225"  
-%     "Const_cut1"      "2.056183"      "0.949017"  
-%     "SlopeEn_cut2"    "1.7884139"     "0.460254"  
-%     "Const_cut2"      "-6.8161423"    "1.58929"   
-%     "SlopeEn_cut3"    "0.53730869"    "0.372718"  
-%     "Const_cut3"      "-3.3143013"    "0.994353"  
-%     "Scale"           "1193.6718"     "32.4533"  
-
-fitpow.plot_result(pfit)
-
-
-
+%     "Name"           "Value"          "Error"     
+%     "J1"             "1.0059739"      "0.00403765"
+%     "Bg_En1_cut1"    "-0.85631989"    "0.376039"  
+%     "Bg_En0_cut1"    "1.7546252"      "0.892913"  
+%     "Bg_En1_cut2"    "0.52590868"     "0.433608"  
+%     "Bg_En0_cut2"    "-2.3563309"     "1.49539"   
+%     "Bg_En1_cut3"    "-0.41373845"    "0.350704"  
+%     "Bg_En0_cut3"    "0.52287368"     "0.936986"  
+%     "Scale"          "1131.9098"      "30.4495"   
