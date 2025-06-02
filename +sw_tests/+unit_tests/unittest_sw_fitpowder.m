@@ -107,8 +107,8 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             expected_fitpow.params = expected_fitpow.params([1:2,2:end],:);
             expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
             expected_fitpow.params(2:2:end-1) = 1; % en slope
-            expected_fitpow.params(3) = 11; % intercept = 10 for cut 1
-            expected_fitpow.params(5) = 13; % intercept = 12 for cut 2
+            expected_fitpow.params(3) = 11; % intercept = 4*2 + 3 for cut 1 
+            expected_fitpow.params(5) = 13; % intercept = 5*2 + 3 for cut 2
             expected_fitpow.modQ_cens = testCase.default_modQ_cens_1d;
             testCase.verify_results(out, expected_fitpow, ...
                                     testCase.default_fields, ...
@@ -599,7 +599,49 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_val(data, testCase.data_1d_cuts);
         end
 
+        function test_set_bg_param_with_name_planar_bg(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.set_bg_parameters("Q1", -5);
+            out.set_bg_parameters("E1", 5);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(2:4) = [5, 0, -5]; % E1, E0, Q1
+            testCase.verify_results(out, expected_fitpow);
+        end
 
+        function test_set_bg_param_with_invalid_name(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            testCase.verifyError(...
+                @() out.set_bg_parameters("Q3", -5), ...
+                'sw_fitpowder:invalidinput');
+        end
+
+        function test_set_bg_param_with_name_indep_bg_all_cuts(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
+                               testCase.fit_func, testCase.j1, "independent", 1);
+            bg_pars = [-5, 5];
+            out.set_bg_parameters("E1", bg_pars(1));
+            out.set_bg_parameters("E0", bg_pars(2));
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params = [expected_fitpow.params(1);
+                                      bg_pars(:); bg_pars(:); 1];
+            expected_fitpow.bounds = expected_fitpow.bounds([1:2,2:end],:);
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_fix_bg_param_with_array_of_names(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            bg_pars = 1:3;
+            bg_labels = ["E1","E0","Q1"];
+            out.set_bg_parameters(bg_labels, bg_pars);
+            out.fix_bg_parameters(bg_labels);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(2:4) = bg_pars;
+            expected_fitpow.bounds(2:4, :) = repmat(bg_pars(:), 1,2);
+            testCase.verify_results(out, expected_fitpow);
+        end
     end
 
 end
