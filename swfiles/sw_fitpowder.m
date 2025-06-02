@@ -207,19 +207,21 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function initialise_background_parameters_and_bounds(obj)
             % zero intialise background parameters
+            obj.bg_param_labels = repmat("E", obj.npoly_en+1, 1) + [obj.npoly_en:-1:0]';
             if obj.background_strategy == "independent"
                 nparams_bg_total = obj.ncuts * obj.nparams_bg;
             else
                 nparams_bg_total = obj.nparams_bg;
+                % add modQ polynopmial label
+                obj.bg_param_labels = [obj.bg_param_labels;
+                                       repmat("Q", obj.npoly_modQ, 1) + [obj.npoly_modQ:-1:1]'];
             end
             bg_params = zeros(nparams_bg_total, 1);
             bg_bounds = [-inf, inf].*ones(nparams_bg_total, 1);
             % insert in middle of params and bound
             obj.params = [obj.params(1:obj.nparams_model); bg_params; obj.params(end)];
             obj.bounds = [obj.bounds(1:obj.nparams_model,:); bg_bounds; obj.bounds(end, :)];
-            % set labels
-            obj.bg_param_labels = [repmat("Q", obj.npoly_modQ, 1) + [obj.npoly_modQ:-1:1]';
-                                   repmat("E", obj.npoly_en+1, 1) + [obj.npoly_en:-1:0]'];
+
         end
 
         function set_bg_npoly_modQ(obj, npoly_modQ)
@@ -303,9 +305,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function fix_bg_parameters(obj, iparams_bg, icuts)
-            if any(iparams_bg > obj.nparams_bg)
-                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
-            end
             if nargin < 3
                 icuts = 0;
             end
@@ -324,9 +323,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function set_bg_parameters(obj, iparams_bg, values, icuts)
-            if any(iparams_bg > obj.nparams_bg)
-                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
-            end
             if nargin < 4
                 icuts = 0;
             end
@@ -350,9 +346,6 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         end
 
         function set_bg_parameter_bounds(obj, iparams_bg, lb, ub, icuts)
-            if any(iparams_bg > obj.nparams_bg)
-                error('sw_fitpowder', 'Parameter indices supplied must be within number of background parameters');
-            end
             if nargin < 5
                 icuts = 0;
             end
@@ -874,7 +867,26 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
 
+        function iparams_bg = get_index_of_background_parameter_from_string(obj, bg_param_labels)
+            nlabels = numel(bg_param_labels);
+            iparams_bg = zeros(1, nlabels);
+            for ilabel = 1:nlabels
+                iparam_bg = find(obj.bg_param_labels == bg_param_labels(ilabel));
+                assert(~isempty(iparam_bg), ...
+                   'sw_fitpowder:invalidinput', ...
+                   ['Background parameter ' char(bg_param_labels(ilabel)) ' not found.']);
+                iparams_bg(ilabel) = iparam_bg;
+            end
+        end
+
         function iparams = get_index_of_background_parameters(obj, iparams_bg, icuts)
+            % get index if parameter string passed
+            if isstring(iparams_bg)
+                iparams_bg = obj.get_index_of_background_parameter_from_string(iparams_bg);
+            end
+            if any(iparams_bg > obj.nparams_bg)
+                error('sw_fitpowder:invalidinput', 'Parameter indices supplied must be within number of background parameters');
+            end
             if any(icuts == 0)
                 if obj.background_strategy == "independent"
                     icuts = 1:obj.ncuts;  % apply to all cuts
@@ -888,6 +900,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 iparams = [iparams,  iparams_bg + obj.nparams_model + (icut-1)*obj.nparams_bg];
             end
         end
+
         function plot_1d_or_2d(obj, ycalc, varargin)
             if obj.liveplot_interval == 0
                 figure("color","white");
