@@ -163,8 +163,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
     properties (SetAccess = private)
        background_strategy = "planar" % "planar" or "independent" (1D only - fbg = @(en, p)
-       fbg_planar = @(en, modQ, p, npoly_en) polyval([reshape(p(1:npoly_en),1,[]), 0],en(:)) + ...
-                    polyval(p(npoly_en+1:end), modQ(:)'); % en^n,...en^1, q^n,..q^1, const
+       fbg_planar = @(en, modQ, p, npoly_modQ) polyval(p(npoly_modQ+1:end), en(:)) + ...
+                    polyval([reshape(p(1:npoly_modQ),1,[]), 0], modQ(:)'); % q^n,..q^1, en^n,...en^1, const
        fbg_indep = @(en, p) polyval(p, en(:));
        do_cache = true
        ycalc_cached = []
@@ -174,6 +174,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
        bg_errors = []
        npoly_modQ = 1;
        npoly_en = 1;
+       bg_param_labels = [];
     end
 
    properties (Constant)
@@ -216,6 +217,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % insert in middle of params and bound
             obj.params = [obj.params(1:obj.nparams_model); bg_params; obj.params(end)];
             obj.bounds = [obj.bounds(1:obj.nparams_model,:); bg_bounds; obj.bounds(end, :)];
+            % set labels
+            obj.bg_param_labels = [repmat("Q", obj.npoly_modQ, 1) + [obj.npoly_modQ:-1:1]';
+                                   repmat("E", obj.npoly_en+1, 1) + [obj.npoly_en:-1:0]'];
         end
 
         function set_bg_npoly_modQ(obj, npoly_modQ)
@@ -260,19 +264,19 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             % store previous bg parameters before reset size of param array
             ibg_par = (obj.nparams_model+1):(numel(obj.params)-1);
             bg_pars = obj.params(ibg_par);
-            % reset param array d bounds etc.
+            % reset param array bounds etc.
             obj.background_strategy = strategy;
             obj.nparams_bg = obj.get_nparams_in_background_func();
             if ~isempty(obj.params)
                 obj.initialise_background_parameters_and_bounds();
                 if any(abs(bg_pars) > obj.zero_abs_tol) && obj.ndim == 1
-                    % set good guess for background pars
+                    % attempt good guess for background pars
                     modQs = obj.get_modQ_cens_of_cuts();
                     if obj.background_strategy == "independent"
-                        % keep same energy bg
-                        obj.set_bg_parameters(1:obj.npoly_en, bg_pars(1:obj.npoly_en));
+                        % keep same energy bg (excl const bg)
+                        obj.set_bg_parameters(1:obj.npoly_en, bg_pars(obj.npoly_modQ+1:end-1));
                         % set intercept (zero energy) for reach cut separately
-                        intercepts = obj.fbg_planar(0, modQs, bg_pars, obj.npoly_en);
+                        intercepts = obj.fbg_planar(0, modQs, bg_pars, obj.npoly_modQ);
                         for icut = 1:obj.ncuts
                             obj.set_bg_parameters(obj.npoly_en+1, intercepts(icut), icut);
                         end
@@ -280,11 +284,12 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                         % reshape each col is the params for a cut
                         bg_pars = reshape(bg_pars, [], obj.ncuts);
                         % fit constant/intercepts to poly in Q
-                        pval = polyfit(modQs, bg_pars(obj.npoly_en+1,:), obj.npoly_modQ);
-                        obj.set_bg_parameters(obj.npoly_en+1:obj.nparams_bg, pval);
+                        pval = polyfit(modQs, bg_pars(end,:), obj.npoly_modQ);
+                        obj.set_bg_parameters(1:obj.npoly_modQ, pval(1:end-1));
+                        obj.set_bg_parameters(obj.nparams_bg, pval(end));  % const bg
                         % average energy dep. params (only very rough)
                         bg_pars_en = mean(bg_pars(1:obj.npoly_en,:), 2);
-                        obj.set_bg_parameters(1:obj.npoly_en, bg_pars_en);
+                        obj.set_bg_parameters(obj.npoly_modQ+1:obj.nparams_bg-1, bg_pars_en);
                     end
                 end
             end
