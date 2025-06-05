@@ -807,6 +807,60 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             end
         end
 
+        function disp_params(obj,pfit, perr)
+            col_headers = ["Index", "Initial"];
+            pars = obj.params(:);
+            par_fmt = "%8g\t";
+            fmt_str = "%8.0f\t" + par_fmt;
+            if nargin > 1
+                assert(numel(pfit) == numel(obj.params), ...
+                       'sw_fitpowder:invalidinput', ...
+                       'Fit params vector has invlaid length.');
+                col_headers = [col_headers, "Best Fit"];
+                pars = [pars, pfit(:)];
+                fmt_str = fmt_str + par_fmt;
+            end
+            if nargin == 3
+                assert(numel(perr) == numel(obj.params), ...
+                       'sw_fitpowder:invalidinput', ...
+                       'Fit error vector has invlaid length.');
+                col_headers = [col_headers, "Error"];
+                pars = [pars, perr(:)];
+                fmt_str = fmt_str + par_fmt;
+            end
+            fmt_str = fmt_str + "\n";
+            % print model params
+            fprintf("---\nMODEL\n---\n")
+            fprintf([repmat('%s\t\t', 1,numel(col_headers)), '\n'], col_headers);
+            imodel = [1:obj.nparams_model]';
+            fprintf(fmt_str, [imodel, pars(imodel,:)]');
+            % print scale
+            scales = sprintf(par_fmt, pars(end,:));
+            fprintf("%8s\t%s\n", "SCALE", scales);
+            % print background
+            fprintf("---\nBACKGROUND\n---\n")
+            bg_pars = pars(obj.nparams_model+1:size(pars, 1)-1, :);
+            labels = obj.bg_param_labels;
+            col_headers = col_headers(2:end);  % excl. Index
+            bg_par_index = [1:obj.nparams_bg]';
+            if obj.ndim == 1 && obj.background_strategy == "independent"
+                % add icut column
+                col_headers = ["Cut Index", col_headers];
+                fmt_str = "%.0f\t" + fmt_str;
+                cut_index = repelem([1:obj.ncuts]', obj.nparams_bg,1);
+                bg_pars = [cut_index , bg_pars];
+                bg_par_index = repmat(bg_par_index, obj.ncuts, 1);
+                labels = repmat(labels, obj.ncuts, 1);
+            end
+            bg_pars = [bg_par_index, bg_pars];
+            col_headers = ["Label", "Index", col_headers];
+            fprintf([repmat('%s\t', 1,numel(col_headers)), '\n'], col_headers);
+            for irow = 1:size(bg_pars, 1)
+                row = sprintf(fmt_str, bg_pars(irow,:));
+                fprintf("%5s\t%s", labels(irow), row);
+            end
+        end
+
     end
 
     % private
