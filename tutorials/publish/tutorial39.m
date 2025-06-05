@@ -91,7 +91,7 @@ fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
 % region - it is worth trying this first
 
 fitpow.estimate_constant_background();
-fitpow.estimate_scale_factor()
+fitpow.estimate_scale_factor();
 
 % view the background region on 2D colorfill plot of data
 figure("color","white")
@@ -107,6 +107,25 @@ fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, fitpow.params);
 % If the automatic background estimation doesn't look reasonable then it is
 % possible to define regions of |Q| and energy transfer that are background
 % and use these for fitting.
+%
+% General polynomial backgrounds in both |Q| and energy transfer are
+% supported (governed by the attributes npoly_modQ and npoly_en).
+% The default background is planar of the form
+%
+% Q1*|Q| + E1*en + E0
+%
+% The background parameters can be referenced by index or label 
+% (e.g. "E0" for constant background).
+% The labels are of the form "QN" or "EN" (for |Q| and energy
+% polynomial coeficients repectively) where N represents the order of the 
+% polynomial. The background parameters are indexed in the following order
+%
+% [QN, QN-1, ..., Q1, EM, EM-1, ..., E1, E0]
+%
+% where N = npoly_modQ and M=npoly_en. Note there is no Q0 parameter, this
+% would correspond to a constant which would be perfectly correlated with 
+% E0.
+
 
 % set background regions
 %-----------------------
@@ -125,10 +144,10 @@ fitpow.set_bg_region(0.8, 1.2, 0.65, 0.9);
 %-----------------------------------------------------
 
 % fit only a constant/flat background
-% default background is planar with parameters:
-% [slope_energy, slope_modQ,  intercept]
-fitpow.fix_bg_parameters(1:2); % fix slopes to initial value (0)
-fitpow.set_bg_parameter_bounds(3, 0.0, []) % Set lb of constant bg = 0
+fitpow.fix_bg_parameters(["Q1", "E1"]); % fix slopes to initial value (0)
+fitpow.set_bg_parameter_bounds("E0", 0.0, []) % Set lb of constant bg = 0
+
+% general polynomial backgrounds are supported the parameters are ordered
 
 [pfit, ~, stat] = fitpow.fit_background();
 fitpow.estimate_scale_factor();
@@ -136,11 +155,29 @@ fitpow.estimate_scale_factor();
 % view 1D cuts of data and the initial guess
 fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, fitpow.params);
 
+% print inital parameters
+fitpow.disp_params();
+% ---
+% MODEL
+% ---
+% Index		Initial		
+%        1	    0.85	
+%    SCALE	 1316.58	
+% ---
+% BACKGROUND
+% ---
+% Label	Index	Initial	
+%    Q1	       1	       0	
+%    E1	       2	       0	
+%    E0	       3	0.976825	
 
 %% Cropping data
 % Data can be cropped in |Q| and energy transfer - for example it is
 % advisible not to include the low-energy transfer region close to the
 % elastic line (relative to the resolution). 
+%
+% You may want to re-optimise the background and scale factor after
+% cropping
 
 % crop data
 fitpow.crop_energy_range(1.5*eres(0), inf); % typically want to avoid elastic line
@@ -175,10 +212,10 @@ sgtitle(fig, "Initial guess")
 
 % set cost function and minimser
 fitpow.cost_function = "Rsq";  % "Rsq" or "chisq"
-fitpow.optimizer = @ndbase.simplex; % or e.g. ndbase.simplex
+fitpow.optimizer = @ndbase.simplex; % or e.g. ndbase.lm4
 
 % Fix the constant background at the result of the previous fit
-fitpow.fix_bg_parameters(3); % fix fitted constant bg
+fitpow.fix_bg_parameters("E0"); % fix fitted constant bg
 
 % set bounds on first (and only in this case) model parameter
 fitpow.set_model_parameter_bounds(1, 0, []) % Force J_1 to be AFM
@@ -191,10 +228,26 @@ fitpow.plot_result(pfit, 10,  'EdgeAlpha', 0.9, 'LineWidth', 1 ,'EdgeColor', 'k'
 % make 1D plots
 fitpow.plot_1d_cuts_of_2d_data(qcens-dq, qcens+dq, pfit)
 
+% print parameters
+fitpow.disp_params(pfit);
+% ---
+% MODEL
+% ---
+% Index		Initial		Best Fit		
+%        1	    0.85	 1.00185	
+%    SCALE	 1316.58	 1024.67	
+% ---
+% BACKGROUND
+% ---
+% Label	Index	Initial	Best Fit	
+%    Q1	       1	       0	       0	
+%    E1	       2	       0	       0	
+%    E0	       3	0.976825	0.976825	
+
 %% Fit 1D cuts
 % As discussed the sw_fitpowder class can be initialised with a cell array
 % of xye structs correpsonding to 1D cuts at constant |Q|.
-% Alternatively, having loaded in 2D data the sw_fitpowder class has a 
+% Alternatively, having loaded in 2D data, the sw_fitpowder class has a 
 % convenient method to take 1D cuts and replace the data. 
 % 
 % If 2D data are replaced with 1D cuts then the class evaluates the 
@@ -211,10 +264,8 @@ fitpow.replace_2D_data_with_1D_cuts(qcens-dq, qcens+dq);
 
 % change background to quadratic in |Q|
 fitpow.set_bg_npoly_modQ(2);  % zeros previously optimised background
-% Fix linear terms of background
-% bg params ordered as en^n,...en^1, q^n,..q^1, const
-fitpow.fix_bg_parameters(3);  % fix term ~|Q|
-fitpow.fix_bg_parameters(1);  % fix term ~energy
+% Fix linear terms of background to be 0
+fitpow.fix_bg_parameters(["Q1", "E1"]);
 % fit background and scale (fix model params) to all bins (not just bg
 % region -0 only advisable if near good solution)
 [pfit, ~, stat] = fitpow.fit_background_and_scale();
@@ -232,18 +283,22 @@ fit_kwargs = {'resid_handle', true, 'diff_step', 1e-3};
 
 fitpow.plot_result(pfit);
 
-% display result
-par_names = ["J1", "Bg_En1", "Bg_Q2", "Bg_Q1", "Bg_Q0", "Scale"];
-["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
-
-%     "Name"      "Value"           "Error"     
-%     "J1"        "1.0027473"       "0.00360547"
-%     "Bg_En1"    "0"               "0"         
-%     "Bg_Q2"     "0.02066691"      "0.095079"  
-%     "Bg_Q1"     "0"               "0"         
-%     "Bg_Q0"     "-0.036883773"    "0.37194"   
-%     "Scale"     "1082.117"        "19.405"    
-
+% print parameters
+fitpow.disp_params(pfit, stat.sigP);
+% ---
+% MODEL
+% ---
+% Index		Initial		Best Fit		Error		
+%        1	 1.00185	 1.00091	0.00357452	
+%    SCALE	 1106.42	 1105.33	 19.8056	
+% ---
+% BACKGROUND
+% ---
+% Label	Index	Initial	Best Fit	Error	
+%    Q2	       1	-0.618568	-0.613758	0.294827	
+%    Q1	       2	       0	       0	       0	
+%    E1	       3	       0	       0	       0	
+%    E0	       4	0.444711	0.455551	0.497835	
 
 %% Change background strategy
 % The background for 1D cuts can be handled in two ways:
@@ -265,18 +320,21 @@ fitpow.set_background_strategy("independent");
 
 fitpow.plot_result(pfit)
 
-% display result
-bg_names = repmat(["Bg_En1_cut", "Bg_En0_cut"]', fitpow.ncuts, 1);
-bg_names = bg_names + repelem([1:fitpow.ncuts]', fitpow.nparams_bg,1);
-par_names = ["J1", bg_names', "Scale"];
-["Name", "Value", "Error"; par_names(:), pfit(:), stat.sigP(:)]
-
-%     "Name"           "Value"          "Error"     
-%     "J1"             "1.0059739"      "0.00403765"
-%     "Bg_En1_cut1"    "-0.85631989"    "0.376039"  
-%     "Bg_En0_cut1"    "1.7546252"      "0.892913"  
-%     "Bg_En1_cut2"    "0.52590868"     "0.433608"  
-%     "Bg_En0_cut2"    "-2.3563309"     "1.49539"   
-%     "Bg_En1_cut3"    "-0.41373845"    "0.350704"  
-%     "Bg_En0_cut3"    "0.52287368"     "0.936986"  
-%     "Scale"          "1131.9098"      "30.4495"   
+% print parameters
+fitpow.disp_params(pfit, stat.sigP);
+% ---
+% MODEL
+% ---
+% Index		Initial		Best Fit		Error		
+%        1	 1.00091	 1.00181	0.00361181	
+%    SCALE	 1105.33	 1213.84	 29.0031	
+% ---
+% BACKGROUND
+% ---
+% Label	Index	Cut Index	Initial	Best Fit	Error	
+%    E1	1	       1	       0	-1.03769	0.359709	
+%    E0	2	       1	0.0977161	 1.79735	0.857853	
+%    E1	1	       2	       0	 1.85999	 0.41829	
+%    E0	2	       2	-0.926966	-7.27229	 1.43701	
+%    E1	1	       3	       0	 0.23947	0.337007	
+%    E0	2	       3	-2.61892	-2.66401	0.904453	
