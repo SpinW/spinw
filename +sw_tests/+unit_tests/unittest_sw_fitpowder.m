@@ -375,6 +375,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         function test_fit_background_and_scale(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
+            out.powspec_args.fastmode = false;
             out.fix_bg_parameters(1:2); % fix slopes of background to 0
             out.set_bg_parameters(3, 1.5); % initial guess
             out.fit_background_and_scale();
