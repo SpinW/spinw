@@ -213,8 +213,8 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             else
                 nparams_bg_total = obj.nparams_bg;
                 % add modQ polynopmial label
-                obj.bg_param_labels = [obj.bg_param_labels;
-                                       repmat("Q", obj.npoly_modQ, 1) + [obj.npoly_modQ:-1:1]'];
+                obj.bg_param_labels = [repmat("Q", obj.npoly_modQ, 1) + [obj.npoly_modQ:-1:1]';
+                                       obj.bg_param_labels;];
             end
             bg_params = zeros(nparams_bg_total, 1);
             bg_bounds = [-inf, inf].*ones(nparams_bg_total, 1);
@@ -701,7 +701,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 bg = mean(obj.y(obj.ibg));
             end
             % set constant background assuming last bg parameter
-            obj.set_bg_parameters(obj.nparams_bg, bg);  % set constant background
+            obj.set_bg_parameters("E0", bg);  % set constant background
         end
 
         function set_errors_of_bg_bins(obj, val)

@@ -605,7 +605,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out.set_bg_parameters("Q1", -5);
             out.set_bg_parameters("E1", 5);
             expected_fitpow = testCase.default_fitpow;
-            expected_fitpow.params(2:4) = [5, 0, -5]; % E1, E0, Q1
+            expected_fitpow.params(2:4) = [-5, 5,0]; % Q1, E1, E0
             testCase.verify_results(out, expected_fitpow);
         end
 
@@ -634,7 +634,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
                                testCase.fit_func, testCase.j1);
             bg_pars = 1:3;
-            bg_labels = ["E1","E0","Q1"];
+            bg_labels = ["Q1","E1","E0"];
             out.set_bg_parameters(bg_labels, bg_pars);
             out.fix_bg_parameters(bg_labels);
             expected_fitpow = testCase.default_fitpow;
