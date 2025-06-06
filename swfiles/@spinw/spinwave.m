@@ -1028,9 +1028,9 @@ else
 
         if param.fastmode
             % Only transform the positive energy modes (first half of V)
+            omega(1:nMagExt, hklIdxMEM) = D(1:nMagExt,:);
             for ii = 1:nMagExt
                 V(:,ii,:) = bsxfun(@times, V(:,ii,:), sqrt(1 ./ sum(bsxfun(@times,gCommd,conj(V(:,ii,:)).*V(:,ii,:)))));
-                omega(ii,:) = D(ii,:);
             end
         else
             for ii = 1:nHklMEM
