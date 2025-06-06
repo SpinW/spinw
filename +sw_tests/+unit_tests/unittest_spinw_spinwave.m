@@ -682,6 +682,16 @@ classdef unittest_spinw_spinwave < sw_tests.unit_tests.unittest_super
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec1.Sperp, 'abs_tol', 1e-8);
             testCase.verify_val(spec0.Sperp(1:nMode,:), spec2.Sperp, 'abs_tol', 1e-8);
         end
+        function test_fastmode_memory_chunked_nomex(testCase)
+            swpref.setpref('usemex', 0);
+            sw_obj = copy(testCase.swobj);
+            hkl = {[0 0 0] [1 0 0] [0 1 0] 50};
+            % check that executes with no error
+            spec_fast = sw_obj.spinwave(hkl, 'hermit', false, 'fastmode', true, 'optmem', 2);
+            % eval with fastmode=false for comparison
+            spec_slow = sw_obj.spinwave(hkl, 'hermit', false, 'fastmode', false);
+            testCase.verify_val(spec_fast.omega, spec_slow.omega(1,:))
+        end
     end
     methods (Test, TestTags = {'Symbolic'})
         function test_sw_symbolic_no_qpts(testCase)
