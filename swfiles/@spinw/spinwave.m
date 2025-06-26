@@ -564,7 +564,8 @@ end
 % e2 = e3 x e1
 if ~param.cmplxBase
     % e3 || Si
-    e3 = bsxfun(@rdivide,M0,S0);
+    d0 = S0; d0(d0==0) = 1;
+    e3 = bsxfun(@rdivide,M0,d0);
     % e2 = Si x [1,0,0], if Si || [1,0,0] --> e2 = [0,0,1]
     e2  = [zeros(1,nMagExt); e3(3,:); -e3(2,:)];
     e2(3,~any(abs(e2)>1e-10)) = 1;

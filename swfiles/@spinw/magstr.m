@@ -110,15 +110,21 @@ magOut.S = reshape(sum(M,6),3,[]);
 kInc = find(sumsym(mod(kExt0,1) == 0,1)<3);
 if ~isempty(kInc)
     magOut.k = obj.mag_str.k(:,kInc(1))';
-    n = cross(real(obj.mag_str.F(:,1,kInc(1))),imag(obj.mag_str.F(:,1,kInc(1))))';
-    % normalize n-vector
-    if sw_always(norm(n) < 10*eps)
-        % find any n perpendicular to the first spin vector (in most cases
-        % it works)
-        V = sw_cartesian(real(obj.mag_str.F(:,1)));
-        magOut.n = V(:,2)';
-    else
+    if norm(cross(real(obj.mag_str.F), imag(obj.mag_str.F))) < 10*eps
+        % Checks if it is an amplitude modulated structure - if so put it parallel to the moment direction
+        n = sum(abs(obj.mag_str.F),2)';
         magOut.n = n/norm(n);
+    else
+        n = cross(real(obj.mag_str.F(:,1,kInc(1))),imag(obj.mag_str.F(:,1,kInc(1))))';
+        % normalize n-vector
+        if sw_always(norm(n) < 10*eps)
+            % find any n perpendicular to the first spin vector (in most cases
+            % it works)
+            V = sw_cartesian(real(obj.mag_str.F(:,1)));
+            magOut.n = V(:,2)';
+        else
+            magOut.n = n/norm(n);
+        end
     end
 else
     magOut.k = [0 0 0];
