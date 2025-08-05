@@ -812,7 +812,10 @@ if param.mode == 3
         iName = strsplit(strtrim(sprintf('I%d ',1:nMode)),' ');
         eName = strsplit(strtrim(sprintf('EN%d ',1:nMode)),' ');
         sName = strsplit(strtrim(sprintf('s%d ',1:nMode)),' ');
-        
+        if ~isfield(T, sName)
+           sName = strsplit(strtrim(sprintf('sigma%d ',1:nMode)),' ');
+        end
+
         dat.I = zeros(nMode,nQ);
         dat.E = zeros(nMode,nQ);
         dat.s = zeros(nMode,nQ);

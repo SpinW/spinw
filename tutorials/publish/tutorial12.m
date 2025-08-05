@@ -78,7 +78,7 @@ if ~exist('sqw','file')
 end
 
 horaceObj = d3d(tri.abc,[1 0 0 0],[0,0.005,1],[0 1 0 0],[0,0.005,1],[0 0 0 1],[0,0.1,10]);
-horaceObj = disp2sqw_eval(horaceObj,@tri.horace,{'component','Sperp'},dE);
+horaceObj = disp2sqw_eval(horaceObj,@tri.horace,{'component','Sperp'},dE,'-all');
 cut1 = cut(horaceObj,[],[],[3.0 3.5]);
 
 % We use the honest colormap cm_inferno.
