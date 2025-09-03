@@ -362,7 +362,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             obj.set_bounds(size(obj.bounds,1), lb, ub);
         end
 
-        function data = export_data(obj)
+        function data = export_data(obj, filename)
             if obj.ndim == 2
                 data.y = obj.y';
                 data.e = obj.e';
@@ -378,6 +378,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                     data(icut).qmin = qs(1) - 0.5*(qs(2)-qs(1));
                     data(icut).qmax = qs(end) + 0.5*(qs(end)-qs(end-1));
                 end
+            end
+            if nargin > 1
+                save(filename, 'data');
             end
         end
 

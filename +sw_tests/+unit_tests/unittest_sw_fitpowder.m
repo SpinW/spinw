@@ -611,6 +611,17 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_val(data, testCase.data_2d);
         end
 
+        function test_export_data_2d_with_filename(testCase)
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            fixture = testCase.applyFixture(TemporaryFolderFixture);
+            tmp_file = fullfile(fixture.Folder,"data.mat");
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            data = out.export_data(tmp_file);
+            testCase.verify_val(data, testCase.data_2d);
+            testCase.assertTrue(isfile(tmp_file));
+        end
+
         function test_export_data_1d(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1);
