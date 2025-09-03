@@ -229,25 +229,26 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 error('sw_fitpowder:invalidinput', ...
                       'set_bg_npoly_modQ only applies to planar background');
             end
-            if npoly_modQ < 0
-                error('sw_fitpowder:invalidinput', ...
-                      'npoly_modQ must be positive int');
+            if abs(mod(npoly_modQ, 1)) > eps || npoly_modQ < 0
+                   error('sw_fitpowder:invalidinput', ...
+                         'npoly_modQ must be a positive integer');
             end
             if obj.ndim==1 && npoly_modQ > obj.ncuts - 1
                 error('sw_fitpowder:invalidinput', ...
                       'Not enough 1D cuts to fit polynomial of order npoly_modQ.');
             end
-            obj.npoly_modQ = round(npoly_modQ);
+
+            obj.npoly_modQ = npoly_modQ;
             obj.nparams_bg = obj.get_nparams_in_background_func();
             obj.initialise_background_parameters_and_bounds();
         end
 
         function set_bg_npoly_en(obj, npoly_en)
-            if npoly_en < 0
-                error('sw_fitpowder:invalidinput', ...
-                      'npoly_en must be positive int');
+            if abs(mod(npoly_en, 1)) > eps || npoly_en < 0
+                   error('sw_fitpowder:invalidinput', ...
+                         'npoly_en must be a positive integer');
             end
-            obj.npoly_en = round(npoly_en);
+            obj.npoly_en = npoly_en;
             obj.nparams_bg = obj.get_nparams_in_background_func();
             obj.initialise_background_parameters_and_bounds();
         end
