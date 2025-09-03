@@ -754,7 +754,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
             ax = gca;
             box on; hold on;
             h = imagesc(ax, obj.modQ_cens, obj.ebin_cens, y);
-            h.AlphaData = double(obj.y > 0);  % make empty bins transparent
+            h.AlphaData = double(obj.e > 0);  % make empty bins transparent
             cbar = colorbar(ax);
             cbar.Label.String = "Intensity";
             xlabel(ax, "$\left|Q\right| (\AA^{-1})$", 'interpreter','latex');
@@ -791,11 +791,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 hold on; box on;
                 if ~isempty(ycalc)
                     cut = obj.cut_2d_data(qmins(icut), qmaxs(icut), ycalc);
-                    plot(ax, cut.x, cut.ycalc, '-r');
+                    plot(ax, cut.x, cut.ycalc, '-r', 'DisplayName', 'Fit');
                 else
                     cut = obj.cut_2d_data(qmins(icut), qmaxs(icut));
                 end
-                plot(ax, cut.x, cut.y, 'ok');
+                plot(ax, cut.x, cut.y, 'ok', 'DisplayName', 'Data');
                 % calc xlims
                 ifinite = isfinite(cut.y);
                 istart = find(ifinite, 1, 'first');
