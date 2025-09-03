@@ -420,11 +420,11 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                            'Input cell does not have correct fields');
                     obj.y = [obj.y cut.y(:)];
                     obj.e = [obj.e cut.e(:)];
-                    dQ = (cut.qmax - cut.qmin)/obj.nQ;
                     if isfield(cut, 'qs')
                         obj.modQ_cens = [obj.modQ_cens, cut.qs(:)'];
                         obj.modQ_icuts = [obj.modQ_icuts, icut*ones(1, numel(cut.qs))];
                     else
+                        dQ = (cut.qmax - cut.qmin)/obj.nQ;
                         obj.modQ_cens = [obj.modQ_cens, ((cut.qmin+dQ/2):dQ:cut.qmax)];
                         obj.modQ_icuts = [obj.modQ_icuts, icut*ones(1, obj.nQ)];
                     end

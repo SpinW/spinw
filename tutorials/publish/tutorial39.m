@@ -78,7 +78,7 @@ fitpow.set_caching(true); % will store last calculated spectra
 fitpow.powspec_args.dE = eres; % emergy resolution
 fitpow.powspec_args.fastmode = true;
 fitpow.powspec_args.neutron_output = true;
-fitpow.powspec_args.nRand = 1e3; % low for speed (typically want > 1e3)
+fitpow.powspec_args.nRand = 1e3;
 fitpow.powspec_args.hermit = true;
 % set parameters passsed to sw_instrument
 fitpow.sw_instrument_args = struct('dQ', dQ, 'ThetaMin', 3.5, 'Ei', Ei);
