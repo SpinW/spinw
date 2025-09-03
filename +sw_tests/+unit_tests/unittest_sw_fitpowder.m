@@ -81,7 +81,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
         function test_set_background_strategy_to_planar(testCase)
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "independent");
-            % set some background parameters (correpsonding to planar bg
+            % set some background parameters for 1D cuts equivalent to a planar bg
             % with slope_en=1, slope_q=2, intercept = 3
             out.set_bg_parameters(1, 1); % en_slope = 1
             out.set_bg_parameters(2, 11, 1); % intercept = 4*2 + 3 for cut 1 
@@ -177,6 +177,25 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
                                testCase.fit_func, testCase.j1);
             bg_pars = [-5, 5];
             out.set_bg_parameters(1:2, bg_pars);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(2:3) = bg_pars;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_bg_parameters_with_char(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            out.set_bg_parameters('E0', -5);
+            expected_fitpow = testCase.default_fitpow;
+            expected_fitpow.params(end-1) = -5;
+            testCase.verify_results(out, expected_fitpow);
+        end
+
+        function test_set_bg_parameters_with_cell_of_char(testCase)
+            out = sw_fitpowder(testCase.swobj, testCase.data_2d, ...
+                               testCase.fit_func, testCase.j1);
+            bg_pars = [-5, 5];
+            out.set_bg_parameters({'Q1', 'E1'}, bg_pars);
             expected_fitpow = testCase.default_fitpow;
             expected_fitpow.params(2:3) = bg_pars;
             testCase.verify_results(out, expected_fitpow);
@@ -621,8 +640,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             out = sw_fitpowder(testCase.swobj, testCase.data_1d_cuts, ...
                                testCase.fit_func, testCase.j1, "independent", 1);
             bg_pars = [-5, 5];
-            out.set_bg_parameters("E1", bg_pars(1));
-            out.set_bg_parameters("E0", bg_pars(2));
+            out.set_bg_parameters(["E1", "E0"], bg_pars);
             expected_fitpow = testCase.default_fitpow;
             expected_fitpow.params = [expected_fitpow.params(1);
                                       bg_pars(:); bg_pars(:); 1];
@@ -642,6 +660,7 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             expected_fitpow.bounds(2:4, :) = repmat(bg_pars(:), 1,2);
             testCase.verify_results(out, expected_fitpow);
         end
+
     end
 
 end

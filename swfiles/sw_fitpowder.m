@@ -254,7 +254,7 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
         function set_background_strategy(obj, strategy)
             if strategy == "planar"
-                obj.fbg = @(en, modQ, p) obj.fbg_planar(en, modQ, p, obj.npoly_en);
+                obj.fbg = @(en, modQ, p) obj.fbg_planar(en, modQ, p, obj.npoly_modQ);
             elseif strategy == "independent"
                 if obj.ndim == 2
                     error('sw_fitpowder:invalidinput', ...
@@ -325,6 +325,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
         function set_bg_parameters(obj, iparams_bg, values, icuts)
             if nargin < 4
                 icuts = 0;
+            end
+            if  ischar(iparams_bg) || iscell(iparams_bg)  % Handles character arrays
+                iparams_bg = string(iparams_bg);
             end
             for ival = 1:numel(values)
                 iparams = obj.get_index_of_background_parameters(iparams_bg(ival), icuts);
