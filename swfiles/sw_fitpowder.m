@@ -876,7 +876,10 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
 
 
         function modQ_cens = get_modQ_cens_of_cuts(obj)
-            modQ_cens = mean(reshape(obj.modQ_cens, [], obj.ncuts), 1);
+            modQ_cens = zeros(1, obj.ncuts);
+            for icut = 1:obj.ncuts
+                modQ_cens(icut) = mean(obj.modQ_cens(obj.modQ_icuts == icut));
+            end
         end
 
         function cut = cut_2d_data(obj, qmin, qmax, ycalc)
