@@ -227,7 +227,7 @@ else
     fVal = cost_val / ndof;
     if exit_flag > 0
         % converged on solution - calculate errors
-        cov = pinv(hess) * 2.0 * fVal;
+        cov = pinv(hess) * 2.0;
         perr(cost_func_wrap.ifree) = sqrt(diag(cov));
     else
         message = "Failed to converge in MaxIter";
