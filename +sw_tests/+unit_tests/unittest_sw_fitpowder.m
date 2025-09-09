@@ -672,6 +672,14 @@ classdef unittest_sw_fitpowder < sw_tests.unit_tests.unittest_super
             testCase.verify_results(out, expected_fitpow);
         end
 
+        function test_add_1Dcuts_withs_qs_specified(testCase)
+            cuts = arrayfun(@(qs) struct('x', 1:3, 'y', 1:3, 'e', 1:3, 'qs', qs), ...
+                            4:5);
+            out = sw_fitpowder(testCase.swobj, cuts, ...
+                               testCase.fit_func, testCase.j1);
+            testCase.verify_results(out, testCase.default_fitpow);
+        end
+
     end
 
 end

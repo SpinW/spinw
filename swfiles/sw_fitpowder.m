@@ -415,7 +415,9 @@ classdef sw_fitpowder < handle & matlab.mixin.SetGet
                 obj.ncuts = numel(data);
                 for icut = 1:obj.ncuts
                     cut = data(icut);
-                    assert(all(isfield(cut, {'x', 'y', 'e', 'qmin','qmax'})), ...
+                    has_xye = all(isfield(cut, {'x', 'y', 'e'}));
+                    has_qfields = all(isfield(cut, {'qmin', 'qmax'})) || isfield(cut, 'qs');
+                    assert(has_xye && has_qfields, ...
                            'sw_fitpowder:invalidinput', ...
                            'Input cell does not have correct fields');
                     obj.y = [obj.y cut.y(:)];
